@@ -1,0 +1,647 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="The Baker&#39;s Dozen, a 13-state restart variant of Jeff Ketchersid's M12 Busy Beaver machine, with a Coq proof that it halts after four f_(omega+2) rounds.">
+<title>The Baker's Dozen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=STIX+Two+Text:ital,wght@0,400;0,600;0,700;1,400&display=swap">
+<style>
+/* Layout: one reading column on a cream ground, figures allowed a little wider; the machine first, then how it works, then what was checked. */
+:root {
+  --bg: #ece6d5;          /* cream, as in the reference diagrams */
+  --panel: #f6f1e3;
+  --ink: #2f4049;         /* slate ink */
+  --muted: #5d727d;       /* M12 grey-blue */
+  --rule: #c9c0a8;
+  --warm: #b8326b;        /* changed / new / halt */
+  --warm-soft: #f1d7e0;
+  --zone: #e2dcc8;
+  --read0: #2b6a9a;       /* graph: transition reads 0 */
+  --read1: #a8660a;       /* graph: transition reads 1 */
+  --stack: #c3d3dc;       /* tape: level stack */
+  --acc: #dbe4cf;         /* tape: accumulator */
+  --count: #d9cfe6;       /* tape: countdown */
+  --code: #e3dcc7;
+  --ok: #3c6e57;
+  --no: #8a4b2a;
+  --f-display: "STIX Two Text", "STIX Two", "Cambria", Georgia, serif;
+  --f-body: "STIX Two Text", "STIX Two", "Cambria", Georgia, serif;
+  --f-label: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --f-mono: "IBM Plex Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #1b2125; --panel: #232b30; --ink: #e2ded2; --muted: #93a8b2; --rule: #3a464c;
+    --warm: #ec7aa8; --warm-soft: #4a2536; --zone: #263036;
+    --read0: #7fb5e3; --read1: #e2a54c;
+    --stack: #34474f; --acc: #35443a; --count: #403852;
+    --code: #262f34; --ok: #86c3a5; --no: #e0a27d; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #1b2125; --panel: #232b30; --ink: #e2ded2; --muted: #93a8b2; --rule: #3a464c;
+  --warm: #ec7aa8; --warm-soft: #4a2536; --zone: #263036;
+  --read0: #7fb5e3; --read1: #e2a54c;
+  --stack: #34474f; --acc: #35443a; --count: #403852;
+  --code: #262f34; --ok: #86c3a5; --no: #e0a27d; color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink);
+  font-family: var(--f-body); font-size: 18px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 40px 72px;
+}
+main { max-width: 760px; margin: 0 auto; display: flex; flex-direction: column; }
+h1, h2, h3 { font-family: var(--f-display); text-wrap: balance; color: var(--ink); line-height: 1.2; }
+h1 { font-size: clamp(30px, 5vw, 42px); font-weight: 600; margin: 6px 0 10px; }
+h2 { font-size: 27px; font-weight: 600; margin: 56px 0 10px; padding-top: 18px; border-top: 1.5px solid var(--muted); }
+h3 { font-size: 21px; font-weight: 600; margin: 34px 0 6px; }
+p { margin: 0 0 14px; max-width: 68ch; }
+a { color: var(--warm); text-underline-offset: 2px; }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--warm); outline-offset: 2px; }
+sub, sup { font-size: 0.72em; line-height: 0; }
+code, .mono { font-family: var(--f-mono); font-size: 0.82em; }
+code { background: var(--code); padding: 1px 4px; border-radius: 3px; }
+.eyebrow { font-family: var(--f-label); font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.nw { white-space: nowrap; }
+.status { font-family: var(--f-label); font-size: 15.5px; line-height: 1.45; margin: 0 0 18px; }
+.status b { color: var(--warm); font-weight: 600; }
+.lede { font-size: 19.5px; }
+.credit { margin-top: 40px; padding-top: 14px; border-top: 1px solid var(--rule); }
+.sub { font-family: var(--f-display); font-size: 22px; color: var(--muted); margin: -6px 0 10px; }
+
+.machine { background: var(--panel); border: 1px solid var(--rule); border-radius: 10px; padding: 14px 16px; margin: 0 0 8px; }
+.machine-top { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 8px; }
+.machine-top .eyebrow { margin: 0; }
+.tm { font-family: var(--f-mono); font-size: 14.5px; line-height: 1.6; word-break: break-all; margin: 0; }
+.tm .chg { color: var(--warm); font-weight: 500; background: var(--warm-soft); border-radius: 2px; }
+button.copy {
+  font-family: var(--f-label); font-size: 13px; color: var(--ink); background: var(--bg);
+  border: 1px solid var(--muted); border-radius: 6px; padding: 4px 10px; cursor: pointer;
+}
+button.copy:hover { border-color: var(--warm); color: var(--warm); }
+.changes { list-style: none; padding: 0; margin: 12px 0 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.changes li { font-family: var(--f-mono); font-size: 13.5px; border: 1px solid var(--warm); border-radius: 999px; padding: 3px 11px; color: var(--ink); }
+.changes li b { color: var(--warm); font-weight: 500; }
+.changes li s { color: var(--muted); }
+.small { font-size: 15px; color: var(--muted); font-family: var(--f-label); margin-bottom: 22px; }
+
+figure { margin: 22px 0 26px; }
+.fig-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+figcaption { font-family: var(--f-label); font-size: 14px; line-height: 1.5; color: var(--muted); margin-top: 8px; max-width: 70ch; }
+figure.wide {
+  margin-left: min(0px, max(-90px, calc((760px - 100vw) / 2 + 16px)));
+  margin-right: min(0px, max(-90px, calc((760px - 100vw) / 2 + 16px)));
+}
+
+/* diagrams */
+svg.dg { display: block; width: 100%; height: auto; color: var(--ink); }
+svg.dg-tape { min-width: 600px; }
+svg.dg-loops { min-width: 640px; }
+svg.dg-graph.wide { min-width: 720px; }
+svg.dg-graph.tall { display: none; max-width: 520px; margin: 0 auto; }
+@media (max-width: 640px) {
+  svg.dg-graph.wide { display: none; }
+  svg.dg-graph.tall { display: block; }
+}
+.dg text { font-family: var(--f-display); fill: var(--ink); }
+.dg .halt { fill: var(--ink); stroke: none; }   /* HALT is M12's too, so ink, not pink */
+.dg .hl { fill: var(--bg); font-family: var(--f-label); font-weight: 600; font-size: 15px; letter-spacing: 0.04em; }
+.dg .t13 { font-size: 13.5px; }
+.dg .t14 { font-size: 15px; }
+.dg .t15 { font-size: 16px; }
+.dg .t16 { font-size: 17px; }
+.dg .t22 { font-size: 22px; }
+.dg .b { font-weight: 600; }
+.dg .mut { fill: var(--muted); }
+.dg .wm { fill: var(--warm); }
+.dg .dot { fill: var(--ink); }
+.dg .ah-i { fill: var(--ink); }
+/* loops (diagram 3): pink = new in the Baker's Dozen, purple = the countdown, green = the engine's output */
+.dg .ln { fill: none; stroke: var(--ink); stroke-width: 2.6; stroke-linecap: round; }
+.dg .ln2 { fill: none; stroke: var(--ink); stroke-width: 2.1; stroke-linecap: round; }
+.dg .ln3 { fill: none; stroke: var(--ink); stroke-width: 1.7; stroke-linecap: round; }
+.dg .wln { fill: none; stroke: var(--warm); stroke-width: 2.6; stroke-linecap: round; }
+.dg .wbx { fill: var(--panel); stroke: var(--warm); stroke-width: 2; }
+.dg .pbx { fill: var(--panel); stroke: var(--muted); stroke-width: 1.1; }
+.dg .sfr { fill: none; stroke: var(--muted); stroke-width: 1.1; }
+.dg .cpill { fill: var(--count); stroke: var(--muted); stroke-width: 1.2; }
+.dg .cpilltx { fill: var(--ink); font-size: 22px; font-style: italic; }
+.dg .chip rect { stroke: var(--muted); stroke-width: 0.9; }
+.dg .chip.cnt rect { fill: var(--count); }
+.dg .chip.out rect { fill: var(--acc); }
+/* tape (diagram 2) */
+.dg .tp { fill: var(--panel); stroke: var(--rule); stroke-width: 1; }
+.dg .blk { stroke: var(--muted); stroke-width: 1.2; }
+.dg .blk.stack { fill: var(--stack); }
+.dg .blk.acc { fill: var(--acc); }
+.dg .blk.count { fill: var(--count); }
+.dg .blk.empty { fill: none; stroke-dasharray: 5 4; }
+.dg .bl { font-family: var(--f-label); font-size: 14px; font-weight: 500; }
+.dg .bl.mut { fill: var(--muted); font-weight: 400; }
+.dg .rt { font-family: var(--f-label); font-size: 14px; fill: var(--muted); }
+.dg .head { fill: var(--ink); }
+.dg .hdl { font-family: var(--f-label); font-size: 12.5px; fill: var(--muted); }
+.dg .guide { stroke: var(--muted); stroke-width: 1.2; stroke-dasharray: 4 4; }
+.dg .gl { font-family: var(--f-label); font-size: 13px; fill: var(--muted); font-style: italic; }
+/* graph (diagram 1) */
+.dg .zone { fill: var(--zone); stroke: none; }
+.dg .zl { font-family: var(--f-label); font-size: 13px; fill: var(--muted); letter-spacing: 0.06em; }
+.dg .e { fill: none; stroke-width: 1.8; stroke-linecap: round; }
+.dg .e.r0 { stroke: var(--read0); }
+.dg .e.r1 { stroke: var(--read1); }
+.dg .e.case { stroke: var(--warm); stroke-width: 6.5; stroke-linecap: butt; }
+.dg .e.core { stroke-width: 2; }
+.dg .ah-r0 { fill: var(--read0); }
+.dg .ah-r1 { fill: var(--read1); }
+.dg .ah-w { fill: var(--warm); }
+.dg .bdg { fill: var(--panel); stroke-width: 1.3; }
+.dg .bdg.r0 { stroke: var(--read0); }
+.dg .bdg.r1 { stroke: var(--read1); }
+.dg .bdg.w { stroke: var(--warm); stroke-width: 2.2; }
+.dg .bdg.k { stroke: var(--muted); }
+.dg .chev { fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.dg .chev.r0 { stroke: var(--read0); }
+.dg .chev.r1 { stroke: var(--read1); }
+.dg .chev.k { stroke: var(--ink); }
+.dg .n { stroke: var(--muted); stroke-width: 1.4; }
+.dg .n.old { fill: var(--panel); }
+.dg .n.new { fill: var(--warm); stroke: var(--warm); }
+.dg .nl { font-size: 20px; font-weight: 600; }
+.dg .nl.new { fill: var(--bg); }
+.dg-graph.tall .nl { font-size: 24px; }
+.dg-graph.tall .zl { font-size: 17px; }
+.dg-graph.tall .hl { font-size: 17px; }
+.dg-graph.tall .e { stroke-width: 2.4; }
+.dg-graph.tall .e.case { stroke-width: 8.5; }
+.dg-graph.tall .e.core { stroke-width: 2.6; }
+.dg-graph.tall .bdg { stroke-width: 1.6; }
+.dg-graph.tall .bdg.w { stroke-width: 2.6; }
+.dg-graph.tall .chev { stroke-width: 2.6; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 6px 18px; font-family: var(--f-label); font-size: 13.5px; color: var(--muted); margin-top: 8px; }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.legend svg.dg { width: 28px; height: 16px; min-width: 0; }
+.legend svg.dg.pair { width: 42px; height: 20px; }
+.sw { width: 14px; height: 14px; border-radius: 50%; display: inline-block; }
+.sw.new { background: var(--warm); }
+
+.tablewrap { overflow-x: auto; margin: 10px 0 18px; }
+table { border-collapse: collapse; font-size: 15.5px; font-variant-numeric: tabular-nums; width: 100%; }
+th { font-family: var(--f-label); font-weight: 600; font-size: 12.5px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--muted); text-align: left; }
+th, td { padding: 6px 10px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+td.num, th.num { text-align: right; }
+td code { white-space: nowrap; }
+tr.hl td { background: var(--warm-soft); }
+table.slots { width: auto; font-family: var(--f-mono); font-size: 14px; }
+table.slots td, table.slots th { padding: 3px 12px; text-align: center; }
+table.slots th.r0 { color: var(--read0); }
+table.slots th.r1 { color: var(--read1); }
+table.slots td.chg { color: var(--warm); font-weight: 500; }
+table.slots s { color: var(--muted); font-size: 0.85em; margin-right: 4px; }
+table.rules td:first-child { white-space: nowrap; }
+table.rules .fn { display: block; font-family: var(--f-mono); font-size: 12px; color: var(--muted); }
+
+ul.parts { padding-left: 20px; margin: 0 0 14px; max-width: 68ch; }
+ul.parts li { margin-bottom: 6px; }
+
+.verlist { padding-left: 20px; max-width: 68ch; margin: 8px 0 14px; }
+.verlist li { margin-bottom: 9px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<main>
+
+<header>
+  <div class="eyebrow">Busy Beaver · 13 states · <span class="nw">2026-10-27</span></div>
+  <h1>The Baker's Dozen</h1>
+  <p class="sub">A 13-state restart variant of M12</p>
+  <p class="status"><b>Status:</b> proved in <a href="https://en.wikipedia.org/wiki/Rocq">Coq</a>, on top of Jeff Ketchersid's Coq development for M12. Superseded on 28 October 2026 by <a href="https://github.com/jeff87654/busy-beaver/tree/main/BB13">M13b</a> from Jeff Ketchersid and Argon, which has a larger proved bound. See <a href="#verification">Verification</a>.</p>
+</header>
+
+<div class="machine">
+  <div class="machine-top"><span class="eyebrow">Standard format</span><button class="copy" id="copy-tm" type="button">Copy</button></div>
+  <p class="tm" id="tm">1RB1RA_1RI1RC_0LD1LG_0RE1LD_1LK1RF_1RG0RA_1RA0LH_1LG1LH_1RE0LJ_1LH1LI_<span class="chg">0LM</span>0LL_<span class="chg">1RL</span>1LK_<span class="chg">0LG---</span></p>
+  <ul class="changes" aria-label="Changes from M12">
+    <li>L0 <s>0LH</s> → <b>1RL</b></li>
+    <li>K0 <s>1RZ (halt)</s> → <b>0LM</b></li>
+    <li>new state M with <b>M0 = 0LG</b>, <b>M1 = ---</b> (halt)</li>
+  </ul>
+</div>
+<p class="small">The other 22 of M12's 24 slots, including the whole W engine, are M12's, unchanged.</p>
+
+<p class="lede">The Baker's Dozen is a 13-state variant of <a href="https://github.com/jeff87654/busy-beaver/tree/main/BB12">M12</a>, a 12-state <a href="https://en.wikipedia.org/wiki/Busy_beaver">Busy Beaver</a> machine by Jeff Ketchersid and Gemini. M12 keeps three numbers on its tape, a level, an accumulator and a countdown. Each <em>step</em> uses up three units of the countdown and, through an engine of fast-growing functions, raises the level enormously. A <em>round</em> runs steps until fewer than three units are left. M12 runs one large round and halts. The Baker's Dozen changes one of M12's transitions and sends M12's halt slot to a new state. Where M12 builds its countdown, the new machine <em>restarts</em>. It reads the whole tape as a new, much larger countdown and starts over. It runs four large rounds, then halts. The name is a nod to its parent, since a <a href="https://en.wikipedia.org/wiki/Baker%27s_dozen">baker's dozen</a> is twelve plus one.</p>
+
+<p class="lede">In the <a href="https://en.wikipedia.org/wiki/Fast-growing_hierarchy">fast-growing hierarchy</a> its count of ones is provably more than f<sub>ω+2</sub><sup>4</sup>(f<sub>ω</sub>(f<sub>ω</sub>(4))), which is f<sub>ω+2</sub> applied four times. That is still level ω+2, the same level as M12 with more iterations, not ω+3. The bound is above the proved lower bounds of M12 and of the 14-state M14, also credited to Jeff Ketchersid and Gemini (see <a href="#size">Size</a>).</p>
+
+<figure class="wide">
+  <div class="fig-scroll">
+<svg class="dg dg-graph wide" viewBox="-60 -60 865 598" role="img" aria-label="Transition graph of the Baker's Dozen. 13 states and 25 defined transitions, grouped into counters, W engine and sweep. Line colour shows the symbol read and a chevron the head move. The changed slots L0 and K0, the new state M and its halt are highlighted.">
+<defs>
+<marker id="ah-r0" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ah-r0"/></marker>
+<marker id="ah-r1" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ah-r1"/></marker>
+<marker id="ah-w" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="11" markerHeight="11" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ah-w"/></marker>
+</defs>
+<rect class="zone" x="-50.0" y="-50.0" width="250.0" height="410.0" rx="20"/>
+<text class="zl" x="188.0" y="349.0" text-anchor="end">counters</text>
+<rect class="zone" x="250.0" y="100.0" width="250.0" height="428.0" rx="20"/>
+<text class="zl" x="488.0" y="517.0" text-anchor="end">W engine</text>
+<rect class="zone" x="550.0" y="-50.0" width="138.0" height="250.0" rx="20"/>
+<text class="zl" x="676.0" y="189.0" text-anchor="end">sweep</text>
+<path class="e r0" d="M300.0,276.0 L300.0,175.0" marker-end="url(#ah-r0)"/>
+<path class="e r1" d="M277.0,293.2 C230.0,297.5 297.5,230.0 293.2,277.0" marker-end="url(#ah-r1)"/>
+<path class="e r0" d="M276.0,150.0 L25.0,150.0" marker-end="url(#ah-r0)"/>
+<path class="e r1" d="M317.0,167.0 L432.3,282.3" marker-end="url(#ah-r1)"/>
+<path class="e r0" d="M450.0,276.0 L450.0,175.0" marker-end="url(#ah-r0)"/>
+<path class="e r1" d="M450.0,324.0 L450.0,425.0" marker-end="url(#ah-r1)"/>
+<path class="e r0" d="M428.5,139.3 L172.4,11.2" marker-end="url(#ah-r0)"/>
+<path class="e r1" d="M473.0,156.8 C520.0,152.5 452.5,220.0 456.8,173.0" marker-end="url(#ah-r1)"/>
+<path class="e r0" d="M173.9,1.8 Q394.0,18.1 578.9,136.5" marker-end="url(#ah-r0)"/>
+<path class="e r1" d="M150.0,24.0 L150.0,275.0" marker-end="url(#ah-r1)"/>
+<path class="e r0" d="M171.5,310.7 L427.6,438.8" marker-end="url(#ah-r0)"/>
+<path class="e r1" d="M174.0,300.0 L275.0,300.0" marker-end="url(#ah-r1)"/>
+<path class="e r0" d="M433.0,433.0 L317.7,317.7" marker-end="url(#ah-r0)"/>
+<path class="e r1" d="M427.0,443.0 L324.0,443.0" marker-end="url(#ah-r1)"/>
+<path class="e r0" d="M323.0,457.0 L426.0,457.0" marker-end="url(#ah-r0)"/>
+<path class="e r1" d="M311.5,471.1 C347.7,501.2 252.3,501.2 288.5,471.1" marker-end="url(#ah-r1)"/>
+<path class="e r0" d="M17.0,133.0 L132.3,17.7" marker-end="url(#ah-r0)"/>
+<path class="e r1" d="M-7.0,173.0 L-7.0,276.0" marker-end="url(#ah-r1)"/>
+<path class="e r0" d="M21.5,310.7 L277.6,438.8" marker-end="url(#ah-r0)"/>
+<path class="e r1" d="M7.0,277.0 L7.0,174.0" marker-end="url(#ah-r1)"/>
+<path class="e case" d="M600.0,174.0 L600.0,275.0" marker-end="url(#ah-w)"/>
+<path class="e r0 core" d="M600.0,174.0 L600.0,275.0"/>
+<path class="e r1" d="M607.0,127.0 L607.0,24.0" marker-end="url(#ah-r1)"/>
+<path class="e case" d="M621.1,-11.5 C651.2,-47.7 651.2,47.7 621.1,11.5" marker-end="url(#ah-w)"/>
+<path class="e r0 core" d="M621.1,-11.5 C651.2,-47.7 651.2,47.7 621.1,11.5"/>
+<path class="e r1" d="M593.0,23.0 L593.0,126.0" marker-end="url(#ah-r1)"/>
+<path class="e case" d="M583.0,317.0 L467.7,432.3" marker-end="url(#ah-w)"/>
+<path class="e r0 core" d="M583.0,317.0 L467.7,432.3"/>
+<path class="e case" d="M624.0,300.0 L703.0,300.0" marker-end="url(#ah-w)"/>
+<path class="e r1 core" d="M624.0,300.0 L703.0,300.0"/>
+<circle class="n old" cx="150" cy="0" r="24"/>
+<text class="nl old" x="150" y="6.5" text-anchor="middle">E</text>
+<circle class="n old" cx="600" cy="0" r="24"/>
+<text class="nl old" x="600" y="6.5" text-anchor="middle">L</text>
+<circle class="n old" cx="0" cy="150" r="24"/>
+<text class="nl old" x="0" y="156.5" text-anchor="middle">I</text>
+<circle class="n old" cx="300" cy="150" r="24"/>
+<text class="nl old" x="300" y="156.5" text-anchor="middle">B</text>
+<circle class="n old" cx="450" cy="150" r="24"/>
+<text class="nl old" x="450" y="156.5" text-anchor="middle">D</text>
+<circle class="n old" cx="600" cy="150" r="24"/>
+<text class="nl old" x="600" y="156.5" text-anchor="middle">K</text>
+<circle class="n old" cx="0" cy="300" r="24"/>
+<text class="nl old" x="0" y="306.5" text-anchor="middle">J</text>
+<circle class="n old" cx="150" cy="300" r="24"/>
+<text class="nl old" x="150" y="306.5" text-anchor="middle">F</text>
+<circle class="n old" cx="300" cy="300" r="24"/>
+<text class="nl old" x="300" y="306.5" text-anchor="middle">A</text>
+<circle class="n old" cx="450" cy="300" r="24"/>
+<text class="nl old" x="450" y="306.5" text-anchor="middle">C</text>
+<circle class="n new" cx="600" cy="300" r="24"/>
+<text class="nl new" x="600" y="306.5" text-anchor="middle">M</text>
+<circle class="n old" cx="300" cy="450" r="24"/>
+<text class="nl old" x="300" y="456.5" text-anchor="middle">H</text>
+<circle class="n old" cx="450" cy="450" r="24"/>
+<text class="nl old" x="450" y="456.5" text-anchor="middle">G</text>
+<rect class="halt" x="705" y="280" width="90" height="40" rx="7"/>
+<text class="hl" x="750" y="305.5" text-anchor="middle">HALT</text>
+<circle class="bdg r0" cx="300.0" cy="225.0" r="8.5"/><path class="chev r0" d="M297.8,221.0 L302.2,225.0 L297.8,229.0"/>
+<circle class="bdg r1" cx="269.1" cy="269.1" r="8.5"/><path class="chev r1" d="M266.9,265.1 L271.3,269.1 L266.9,273.1"/>
+<circle class="bdg r0" cx="219.0" cy="150.0" r="8.5"/><path class="chev r0" d="M216.8,146.0 L221.2,150.0 L216.8,154.0"/>
+<circle class="bdg r1" cx="375.0" cy="225.0" r="8.5"/><path class="chev r1" d="M372.8,221.0 L377.2,225.0 L372.8,229.0"/>
+<circle class="bdg r0" cx="450.0" cy="225.0" r="8.5"/><path class="chev r0" d="M452.2,221.0 L447.8,225.0 L452.2,229.0"/>
+<circle class="bdg r1" cx="450.0" cy="375.0" r="8.5"/><path class="chev r1" d="M452.2,371.0 L447.8,375.0 L452.2,379.0"/>
+<circle class="bdg r0" cx="300.0" cy="75.0" r="8.5"/><path class="chev r0" d="M297.8,71.0 L302.2,75.0 L297.8,79.0"/>
+<circle class="bdg r1" cx="480.9" cy="180.9" r="8.5"/><path class="chev r1" d="M483.1,176.9 L478.7,180.9 L483.1,184.9"/>
+<circle class="bdg r0" cx="385.2" cy="43.6" r="8.5"/><path class="chev r0" d="M387.4,39.6 L383.0,43.6 L387.4,47.6"/>
+<circle class="bdg r1" cx="150.0" cy="90.0" r="8.5"/><path class="chev r1" d="M147.8,86.0 L152.2,90.0 L147.8,94.0"/>
+<circle class="bdg r0" cx="300.0" cy="375.0" r="8.5"/><path class="chev r0" d="M297.8,371.0 L302.2,375.0 L297.8,379.0"/>
+<circle class="bdg r1" cx="225.0" cy="300.0" r="8.5"/><path class="chev r1" d="M222.8,296.0 L227.2,300.0 L222.8,304.0"/>
+<circle class="bdg r0" cx="375.0" cy="375.0" r="8.5"/><path class="chev r0" d="M372.8,371.0 L377.2,375.0 L372.8,379.0"/>
+<circle class="bdg r1" cx="389.9" cy="437.0" r="8.5"/><path class="chev r1" d="M392.1,433.0 L387.7,437.0 L392.1,441.0"/>
+<circle class="bdg r0" cx="360.1" cy="463.0" r="8.5"/><path class="chev r0" d="M362.3,459.0 L357.9,463.0 L362.3,467.0"/>
+<circle class="bdg r1" cx="300.0" cy="493.7" r="8.5"/><path class="chev r1" d="M302.2,489.7 L297.8,493.7 L302.2,497.7"/>
+<circle class="bdg r0" cx="75.0" cy="75.0" r="8.5"/><path class="chev r0" d="M72.8,71.0 L77.2,75.0 L72.8,79.0"/>
+<circle class="bdg r1" cx="-13.0" cy="210.1" r="8.5"/><path class="chev r1" d="M-10.8,206.1 L-15.2,210.1 L-10.8,214.1"/>
+<circle class="bdg r0" cx="150.0" cy="375.0" r="8.5"/><path class="chev r0" d="M152.2,371.0 L147.8,375.0 L152.2,379.0"/>
+<circle class="bdg r1" cx="13.0" cy="239.9" r="8.5"/><path class="chev r1" d="M15.2,235.9 L10.8,239.9 L15.2,243.9"/>
+<circle class="bdg w" cx="600.0" cy="225.0" r="8.5"/><path class="chev r0" d="M602.2,221.0 L597.8,225.0 L602.2,229.0"/>
+<circle class="bdg r1" cx="613.0" cy="89.9" r="8.5"/><path class="chev r1" d="M615.2,85.9 L610.8,89.9 L615.2,93.9"/>
+<circle class="bdg w" cx="643.7" cy="0.0" r="8.5"/><path class="chev r0" d="M641.5,-4.0 L645.9,0.0 L641.5,4.0"/>
+<circle class="bdg r1" cx="587.0" cy="60.1" r="8.5"/><path class="chev r1" d="M589.2,56.1 L584.8,60.1 L589.2,64.1"/>
+<circle class="bdg w" cx="525.0" cy="375.0" r="8.5"/><path class="chev r0" d="M527.2,371.0 L522.8,375.0 L527.2,379.0"/>
+</svg>
+<svg class="dg dg-graph tall" viewBox="-53 -53 519 725" role="img" aria-label="Transition graph of the Baker's Dozen. 13 states and 25 defined transitions, grouped into counters, W engine and sweep. Line colour shows the symbol read and a chevron the head move. The changed slots L0 and K0, the new state M and its halt are highlighted.">
+<defs>
+<marker id="ah-r0-t" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ah-r0"/></marker>
+<marker id="ah-r1-t" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ah-r1"/></marker>
+<marker id="ah-w-t" viewBox="0 0 10 10" refX="9" refY="5" markerUnits="userSpaceOnUse" markerWidth="14" markerHeight="14" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ah-w"/></marker>
+</defs>
+<rect class="zone" x="-42.7" y="-42.7" width="341.3" height="213.3" rx="17"/>
+<text class="zl" x="-30.7" y="-20.7" text-anchor="start">counters</text>
+<rect class="zone" x="85.3" y="213.3" width="371.3" height="239.3" rx="17"/>
+<text class="zl" x="444.7" y="441.7" text-anchor="end">W engine</text>
+<rect class="zone" x="-42.7" y="469.3" width="213.3" height="123.3" rx="17"/>
+<text class="zl" x="158.7" y="581.7" text-anchor="end">sweep</text>
+<path class="e r0" d="M229.0,256.0 L156.0,256.0" marker-end="url(#ah-r0-t)"/>
+<path class="e r1" d="M248.4,230.1 C253.4,183.0 183.0,253.4 230.1,248.4" marker-end="url(#ah-r1-t)"/>
+<path class="e r0" d="M128.0,229.0 L128.0,28.0" marker-end="url(#ah-r0-t)"/>
+<path class="e r1" d="M147.1,275.1 L236.2,364.2" marker-end="url(#ah-r1-t)"/>
+<path class="e r0" d="M229.0,384.0 L156.0,384.0" marker-end="url(#ah-r0-t)"/>
+<path class="e r1" d="M283.0,384.0 L356.0,384.0" marker-end="url(#ah-r1-t)"/>
+<path class="e r0" d="M115.9,359.9 L12.5,153.0" marker-end="url(#ah-r0-t)"/>
+<path class="e r1" d="M135.6,409.9 C130.6,457.0 201.0,386.6 153.9,391.6" marker-end="url(#ah-r1-t)"/>
+<path class="e r0" d="M2.0,154.9 Q15.4,336.2 112.9,488.4" marker-end="url(#ah-r0-t)"/>
+<path class="e r1" d="M27.0,128.0 L228.0,128.0" marker-end="url(#ah-r1-t)"/>
+<path class="e r0" d="M268.1,152.1 L371.5,359.0" marker-end="url(#ah-r0-t)"/>
+<path class="e r1" d="M256.0,155.0 L256.0,228.0" marker-end="url(#ah-r1-t)"/>
+<path class="e r0" d="M364.9,364.9 L275.8,275.8" marker-end="url(#ah-r0-t)"/>
+<path class="e r1" d="M376.0,358.2 L376.0,282.8" marker-end="url(#ah-r1-t)"/>
+<path class="e r0" d="M392.0,281.8 L392.0,357.2" marker-end="url(#ah-r0-t)"/>
+<path class="e r1" d="M407.7,268.9 C437.4,305.8 437.4,206.2 407.7,243.1" marker-end="url(#ah-r1-t)"/>
+<path class="e r0" d="M108.9,19.1 L19.8,108.2" marker-end="url(#ah-r0-t)"/>
+<path class="e r1" d="M153.8,-8.0 L229.2,-8.0" marker-end="url(#ah-r1-t)"/>
+<path class="e r0" d="M268.1,24.1 L371.5,231.0" marker-end="url(#ah-r0-t)"/>
+<path class="e r1" d="M230.2,8.0 L154.8,8.0" marker-end="url(#ah-r1-t)"/>
+<path class="e case" d="M155.0,512.0 L228.0,512.0" marker-end="url(#ah-w-t)"/>
+<path class="e r0 core" d="M155.0,512.0 L228.0,512.0"/>
+<path class="e r1" d="M102.2,520.0 L26.8,520.0" marker-end="url(#ah-r1-t)"/>
+<path class="e case" d="M-12.9,535.7 C-49.8,565.4 49.8,565.4 12.9,535.7" marker-end="url(#ah-w-t)"/>
+<path class="e r0 core" d="M-12.9,535.7 C-49.8,565.4 49.8,565.4 12.9,535.7"/>
+<path class="e r1" d="M25.8,504.0 L101.2,504.0" marker-end="url(#ah-r1-t)"/>
+<path class="e case" d="M275.1,492.9 L364.2,403.8" marker-end="url(#ah-w-t)"/>
+<path class="e r0 core" d="M275.1,492.9 L364.2,403.8"/>
+<path class="e case" d="M256.0,539.0 L256.0,616.0" marker-end="url(#ah-w-t)"/>
+<path class="e r1 core" d="M256.0,539.0 L256.0,616.0"/>
+<circle class="n old" cx="0" cy="128" r="27"/>
+<text class="nl old" x="0" y="136.0" text-anchor="middle">E</text>
+<circle class="n old" cx="0" cy="512" r="27"/>
+<text class="nl old" x="0" y="520.0" text-anchor="middle">L</text>
+<circle class="n old" cx="128" cy="0" r="27"/>
+<text class="nl old" x="128" y="8.0" text-anchor="middle">I</text>
+<circle class="n old" cx="128" cy="256" r="27"/>
+<text class="nl old" x="128" y="264.0" text-anchor="middle">B</text>
+<circle class="n old" cx="128" cy="384" r="27"/>
+<text class="nl old" x="128" y="392.0" text-anchor="middle">D</text>
+<circle class="n old" cx="128" cy="512" r="27"/>
+<text class="nl old" x="128" y="520.0" text-anchor="middle">K</text>
+<circle class="n old" cx="256" cy="0" r="27"/>
+<text class="nl old" x="256" y="8.0" text-anchor="middle">J</text>
+<circle class="n old" cx="256" cy="128" r="27"/>
+<text class="nl old" x="256" y="136.0" text-anchor="middle">F</text>
+<circle class="n old" cx="256" cy="256" r="27"/>
+<text class="nl old" x="256" y="264.0" text-anchor="middle">A</text>
+<circle class="n old" cx="256" cy="384" r="27"/>
+<text class="nl old" x="256" y="392.0" text-anchor="middle">C</text>
+<circle class="n new" cx="256" cy="512" r="27"/>
+<text class="nl new" x="256" y="520.0" text-anchor="middle">M</text>
+<circle class="n old" cx="384" cy="256" r="27"/>
+<text class="nl old" x="384" y="264.0" text-anchor="middle">H</text>
+<circle class="n old" cx="384" cy="384" r="27"/>
+<text class="nl old" x="384" y="392.0" text-anchor="middle">G</text>
+<rect class="halt" x="206" y="618" width="100" height="44" rx="7"/>
+<text class="hl" x="256" y="646.0" text-anchor="middle">HALT</text>
+<circle class="bdg r0" cx="192.0" cy="256.0" r="11.0"/><path class="chev r0" d="M189.1,250.8 L194.9,256.0 L189.1,261.2"/>
+<circle class="bdg r1" cx="223.5" cy="223.5" r="11.0"/><path class="chev r1" d="M220.6,218.3 L226.4,223.5 L220.6,228.7"/>
+<circle class="bdg r0" cx="128.0" cy="186.9" r="11.0"/><path class="chev r0" d="M125.1,181.7 L130.9,186.9 L125.1,192.1"/>
+<circle class="bdg r1" cx="192.0" cy="320.0" r="11.0"/><path class="chev r1" d="M189.1,314.8 L194.9,320.0 L189.1,325.2"/>
+<circle class="bdg r0" cx="192.0" cy="384.0" r="11.0"/><path class="chev r0" d="M194.9,378.8 L189.1,384.0 L194.9,389.2"/>
+<circle class="bdg r1" cx="320.0" cy="384.0" r="11.0"/><path class="chev r1" d="M322.9,378.8 L317.1,384.0 L322.9,389.2"/>
+<circle class="bdg r0" cx="64.0" cy="256.0" r="11.0"/><path class="chev r0" d="M61.1,250.8 L66.9,256.0 L61.1,261.2"/>
+<circle class="bdg r1" cx="160.5" cy="416.5" r="11.0"/><path class="chev r1" d="M163.4,411.3 L157.6,416.5 L163.4,421.7"/>
+<circle class="bdg r0" cx="36.4" cy="328.9" r="11.0"/><path class="chev r0" d="M39.3,323.7 L33.5,328.9 L39.3,334.1"/>
+<circle class="bdg r1" cx="76.8" cy="128.0" r="11.0"/><path class="chev r1" d="M73.9,122.8 L79.7,128.0 L73.9,133.2"/>
+<circle class="bdg r0" cx="320.0" cy="256.0" r="11.0"/><path class="chev r0" d="M317.1,250.8 L322.9,256.0 L317.1,261.2"/>
+<circle class="bdg r1" cx="256.0" cy="192.0" r="11.0"/><path class="chev r1" d="M253.1,186.8 L258.9,192.0 L253.1,197.2"/>
+<circle class="bdg r0" cx="320.0" cy="320.0" r="11.0"/><path class="chev r0" d="M317.1,314.8 L322.9,320.0 L317.1,325.2"/>
+<circle class="bdg r1" cx="367.5" cy="331.1" r="11.0"/><path class="chev r1" d="M370.4,325.9 L364.6,331.1 L370.4,336.3"/>
+<circle class="bdg r0" cx="400.5" cy="308.9" r="11.0"/><path class="chev r0" d="M403.4,303.7 L397.6,308.9 L403.4,314.1"/>
+<circle class="bdg r1" cx="430.0" cy="256.0" r="11.0"/><path class="chev r1" d="M432.9,250.8 L427.1,256.0 L432.9,261.2"/>
+<circle class="bdg r0" cx="64.0" cy="64.0" r="11.0"/><path class="chev r0" d="M61.1,58.8 L66.9,64.0 L61.1,69.2"/>
+<circle class="bdg r1" cx="180.9" cy="-16.5" r="11.0"/><path class="chev r1" d="M183.8,-21.7 L178.0,-16.5 L183.8,-11.3"/>
+<circle class="bdg r0" cx="320.0" cy="128.0" r="11.0"/><path class="chev r0" d="M322.9,122.8 L317.1,128.0 L322.9,133.2"/>
+<circle class="bdg r1" cx="203.1" cy="16.5" r="11.0"/><path class="chev r1" d="M206.0,11.3 L200.2,16.5 L206.0,21.7"/>
+<circle class="bdg w" cx="192.0" cy="512.0" r="11.0"/><path class="chev r0" d="M194.9,506.8 L189.1,512.0 L194.9,517.2"/>
+<circle class="bdg r1" cx="75.1" cy="528.5" r="11.0"/><path class="chev r1" d="M78.0,523.3 L72.2,528.5 L78.0,533.7"/>
+<circle class="bdg w" cx="0.0" cy="558.0" r="11.0"/><path class="chev r0" d="M-2.9,552.8 L2.9,558.0 L-2.9,563.2"/>
+<circle class="bdg r1" cx="52.9" cy="495.5" r="11.0"/><path class="chev r1" d="M55.8,490.3 L50.0,495.5 L55.8,500.7"/>
+<circle class="bdg w" cx="320.0" cy="448.0" r="11.0"/><path class="chev r0" d="M322.9,442.8 L317.1,448.0 L322.9,453.2"/>
+</svg>
+  </div>
+  <div class="legend">
+    <span><svg class="dg" viewBox="0 0 28 16" aria-hidden="true"><path class="e r0" d="M3,8 L25,8"/></svg>reads 0</span>
+    <span><svg class="dg" viewBox="0 0 28 16" aria-hidden="true"><path class="e r1" d="M3,8 L25,8"/></svg>reads 1</span>
+    <span><svg class="dg" viewBox="0 0 28 16" aria-hidden="true"><path class="e case" d="M3,8 L25,8"/><path class="e r0 core" d="M3,8 L25,8"/></svg>changed or new</span>
+    <span><svg class="dg pair" viewBox="0 0 42 20" aria-hidden="true"><circle class="bdg k" cx="10" cy="10" r="8.5"/><path class="chev k" d="M12.2,6 L7.8,10 L12.2,14"/><circle class="bdg k" cx="32" cy="10" r="8.5"/><path class="chev k" d="M29.8,6 L34.2,10 L29.8,14"/></svg>head moves left, right</span>
+    <span><i class="sw new"></i>new state M</span>
+  </div>
+  <figcaption>Diagram 1. The whole machine, all 13 states and 25 defined transitions. The table below adds the symbol each transition writes. Pink marks what differs from M12, whose L0 edge back into H is gone. The grouping into counters, W engine and sweep is a reading aid, not part of the proof.</figcaption>
+</figure>
+
+<div class="tablewrap">
+<table class="slots" aria-label="Transition table of the Baker's Dozen">
+<tr><th></th><th class="r0">read 0</th><th class="r1">read 1</th><th></th><th class="r0">read 0</th><th class="r1">read 1</th></tr>
+<tr><th>A</th><td>1RB</td><td>1RA</td><th>H</th><td>1LG</td><td>1LH</td></tr>
+<tr><th>B</th><td>1RI</td><td>1RC</td><th>I</th><td>1RE</td><td>0LJ</td></tr>
+<tr><th>C</th><td>0LD</td><td>1LG</td><th>J</th><td>1LH</td><td>1LI</td></tr>
+<tr><th>D</th><td>0RE</td><td>1LD</td><th>K</th><td class="chg"><s>1RZ</s>0LM</td><td>0LL</td></tr>
+<tr><th>E</th><td>1LK</td><td>1RF</td><th>L</th><td class="chg"><s>0LH</s>1RL</td><td>1LK</td></tr>
+<tr><th>F</th><td>1RG</td><td>0RA</td><th>M</th><td class="chg">0LG</td><td class="chg">---</td></tr>
+<tr><th>G</th><td>1RA</td><td>0LH</td><th></th><td></td><td></td></tr>
+</table>
+</div>
+
+<h2>How it works</h2>
+
+<h3>How M12 works</h3>
+<p>This part is M12's, as Jeff Ketchersid's <a href="https://github.com/jeff87654/busy-beaver">write-up and Coq proof</a> describe it. M12 keeps its three numbers on the tape as blocks (Diagram 2). On the left is the level p, a stack of p “10” pairs. Next comes the accumulator, a run of 1s. On the right is the countdown d, a row of d pairs. The head works between the accumulator and the countdown.</p>
+
+<figure>
+  <div class="fig-scroll">
+<svg class="dg dg-tape" viewBox="0 0 760 300" role="img" aria-label="The tape as three blocks. During a round: the level stack of p pairs, the accumulator, the head, then the countdown of d pairs. At the end of a round the countdown is used up and the level stack is huge. After the restart the old level stack and accumulator are reread as one new countdown of p + k − 1 pairs, behind a small fresh header.">
+<text class="rt" x="20" y="20">during a round, between steps</text>
+<text class="rt" x="20" y="120">end of a round, with the countdown used up</text>
+<text class="rt" x="20" y="228">after the restart</text>
+<rect class="tp" x="20" y="32" width="724" height="44"/>
+<rect class="blk stack" x="160" y="32" width="200" height="44"/>
+<text class="bl" x="260.0" y="59.0" text-anchor="middle">level stack, p pairs</text>
+<rect class="blk acc" x="360" y="32" width="140" height="44"/>
+<text class="bl" x="430.0" y="59.0" text-anchor="middle">accumulator</text>
+<rect class="blk count" x="500" y="32" width="230" height="44"/>
+<text class="bl" x="615.0" y="59.0" text-anchor="middle">countdown, d pairs</text>
+<path class="head" d="M494,22 L506,22 L500,31 z"/>
+<text class="hdl" x="510" y="30">head</text>
+<rect class="tp" x="20" y="132" width="724" height="44"/>
+<rect class="blk stack" x="160" y="132" width="360" height="44"/>
+<text class="bl" x="340.0" y="159.0" text-anchor="middle">level stack, p pairs, now huge</text>
+<rect class="blk acc" x="520" y="132" width="120" height="44"/>
+<text class="bl" x="580.0" y="159.0" text-anchor="middle">accumulator, 2k</text>
+<rect class="blk empty" x="640" y="132" width="90" height="44"/>
+<text class="bl mut" x="685" y="159.0" text-anchor="middle">empty</text>
+<path class="head" d="M634,122 L646,122 L640,131 z"/>
+<line class="guide" x1="160" y1="179" x2="160" y2="225"/>
+<line class="guide" x1="640" y1="179" x2="640" y2="225"/>
+<text class="gl" x="400" y="213.0" text-anchor="middle">reread as the new countdown</text>
+<rect class="tp" x="20" y="240" width="724" height="44"/>
+<rect class="blk stack" x="40" y="240" width="70" height="44"/>
+<rect class="blk acc" x="110" y="240" width="50" height="44"/>
+<text class="bl" x="100" y="267.0" text-anchor="middle">fresh header</text>
+<rect class="blk count" x="160" y="240" width="480" height="44"/>
+<text class="bl" x="400.0" y="267.0" text-anchor="middle">new countdown, p + k − 1 pairs</text>
+<path class="head" d="M154,230 L166,230 L160,239 z"/>
+</svg>
+  </div>
+  <figcaption>Diagram 2. The tape in blocks, not to scale. The bottom row is the restart, described below.</figcaption>
+</figure>
+
+<p>The engine is what makes the numbers large. Run at level p, it turns an input b into W<sub>p</sub>(b), where W<sub>0</sub>(b) = b + 3 and W<sub>j+1</sub>(b) is W<sub>j</sub> applied b + 1 times to 2. So W<sub>j</sub> grows like f<sub>j</sub>, and the higher the level, the stronger the engine. The engine's slots, apart from the exit and the bottom-of-stack slot, already appear in Racheline's 21-state machine of 2024.</p>
+
+<p>The level and the accumulator feed each other. An <b>engine call</b> runs the engine on the input 1, keeps the output as the new accumulator and adds half the old accumulator to the level. The level keeps growing, so every call runs the engine at a higher level than the one before. A step has three parts, with Coq names in parentheses.</p>
+<ul class="parts">
+<li><b>Start a step</b> (C_REL) spends one unit of the countdown and sets up m engine calls, where the accumulator is 2m + 1. It also lowers the level by one and refills the accumulator from the engine.</li>
+<li><b>Engine call</b> (CE_EVEN) then runs m times.</li>
+<li><b>Finish a step</b> (D_STEP) spends two more units of the countdown and passes the accumulator through the engine.</li>
+</ul>
+<p>A round is ⌊d/3⌋ steps. After every round but the last, M12 builds a new countdown from the accumulator. Only its last round is large. Diagram 3 puts these loops inside the Baker's Dozen's restart and shows how large each one is.</p>
+
+<figure>
+  <div class="fig-scroll">
+  <svg class="dg dg-loops" viewBox="0 0 760 400" role="img" aria-label="The machine's loops. A pink restart loop, new in the Baker's Dozen, goes around M12's machinery. The countdown d enters one round, a loop of steps that repeats while d is at least 3. One step is start a step, where d and the level p each go down by 1, then the engine call m times, where the accumulator becomes the engine's output and p gains k, half the accumulator from before the call, then finish a step, where d goes down by 2. With fewer than 3 units left, r = d mod 3 decides. With r = 0 the machine halts with p + m + 3 ones. With r = 1 or 2 it takes the pink restart and d becomes p + k − 1. An engine call is about f_omega in p, a step f_omega+1, a round f_omega+2, and the restart loop f_omega+2 applied four times. From a blank tape d = 5, and d mod 3 is 2, 2, 2, 2, then 0.">
+    <defs>
+      <marker id="lp-ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ah-i"/></marker>
+      <marker id="lp-ahw" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="ah-w"/></marker>
+    </defs>
+    <!-- new in the Baker's Dozen: the pink restart loop -->
+    <path class="wln" d="M672,232 C688,232 694,224 694,208 L694,64 C694,48 686,40 670,40 L503,40" marker-end="url(#lp-ahw)"/>
+    <rect class="wbx" x="286" y="20" width="212" height="40" rx="10"/>
+    <text class="t16 b" x="302" y="46">restart</text>
+    <g class="chip cnt"><rect x="372" y="30" width="114" height="20" rx="4"/><text class="t14" x="429" y="45" text-anchor="middle">d ← p + k − 1</text></g>
+    <text class="t16 b wm" x="548" y="28" text-anchor="middle">f<tspan dy="5" font-size="12">ω+2</tspan><tspan dy="-13" font-size="12">4</tspan></text>
+    <path class="wln" d="M286,40 L40,40 C24,40 14,50 14,66 L14,206 C14,222 20,232 31,232" marker-end="url(#lp-ahw)"/>
+    <text class="t14" x="682" y="84" text-anchor="end">r = 1 or 2</text>
+    <!-- the countdown -->
+    <text class="t14 mut" x="63" y="202" text-anchor="middle">countdown</text>
+    <rect class="cpill" x="34" y="212" width="58" height="40" rx="20"/>
+    <text class="cpilltx" x="63" y="240" text-anchor="middle">d</text>
+    <path class="ln" d="M63,360 L63,258" marker-end="url(#lp-ah)"/>
+    <text class="t14 mut" x="74" y="365">from a blank tape, d = 5</text>
+    <path class="ln" d="M92,232 L130,232" marker-end="url(#lp-ah)"/>
+    <!-- one round, a loop of steps -->
+    <path class="ln2" d="M618,232 C632,232 636,224 636,210 L636,132 C636,123 631,118 622,118 L122,118 C113,118 108,123 108,132 L108,216 C108,226 112,232 120,232"/>
+    <polygon class="dot" points="372,118 383,112.5 383,123.5"/>
+    <text class="t16 b" x="128" y="106">one round</text>
+    <text class="t14 mut" x="218" y="106">⌊d/3⌋ steps</text>
+    <text class="t13 mut" x="310" y="106">f<tspan dy="4" font-size="10">ω+2</tspan></text>
+    <text class="t14" x="560" y="108" text-anchor="middle">d ≥ 3</text>
+    <!-- one step, start a step, m engine calls, finish a step -->
+    <rect class="sfr" x="122" y="136" width="478" height="176" rx="12"/>
+    <text x="138" y="160"><tspan class="t15 b">one step</tspan><tspan class="t13 mut" dx="8">f<tspan dy="4" font-size="10">ω+1</tspan></tspan></text>
+    <rect class="pbx" x="136" y="186" width="124" height="92" rx="9"/>
+    <text class="t15 b" x="198" y="210" text-anchor="middle">start a step</text>
+    <g class="chip cnt"><rect x="156" y="219" width="84" height="20" rx="4"/><text class="t14" x="198" y="234" text-anchor="middle">d ← d − 1</text></g>
+    <text class="t14" x="198" y="260" text-anchor="middle">p ← p − 1</text>
+    <path class="ln" d="M260,232 L278,232" marker-end="url(#lp-ah)"/>
+    <rect class="pbx" x="284" y="186" width="156" height="92" rx="9"/>
+    <text class="t15 b" x="362" y="210" text-anchor="middle">engine call</text>
+    <g class="chip out"><rect x="292" y="219" width="140" height="20" rx="4"/><text class="t14" x="362" y="234" text-anchor="middle">acc ← engine output</text></g>
+    <text class="t14" x="362" y="260" text-anchor="middle">p ← p + k</text>
+    <path class="ln3" d="M408,186 C408,160 316,160 316,181" marker-end="url(#lp-ah)"/>
+    <text class="t16 b" x="362" y="156" text-anchor="middle">× m</text>
+    <text class="t13 mut" x="362" y="298" text-anchor="middle">f<tspan dy="4" font-size="10">ω</tspan><tspan dy="-4"> in p</tspan></text>
+    <path class="ln" d="M440,232 L458,232" marker-end="url(#lp-ah)"/>
+    <rect class="pbx" x="464" y="186" width="124" height="92" rx="9"/>
+    <text class="t15 b" x="526" y="222" text-anchor="middle">finish a step</text>
+    <g class="chip cnt"><rect x="484" y="233" width="84" height="20" rx="4"/><text class="t14" x="526" y="248" text-anchor="middle">d ← d − 2</text></g>
+    <path class="ln" d="M588,232 L618,232"/>
+    <circle class="dot" cx="618" cy="232" r="4.5"/>
+    <!-- the end of a round and the branch on r -->
+    <path class="ln" d="M618,232 L668,232"/>
+    <text class="t14" x="645" y="255" text-anchor="middle">d &lt; 3</text>
+    <circle class="dot" cx="672" cy="232" r="5.5"/>
+    <path class="ln" d="M672,232 C688,232 694,240 694,256 L694,340" marker-end="url(#lp-ah)"/>
+    <text class="t14" x="702" y="300">r = 0</text>
+    <rect class="halt" x="632" y="344" width="124" height="50" rx="8"/>
+    <text class="hl" x="694" y="365" text-anchor="middle">HALT</text>
+    <text class="hl" x="694" y="385" text-anchor="middle" style="font-weight:500; letter-spacing:0; font-size:14px">p + m + 3 ones</text>
+    <!-- the residues, each 2 one trip round the pink loop -->
+    <text class="t14 mut" x="510" y="362" text-anchor="middle">d mod 3, round by round</text>
+    <text class="t22 b" x="510" y="388" text-anchor="middle"><tspan class="wm">2 · 2 · 2 · 2</tspan> · 0</text>
+  </svg>
+  </div>
+  <figcaption>Diagram 3. The machine's loops. A step spends 3 units of the countdown d, so a round leaves r = d mod 3 units, and r decides between the halt and the restart. Here p is the level, acc the accumulator and k half of it. An engine call runs the engine one level below p and adds the k from before the call. Round 0, from d = 5, is a single step. The residues and sizes come from the proof, and the fills are the tape colours of Diagram 2. Pink is new, the rest is M12's.</figcaption>
+</figure>
+
+<h3>The restart</h3>
+<p>Each round of the Baker's Dozen leaves r = d mod 3 units of countdown. If r = 0, the <b>halt check</b> (G_HALT) stops the machine with p + m + 3 ones, where 2m + 1 is the accumulator. If r = 1, a last step starts but cannot finish. If r = 2, it starts and the <b>pad</b> (D1) folds the last unit into the accumulator. Either way the machine reaches the point where M12 builds a new countdown.</p>
+<p>From there M12 sweeps left in states K and L, rewriting the accumulator's 1s as 10 pairs, its new countdown. At the stack, L0 = 0LH ends the sweep and calls the engine. In the Baker's Dozen, L0 = 1RL lets the sweep run on through the stack, which is already 10 pairs, to the blank left end. There K0 = 0LM and M0 = 0LG hand control to G. The whole tape is now one countdown. The run that ends the <b>start-up</b> (START) turns its first four pairs into a new level 7 and accumulator 3, leaving p + k − 1 pairs (Diagram 2, bottom row). That is the <b>restart</b> (RST). Since p is huge after a round, so is the new countdown.</p>
+<p>The halt check is the same sweep. With r = 0 the accumulator is odd, so K, not L, reaches the stack. K0 = 0LM steps onto a 1 and M halts on the undefined M1.</p>
+
+<h3>Why it stops after four rounds</h3>
+<p>The engine has a simple form modulo powers of 3. At every level j ≥ 2, 2W<sub>j</sub>(b) + 5 is a power of 3. Every engine call inside a round runs at level 5 or more, so all their outputs are ≡ 38 (mod 81). With W's parity, that makes the first step of a round add 0 to the level mod 3 and every later step add 1. So after a round of n = ⌊d/3⌋ steps from level 7, the new countdown is ≡ n + 1 (mod 3). In base 3, n is d without its last digit, so each round uses up one digit.</p>
+<p>Redone modulo 81, the same sums take the start-up's countdown of 5 to four large countdowns ≡ 32 (mod 81), 14 (mod 27), 8 (mod 9) and 0 (mod 3). So rounds 0 to 3 restart and round 4 halts.</p>
+
+<h3 id="size">Size</h3>
+<p>Coq proves that the Baker's Dozen halts with more than f<sub>ω+2</sub><sup>4</sup>(f<sub>ω</sub>(f<sub>ω</sub>(4))) ones, and also gives the exact number as an expression in the four round outputs. The proof reuses the bound lemmas of Jeff Ketchersid's Coq development for M12 unchanged, plus two small new lemmas. One says W grows with the level, and the other turns iterates of f<sub>ω+1</sub> into f<sub>ω+2</sub>.</p>
+<div class="tablewrap"><table>
+<tr><th>machine</th><th class="num">states</th><th>lower bound</th><th>status</th></tr>
+<tr><td>M12</td><td class="num">12</td><td>f<sub>ω+2</sub>(f<sub>ω+1</sub><sup>2</sup>(3))</td><td>proved in Coq</td></tr>
+<tr><td>M14</td><td class="num">14</td><td>f<sub>ω+2</sub><sup>3</sup>(15)</td><td>proved in Coq</td></tr>
+<tr class="hl"><td>Baker's Dozen</td><td class="num">13</td><td>f<sub>ω+2</sub><sup>4</sup>(f<sub>ω</sub>(f<sub>ω</sub>(4)))</td><td>proved in Coq</td></tr>
+<tr><td>M13b</td><td class="num">13</td><td>f<sub>ω+2</sub><sup>6</sup>(f<sub>ω+1</sub><sup>2</sup>(3))</td><td>proved in Coq</td></tr>
+<tr><td>M14b</td><td class="num">14</td><td>f<sub>ω+2</sub><sup>9</sup>(f<sub>ω+1</sub><sup>2</sup>(3))</td><td>proved in Coq</td></tr>
+</table></div>
+<p>Coq also proves that the Baker's Dozen's count is above the proved bounds of M12 and M14. M13b and M14b, published by Jeff Ketchersid and Argon on 28 October 2026, have larger proved bounds still. As with any record, these are lower bounds, not true sizes.</p>
+
+<h3>The rules in formal notation</h3>
+<p>For readers of the Coq proof, <code>Cd p b d</code> is the tape <code>0^∞ (10)^p 1^(b+2) I&gt; (10)^d 0^∞</code> (level p, accumulator b, countdown d), and <code>Ce p a c d</code> is <code>0^∞ (10)^p 1^(a+2) I&gt; (10)^c 0 (10)^d 0^∞</code>, with c pending engine calls. The last column says how each rule is proved.</p>
+<div class="tablewrap"><table class="rules">
+<tr><th>rule</th><th>statement</th><th>proved by</th></tr>
+<tr><td>start-up<span class="fn">START</span></td><td>blank →* <code>Cd 7 3 5</code></td><td>260 steps, checked in Coq</td></tr>
+<tr><td>start a step<span class="fn">C_REL</span></td><td><code>Cd (p+1) (2m+1) (d+1) → Ce p W_p(3) m d</code></td><td>Jeff's Coq lemma, unchanged</td></tr>
+<tr><td>engine call<span class="fn">CE_EVEN</span></td><td><code>Ce (p+1) (2k) (c+1) d → Ce (p+k+1) W_p(1) c d</code></td><td>Jeff's Coq lemma, unchanged</td></tr>
+<tr><td>finish a step<span class="fn">D_STEP</span></td><td><code>Ce p a 0 (d+2) → Cd p W_p(a+4) d</code></td><td>Jeff's Coq lemma, unchanged</td></tr>
+<tr><td>pad<span class="fn">D1</span></td><td><code>Ce p a 0 1 → Ce p (a+6) 0 0</code></td><td>new Coq lemma</td></tr>
+<tr><td>restart<span class="fn">RST</span></td><td><code>Ce p (2k) 0 0 →* Cd 7 3 (p+k−1)</code>, p + k ≥ 1</td><td>new Coq lemma, by induction</td></tr>
+<tr><td>halt check<span class="fn">G_HALT</span></td><td><code>Cd p (2m+1) 0</code>, p ≥ 1 → halt in M1 with p + m + 3 ones</td><td>new Coq lemma</td></tr>
+</table></div>
+
+<h2 id="verification">Verification</h2>
+<ul class="verlist">
+  <li>Coq 8.20.1 with <a href="https://github.com/meithecatte/busycoq">busycoq</a> proves that the Baker's Dozen halts from the blank tape, gives its exact count of ones, proves f<sub>ω+2</sub><sup>4</sup>(f<sub>ω</sub>(f<sub>ω</sub>(4))) &lt; σ, and proves that σ is above the proved bounds of M12 and M14. Every theorem is closed under the global context, with no axioms. The proof is in <a href="https://github.com/amcknight/beavers/tree/main/bb13/coq">bb13/coq</a>, and its build script fetches Jeff Ketchersid's files and checks everything in under 20 seconds.</li>
+  <li>A probe checks the compiled transition table against the machine string, entry by entry.</li>
+  <li>Jeff Ketchersid's lemmas for the shared rules and for the bound go through unchanged on the new table, and every copied block is checked to match his files exactly.</li>
+  <li>Before the Coq proof, our own symbolic prover and two independent simulations gave the same rules and the same four-round run.</li>
+</ul>
+
+<footer class="small credit">Found, proved and written up by Andrew McKnight with Claude (Fable 5.1 and Opus 5.5), October 2026.</footer>
+
+</main>
+
+<script>
+(function () {
+  var btn = document.getElementById("copy-tm");
+  var tm = document.getElementById("tm");
+  btn.addEventListener("click", function () {
+    var text = tm.textContent.trim();
+    var done = function () { btn.textContent = "Copied"; setTimeout(function () { btn.textContent = "Copy"; }, 1600); };
+    var fallback = function () {
+      var r = document.createRange(); r.selectNodeContents(tm);
+      var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+      btn.textContent = "Selected";
+    };
+    try {
+      navigator.clipboard.writeText(text).then(done, fallback);
+    } catch (e) { fallback(); }
+  });
+})();
+</script>
+</body>
+</html>

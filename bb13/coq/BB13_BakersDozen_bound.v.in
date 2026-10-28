@@ -1,0 +1,367 @@
+(** * The score of the Baker's Dozen, a 13-state machine: exact expression and a lower bound *)
+
+(** The Baker's Dozen:
+      1RB1RA_1RI1RC_0LD1LG_0RE1LD_1LK1RF_1RG0RA_1RA0LH_1LG1LH_1RE0LJ_1LH1LI_0LM0LL_1RL1LK_0LG---
+    The machine table [tm], the configuration families, the rules and the halting run are imported from
+    BB13_BakersDozen.v (which proves [halt : halts tm c0]).  The Baker's Dozen halts in state M reading a 1 (M1 undefined), so the
+    halting transition adds no 1: the score is sigma = N, the number of ones on the halted tape.
+
+    Main results (no axioms):
+      Theorem score_exact :
+        exists c, c0 -->* c /\ halted tm c /\ ones c (fst pb4 + snd pb4 / 2 + 3).
+      Theorem sigma_lower_bound :
+        exists c N, c0 -->* c /\ halted tm c /\ ones c N /\
+        f_omega2 (f_omega2 (f_omega2 (f_omega2 (f_omega (f_omega 4))))) < N.
+      Theorem sigma_lower_bound_strong :
+        exists c N, c0 -->* c /\ halted tm c /\ ones c N /\
+        f_omega2 (f_omega (f_omega2 (f_omega (f_omega2 (f_omega (f_omega2 (f_omega (f_omega 4)))))))) < N.
+      Theorem beats_M12_bound :
+        exists c N, c0 -->* c /\ halted tm c /\ ones c N /\ f_omega2 (f_omega1 (f_omega1 3)) < N.
+      Theorem beats_M14_bound :
+        exists c N, c0 -->* c /\ halted tm c /\ ones c N /\ f_omega2 (f_omega2 (f_omega2 15)) < N.
+
+    Definitions (Jeff Ketchersid's, from BB12_M12_bound.v):
+      f 0 n = n + 1, f (k+1) n = (f k)^n (n),
+      f_omega n  = f n n,
+      f_omega1 n = (f_omega)^n (n)   [= f_(omega+1)(n)],
+      f_omega2 n = (f_omega1)^n (n)  [= f_(omega+2)(n)]. *)
+
+From BB8 Require Import Individual132.
+From BB8 Require Import BB13_BakersDozen.
+From Coq Require Import Lia PeanoNat List Wf_nat.
+Import ListNotations.
+Set Default Goal Selector "!".
+
+(* machine: 1RB1RA_1RI1RC_0LD1LG_0RE1LD_1LK1RF_1RG0RA_1RA0LH_1LG1LH_1RE0LJ_1LH1LI_0LM0LL_1RL1LK_0LG--- *)
+Lemma tm_table :
+  tm (A, 0) = Some (1, TM.R, B) /\ tm (A, 1) = Some (1, TM.R, A) /\
+  tm (B, 0) = Some (1, TM.R, I) /\ tm (B, 1) = Some (1, TM.R, C) /\
+  tm (C, 0) = Some (0, TM.L, D) /\ tm (C, 1) = Some (1, TM.L, G) /\
+  tm (D, 0) = Some (0, TM.R, E) /\ tm (D, 1) = Some (1, TM.L, D) /\
+  tm (E, 0) = Some (1, TM.L, K) /\ tm (E, 1) = Some (1, TM.R, F) /\
+  tm (F, 0) = Some (1, TM.R, G) /\ tm (F, 1) = Some (0, TM.R, A) /\
+  tm (G, 0) = Some (1, TM.R, A) /\ tm (G, 1) = Some (0, TM.L, H) /\
+  tm (H, 0) = Some (1, TM.L, G) /\ tm (H, 1) = Some (1, TM.L, H) /\
+  tm (I, 0) = Some (1, TM.R, E) /\ tm (I, 1) = Some (0, TM.L, J) /\
+  tm (J, 0) = Some (1, TM.L, H) /\ tm (J, 1) = Some (1, TM.L, I) /\
+  tm (K, 0) = Some (0, TM.L, M) /\ tm (K, 1) = Some (0, TM.L, L) /\
+  tm (L, 0) = Some (1, TM.R, L) /\ tm (L, 1) = Some (1, TM.L, K) /\
+  tm (M, 0) = Some (0, TM.L, G) /\ tm (M, 1) = None.
+Proof. repeat split. Qed.
+
+Local Open Scope nat_scope.
+
+(* ---- copied unchanged from BB12_M12_bound.v: Kc_unfold, Kc_full_unfold, Kd_step_unfold, Kd_iter_unfold
+        (D_reload_unfold is not copied: the Baker's Dozen has no D_reload) ---- *)
+(* insert BB12_M12_bound.v lines 51-66 *)
+(* ---- end of copied block ---- *)
+
+Opaque W Kc Kc_full Kd_step Kd_iter round2 d1 d2 d3 d4 pb4.
+
+(** ** Fast-growing hierarchy up to omega + 2 and tape ones *)
+
+(* ---- copied unchanged from BB12_M12_bound.v: f, f_omega, f_omega1, f_omega2, sym_val, count1, ones, count1_app,
+        count1_pow ---- *)
+(* insert BB12_M12_bound.v lines 76-106 *)
+(* ---- end of copied block ---- *)
+
+(** ** New: the ones on the Baker's Dozen's halting tape, and the exact score *)
+
+(** [c_halt p m] = 0^inf (10)^p [1] 0 (10)^(m+2) 1 0^inf with M reading the bracketed 1: p + m + 4 ones. *)
+Lemma ones_c_halt : forall p m, ones (c_halt p m) (p + m + 4).
+Proof.
+  intros p m.
+  exists M, ([S0; S1]^^p), ([S0] ++ [S1; S0]^^(m + 2) ++ [S1]), S1.
+  split.
+  - unfold c_halt. cbn [Str_app app]. rewrite !Str_app_assoc. reflexivity.
+  - rewrite !count1_app, !count1_pow. cbn [count1 sym_val]. lia.
+Qed.
+
+Lemma ones_c_halt_pred : forall p m, 1 <= p -> ones (c_halt (p - 1) m) (p + m + 3).
+Proof.
+  intros p m Hp. replace (p + m + 3) with ((p - 1) + m + 4) by lia. apply ones_c_halt.
+Qed.
+
+Theorem score_exact :
+  exists c, c0 -->* c /\ halted tm c /\ ones c (fst pb4 + snd pb4 / 2 + 3).
+Proof.
+  exists (c_halt (fst pb4 - 1) (snd pb4 / 2)).
+  destruct pb4_props as [Hp _].
+  split; [exact run_halt |].
+  split; [apply c_halt_halted |].
+  apply ones_c_halt_pred. exact (Nat.le_trans 1 7 _ ltac:(lia) Hp).
+Qed.
+
+(** ** Iteration and hierarchy monotonicity *)
+
+(* ---- copied unchanged from BB12_M12_bound.v: iter_mono_x, iter_ge, iter_mono_n, iter_lin1, iter_dom, f_S,
+        f_props, f_id, f_mono, f_gt, f_level, f_level_mono, iter_succ_add, f1, f_dbl, f_omega_id, f_omega_dbl,
+        f_omega_mono, f_omega1_id, f_omega1_mono, f_omega2_id, f_omega2_mono ---- *)
+(* insert BB12_M12_bound.v lines 132-249 *)
+(* ---- end of copied block ---- *)
+
+(** ** New: three facts about f_omega1 and f_omega2 used by the catch-up lemma *)
+
+Lemma f_omega1_gt : forall a, 1 <= a -> a + 1 <= f_omega1 a.
+Proof.
+  intros a Ha. unfold f_omega1.
+  pose proof (iter_mono_n f_omega f_omega_id 1 a a Ha) as H1. cbn [iter] in H1.
+  assert (H2 : a < f_omega a) by (unfold f_omega; apply f_gt; exact Ha). lia.
+Qed.
+
+Lemma f_omega1_dbl : forall x, 2 <= x -> 2 * f_omega x <= f_omega1 x.
+Proof.
+  intros x Hx. unfold f_omega1.
+  pose proof (iter_mono_n f_omega f_omega_id 2 x x Hx) as H1. cbn [iter] in H1.
+  pose proof (f_omega_id x) as H2.
+  pose proof (f_omega_dbl (f_omega x) ltac:(lia)) as H3. lia.
+Qed.
+
+Lemma f_omega2_unfold : forall n, f_omega2 n = iter n f_omega1 n.
+Proof. reflexivity. Qed.
+
+Opaque f f_omega f_omega1 f_omega2.
+
+(** ** Lower bound for W *)
+
+(* ---- copied unchanged from BB12_M12_bound.v: iter_W0, W1_val, W_S', W_S_2, W_mono, pow2_ge, W_bound_all,
+        W_omega_bound0, W_omega_bound ---- *)
+(* insert BB12_M12_bound.v lines 279-284 *)
+(* insert BB12_M12_bound.v lines 288-375 *)
+(* ---- end of copied block ---- *)
+
+(** ** New: W is monotone in the level *)
+
+Lemma W_level : forall j b, W j b <= W (S j) b.
+Proof.
+  intros j b. rewrite W_S. cbn [iter].
+  apply W_mono.
+  pose proof (iter_lin3 (W j) (W_grow j) b 2). lia.
+Qed.
+
+Lemma W_level_ge : forall j k b, j <= k -> W j b <= W k b.
+Proof.
+  intros j k b Hjk. replace k with ((k - j) + j) by lia.
+  induction (k - j) as [| d IHd]; [reflexivity |].
+  pose proof (W_level (d + j) b). change (S d + j) with (S (d + j)). lia.
+Qed.
+
+(** ** Domination across Kc, Kc_full, Kd_step, Kd_iter *)
+
+(* ---- copied unchanged from BB12_M12_bound.v: Kc_dom1, Kc_dom2, Kc_dom_even, Kc_dom_any, ok_pb, ok_pa, Kc_full_dom,
+        Kd_step_dom, Kd_iter_dom, ok_pb_mono, ok_pb_score_lt ---- *)
+(* insert BB12_M12_bound.v lines 379-499 *)
+(* insert BB12_M12_bound.v lines 515-521 *)
+(* ---- end of copied block ---- *)
+
+(** ** New: the four rounds of the Baker's Dozen *)
+
+(** Variable-only forms: the constants W 6 3, d1, ..., pb4 are f_omega-sized, so every arithmetic step below is
+    done on variables and then instantiated. *)
+
+Lemma ok_pb_score : forall B pb, ok_pb B pb -> B < fst pb + snd pb / 2 + 3.
+Proof. intros B [p b] [Hp Hb]. cbn [fst snd] in *. lia. Qed.
+
+(** Round 0 seed: one Kd step from (7, 3) gives p' = 6 + W 6 3 / 2 and accumulator W p' (W 5 1 + 4). *)
+Lemma seed_dom_gen : forall w63 w51,
+  W 6 1 <= w63 -> ok_pb (f_omega 4) (6 + w63 / 2, W (6 + w63 / 2) (w51 + 4)).
+Proof.
+  intros w63 w51 H63. unfold ok_pb. cbn [fst snd].
+  pose proof (W_omega_bound 3) as Hw.
+  pose proof (W_level_ge 6 (6 + w63 / 2) (w51 + 4) ltac:(lia)) as H1.
+  pose proof (W_mono 6 1 (w51 + 4) ltac:(lia)) as H2.
+  set (x := W 6 1) in *. set (y := W 6 (w51 + 4)) in *. set (z := W (6 + w63 / 2) (w51 + 4)) in *.
+  set (f4 := f_omega 4) in *. clearbody x y z f4.
+  split; [mods |]; lia.
+Qed.
+
+Lemma Kd_step_7_3 : Kd_iter 1 (7, 3) = (6 + W 6 3 / 2, W (6 + W 6 3 / 2) (W 5 1 + 4)).
+Proof.
+  rewrite Kd_iter_unfold. cbn [iter].
+  rewrite Kd_step_unfold, Kc_full_unfold.
+  change (3 / 2) with 1. change (7 - 1) with 6. cbn [iter].
+  rewrite Kc_unfold. change (6 - 1) with 5.
+  reflexivity.
+Qed.
+
+Lemma seed_dom : ok_pb (f_omega 4) (Kd_iter (5 / 3) (7, 3)).
+Proof.
+  change (5 / 3) with 1. rewrite Kd_step_7_3.
+  apply seed_dom_gen. apply W_mono. lia.
+Qed.
+
+(** Catch-up: n applications of f_omega1 from any N >= 1 dominate f_omega2 (n / 2). *)
+Lemma catch_up : forall N n, 1 <= N -> f_omega2 (n / 2) <= iter n f_omega1 N.
+Proof.
+  intros N n HN.
+  assert (Hh : n / 2 + n / 2 <= n) by (mods; lia).
+  set (h := n / 2) in *. clearbody h.
+  transitivity (iter (h + h) f_omega1 N).
+  - rewrite iter_add, f_omega2_unfold.
+    apply iter_mono_x; [apply f_omega1_mono |].
+    pose proof (iter_lin1 f_omega1 f_omega1_gt h N HN). lia.
+  - apply iter_mono_n; [apply f_omega1_id | exact Hh].
+Qed.
+
+Lemma Kd_iter_S1 : forall k pb, Kd_iter (S k) pb = Kd_iter k (Kd_iter 1 pb).
+Proof.
+  intros k pb. rewrite !Kd_iter_unfold. rewrite iter_S'. reflexivity.
+Qed.
+
+Lemma round_count : forall X p' a',
+  X + 5 <= p' -> 6 * X <= a' -> exists k, (p' + a' / 2 + 2) / 3 = S k /\ X + 1 <= k.
+Proof.
+  intros X p' a' Hp Ha. exists ((p' + a' / 2 + 2) / 3 - 1). mods; lia.
+Qed.
+
+Lemma half_ge : forall X B k, 2 * B <= X -> X + 1 <= k -> B <= k / 2.
+Proof. intros. mods; lia. Qed.
+
+(** One restart round: if the Kd loop of a round starts from Cd 7 3 d and its end pb satisfies ok_pb B, the next
+    round's end satisfies ok_pb (f_omega2 (f_omega B)). *)
+Lemma round_dom : forall B d,
+  2 <= B -> ok_pb B (Kd_iter (d / 3) (7, 3)) ->
+  ok_pb (f_omega2 (f_omega B)) (Kd_iter (round2 d / 3) (7, 3)).
+Proof.
+  intros B d HB Hok.
+  destruct (Kc_full_dom B _ ltac:(lia) Hok) as [Hp Ha].
+  rewrite round2_def.
+  set (pa := Kc_full (Kd_iter (d / 3) (7, 3))) in *. clearbody pa.
+  destruct pa as [p' a']. cbn [fst snd] in *.
+  destruct (round_count (f_omega1 B) p' a' Hp Ha) as [k [Hk HkX]].
+  rewrite Hk, Kd_iter_S1.
+  pose proof (seed_dom) as Hseed. change (5 / 3) with 1 in Hseed.
+  assert (Hf4 : 1 <= f_omega 4) by (pose proof (f_omega_id 4); lia).
+  pose proof (Kd_iter_dom k (f_omega 4) (Kd_iter 1 (7, 3)) Hf4 Hseed) as Hdom.
+  eapply ok_pb_mono; [| exact Hdom].
+  transitivity (f_omega2 (k / 2)); [| apply catch_up; exact Hf4].
+  apply f_omega2_mono.
+  exact (half_ge (f_omega1 B) (f_omega B) k (f_omega1_dbl B HB) HkX).
+Qed.
+
+Lemma f_omega2_f_omega_ge2 : forall B, 2 <= B -> 2 <= f_omega2 (f_omega B).
+Proof.
+  intros B HB. pose proof (f_omega_id B). pose proof (f_omega2_id (f_omega B)). lia.
+Qed.
+
+Definition B_strong : nat :=
+  f_omega2 (f_omega (f_omega2 (f_omega (f_omega2 (f_omega (f_omega2 (f_omega (f_omega 4)))))))).
+
+Lemma pb4_dom_strong : ok_pb B_strong pb4.
+Proof.
+  assert (H0 : 2 <= f_omega 4) by (pose proof (f_omega_id 4); lia).
+  pose proof (round_dom (f_omega 4) 5 H0 seed_dom) as R1. rewrite <- d1_def in R1.
+  pose proof (round_dom _ d1 (f_omega2_f_omega_ge2 _ H0) R1) as R2. rewrite <- d2_def in R2.
+  pose proof (round_dom _ d2 (f_omega2_f_omega_ge2 _ (f_omega2_f_omega_ge2 _ H0)) R2) as R3.
+  rewrite <- d3_def in R3.
+  pose proof (round_dom _ d3 (f_omega2_f_omega_ge2 _ (f_omega2_f_omega_ge2 _ (f_omega2_f_omega_ge2 _ H0))) R3)
+    as R4.
+  rewrite <- d4_def, <- pb4_def in R4.
+  exact R4.
+Qed.
+
+Lemma chain4_ge : forall x,
+  f_omega2 (f_omega2 (f_omega2 (f_omega2 x))) <=
+  f_omega2 (f_omega (f_omega2 (f_omega (f_omega2 (f_omega (f_omega2 x)))))).
+Proof.
+  intros x.
+  apply f_omega2_mono. eapply Nat.le_trans; [| apply f_omega_id].
+  apply f_omega2_mono. eapply Nat.le_trans; [| apply f_omega_id].
+  apply f_omega2_mono. eapply Nat.le_trans; [| apply f_omega_id].
+  apply Nat.le_refl.
+Qed.
+
+Lemma B_strong_ge : f_omega2 (f_omega2 (f_omega2 (f_omega2 (f_omega (f_omega 4))))) <= B_strong.
+Proof. exact (chain4_ge (f_omega (f_omega 4))). Qed.
+
+Theorem sigma_lower_bound_strong :
+  exists c N, c0 -->* c /\ halted tm c /\ ones c N /\
+  f_omega2 (f_omega (f_omega2 (f_omega (f_omega2 (f_omega (f_omega2 (f_omega (f_omega 4)))))))) < N.
+Proof.
+  destruct score_exact as [c [H1 [H2 H3]]].
+  exists c, (fst pb4 + snd pb4 / 2 + 3).
+  split; [exact H1 |]. split; [exact H2 |]. split; [exact H3 |].
+  exact (ok_pb_score B_strong pb4 pb4_dom_strong).
+Qed.
+
+Theorem sigma_lower_bound :
+  exists c N, c0 -->* c /\ halted tm c /\ ones c N /\
+  f_omega2 (f_omega2 (f_omega2 (f_omega2 (f_omega (f_omega 4))))) < N.
+Proof.
+  destruct score_exact as [c [H1 [H2 H3]]].
+  exists c, (fst pb4 + snd pb4 / 2 + 3).
+  split; [exact H1 |]. split; [exact H2 |]. split; [exact H3 |].
+  exact (Nat.le_lt_trans _ _ _ B_strong_ge (ok_pb_score B_strong pb4 pb4_dom_strong)).
+Qed.
+
+(** ** New: comparisons with the proved bounds of M12 and M14 *)
+
+(** Jeff Ketchersid's Coq lower bounds for M12 and M14 (github.com/jeff87654/busy-beaver at commit f7975bf), where
+    f, f_omega, f_omega1, f_omega2 and iter are defined exactly as here:
+      BB12/verify_m12/multifile/BB12_M12_bound.v:
+        Theorem sigma_lower_bound_m12 :
+          exists c N, c0 -->* c /\ halted tm c /\ ones c N /\
+          f_omega2 (f_omega1 (f_omega1 3)) < N + 1.
+      BB14/verify/multifile/BB14_M14_bound.v:
+        Theorem sigma_lower_bound :
+          exists c N, c0 -->* c /\ halted tm c /\ ones c N /\
+          f_omega2 (f_omega2 (f_omega2 15)) < N + 1.
+    M12 and M14 halt on a 0 with 1RZ, so their score is N + 1 and these read: bound < sigma.  The Baker's Dozen's
+    score is N (see the header), and the two theorems below say that it exceeds both bounds.  They follow from
+    [sigma_lower_bound] by monotonicity.  As above, the arithmetic is done over variables and only then instantiated
+    at f_omega (f_omega 4). *)
+
+Lemma f_omega1_le_f_omega2 : forall y, 1 <= y -> f_omega1 y <= f_omega2 y.
+Proof.
+  intros y Hy. rewrite f_omega2_unfold.
+  pose proof (iter_mono_n f_omega1 f_omega1_id 1 y y Hy) as H. cbn [iter] in H. exact H.
+Qed.
+
+Lemma f_omega_f_omega_ge15 : forall a, 4 <= a -> 15 <= f_omega (f_omega a).
+Proof.
+  intros a Ha.
+  pose proof (f_omega_dbl a ltac:(lia)) as H1.
+  pose proof (f_omega_dbl (f_omega a) ltac:(lia)) as H2.
+  lia.
+Qed.
+
+Lemma M12_bound_le_gen : forall z x, 1 <= z -> z <= x ->
+  f_omega2 (f_omega1 (f_omega1 z)) <= f_omega2 (f_omega2 (f_omega2 (f_omega2 x))).
+Proof.
+  intros z x Hz Hx. apply f_omega2_mono.
+  pose proof (f_omega1_id z) as H0.
+  pose proof (f_omega1_le_f_omega2 (f_omega1 z) ltac:(lia)) as H1.
+  pose proof (f_omega2_mono _ _ (f_omega1_le_f_omega2 z Hz)) as H2.
+  pose proof (f_omega2_id x) as H3.
+  pose proof (f_omega2_mono _ _ (f_omega2_mono _ _ (Nat.le_trans _ _ _ Hx H3))) as H4.
+  lia.
+Qed.
+
+Lemma M12_bound_le : forall x, 15 <= x ->
+  f_omega2 (f_omega1 (f_omega1 3)) <= f_omega2 (f_omega2 (f_omega2 (f_omega2 x))).
+Proof. intros x Hx. apply M12_bound_le_gen; lia. Qed.
+
+Lemma M14_bound_le : forall z x, z <= x ->
+  f_omega2 (f_omega2 (f_omega2 z)) <= f_omega2 (f_omega2 (f_omega2 (f_omega2 x))).
+Proof.
+  intros z x Hx. apply f_omega2_mono, f_omega2_mono, f_omega2_mono.
+  pose proof (f_omega2_id x). lia.
+Qed.
+
+Theorem beats_M12_bound :
+  exists c N, c0 -->* c /\ halted tm c /\ ones c N /\ f_omega2 (f_omega1 (f_omega1 3)) < N.
+Proof.
+  destruct sigma_lower_bound as [c [N [H1 [H2 [H3 H4]]]]].
+  exists c, N.
+  split; [exact H1 |]. split; [exact H2 |]. split; [exact H3 |].
+  exact (Nat.le_lt_trans _ _ _ (M12_bound_le _ (f_omega_f_omega_ge15 4 (Nat.le_refl 4))) H4).
+Qed.
+
+Theorem beats_M14_bound :
+  exists c N, c0 -->* c /\ halted tm c /\ ones c N /\ f_omega2 (f_omega2 (f_omega2 15)) < N.
+Proof.
+  destruct sigma_lower_bound as [c [N [H1 [H2 [H3 H4]]]]].
+  exists c, N.
+  split; [exact H1 |]. split; [exact H2 |]. split; [exact H3 |].
+  exact (Nat.le_lt_trans _ _ _ (M14_bound_le 15 _ (f_omega_f_omega_ge15 4 (Nat.le_refl 4))) H4).
+Qed.

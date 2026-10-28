@@ -1,0 +1,12 @@
+# Coq build outputs
+*.vo
+*.vok
+*.vos
+*.glob
+.*.aux
+.lia.cache
+
+# Fetched by bb13/coq/build.sh (Jeff Ketchersid's repository and busycoq) and the files assembled from them.
+# Never commit these. They hold other people's code.
+bb13/coq/deps/
+bb13/coq/build/

@@ -1,0 +1,250 @@
+c0 = (q0, tape0)
+     : Q * tape
+eq_refl : q0 = A
+     : q0 = A
+eq_refl : s0 = 0
+     : s0 = 0
+eq_refl : BB13_BakersDozen.tm (A, 0) = Some (1, R, B)
+     : BB13_BakersDozen.tm (A, 0) = Some (1, R, B)
+eq_refl : BB13_BakersDozen.tm (A, 1) = Some (1, R, A)
+     : BB13_BakersDozen.tm (A, 1) = Some (1, R, A)
+eq_refl : BB13_BakersDozen.tm (B, 0) = Some (1, R, I)
+     : BB13_BakersDozen.tm (B, 0) = Some (1, R, I)
+eq_refl : BB13_BakersDozen.tm (B, 1) = Some (1, R, C)
+     : BB13_BakersDozen.tm (B, 1) = Some (1, R, C)
+eq_refl : BB13_BakersDozen.tm (C, 0) = Some (0, TM.L, D)
+     : BB13_BakersDozen.tm (C, 0) = Some (0, TM.L, D)
+eq_refl : BB13_BakersDozen.tm (C, 1) = Some (1, TM.L, G)
+     : BB13_BakersDozen.tm (C, 1) = Some (1, TM.L, G)
+eq_refl : BB13_BakersDozen.tm (D, 0) = Some (0, R, E)
+     : BB13_BakersDozen.tm (D, 0) = Some (0, R, E)
+eq_refl : BB13_BakersDozen.tm (D, 1) = Some (1, TM.L, D)
+     : BB13_BakersDozen.tm (D, 1) = Some (1, TM.L, D)
+eq_refl : BB13_BakersDozen.tm (E, 0) = Some (1, TM.L, K)
+     : BB13_BakersDozen.tm (E, 0) = Some (1, TM.L, K)
+eq_refl : BB13_BakersDozen.tm (E, 1) = Some (1, R, F)
+     : BB13_BakersDozen.tm (E, 1) = Some (1, R, F)
+eq_refl : BB13_BakersDozen.tm (F, 0) = Some (1, R, G)
+     : BB13_BakersDozen.tm (F, 0) = Some (1, R, G)
+eq_refl : BB13_BakersDozen.tm (F, 1) = Some (0, R, A)
+     : BB13_BakersDozen.tm (F, 1) = Some (0, R, A)
+eq_refl : BB13_BakersDozen.tm (G, 0) = Some (1, R, A)
+     : BB13_BakersDozen.tm (G, 0) = Some (1, R, A)
+eq_refl : BB13_BakersDozen.tm (G, 1) = Some (0, TM.L, H)
+     : BB13_BakersDozen.tm (G, 1) = Some (0, TM.L, H)
+eq_refl : BB13_BakersDozen.tm (H, 0) = Some (1, TM.L, G)
+     : BB13_BakersDozen.tm (H, 0) = Some (1, TM.L, G)
+eq_refl : BB13_BakersDozen.tm (H, 1) = Some (1, TM.L, H)
+     : BB13_BakersDozen.tm (H, 1) = Some (1, TM.L, H)
+eq_refl : BB13_BakersDozen.tm (I, 0) = Some (1, R, E)
+     : BB13_BakersDozen.tm (I, 0) = Some (1, R, E)
+eq_refl : BB13_BakersDozen.tm (I, 1) = Some (0, TM.L, J)
+     : BB13_BakersDozen.tm (I, 1) = Some (0, TM.L, J)
+eq_refl : BB13_BakersDozen.tm (J, 0) = Some (1, TM.L, H)
+     : BB13_BakersDozen.tm (J, 0) = Some (1, TM.L, H)
+eq_refl : BB13_BakersDozen.tm (J, 1) = Some (1, TM.L, I)
+     : BB13_BakersDozen.tm (J, 1) = Some (1, TM.L, I)
+eq_refl : BB13_BakersDozen.tm (K, 0) = Some (0, TM.L, M)
+     : BB13_BakersDozen.tm (K, 0) = Some (0, TM.L, M)
+eq_refl : BB13_BakersDozen.tm (K, 1) = Some (0, TM.L, L)
+     : BB13_BakersDozen.tm (K, 1) = Some (0, TM.L, L)
+eq_refl : BB13_BakersDozen.tm (L, 0) = Some (1, R, L)
+     : BB13_BakersDozen.tm (L, 0) = Some (1, R, L)
+eq_refl : BB13_BakersDozen.tm (L, 1) = Some (1, TM.L, K)
+     : BB13_BakersDozen.tm (L, 1) = Some (1, TM.L, K)
+eq_refl : BB13_BakersDozen.tm (M, 0) = Some (0, TM.L, G)
+     : BB13_BakersDozen.tm (M, 0) = Some (0, TM.L, G)
+eq_refl : BB13_BakersDozen.tm (M, 1) = None
+     : BB13_BakersDozen.tm (M, 1) = None
+BB13_BakersDozen.iter =
+fix iter (X : Type) (n : nat) (g : X -> X) (x : X) {struct n} : X :=
+  match n with
+  | 0 => x
+  | S n' => g (iter X n' g x)
+  end
+     : forall {X : Type}, nat -> (X -> X) -> X -> X
+
+Arguments BB13_BakersDozen.iter {X}%type_scope n%nat_scope g%function_scope x
+BB13_BakersDozen.W =
+fix W (j b : nat) {struct j} : nat :=
+  match j with
+  | 0 => b + 3
+  | S j' => BB13_BakersDozen.iter (S b) (W j') 2
+  end
+     : nat -> nat -> nat
+
+Arguments BB13_BakersDozen.W (j b)%nat_scope
+BB13_BakersDozen.Kc =
+fun '(p, a) => (p + a / 2, BB13_BakersDozen.W (p - 1) 1)
+     : nat * nat -> nat * nat
+
+Arguments BB13_BakersDozen.Kc pa
+BB13_BakersDozen.Kc_full =
+fun '(p, b) =>
+BB13_BakersDozen.iter (b / 2) BB13_BakersDozen.Kc
+  (p - 1, BB13_BakersDozen.W (p - 1) 3)
+     : nat * nat -> nat * nat
+
+Arguments BB13_BakersDozen.Kc_full pb
+BB13_BakersDozen.Kd_step =
+fun pb : nat * nat =>
+let
+'(p', a') := BB13_BakersDozen.Kc_full pb in
+ (p', BB13_BakersDozen.W p' (a' + 4))
+     : nat * nat -> nat * nat
+
+Arguments BB13_BakersDozen.Kd_step pb
+BB13_BakersDozen.Kd_iter =
+fun (m : nat) (pb : nat * nat) =>
+BB13_BakersDozen.iter m BB13_BakersDozen.Kd_step pb
+     : nat -> nat * nat -> nat * nat
+
+Arguments BB13_BakersDozen.Kd_iter m%nat_scope pb
+BB13_BakersDozen.round2 =
+fun d : nat =>
+fst (BB13_BakersDozen.Kc_full (BB13_BakersDozen.Kd_iter (d / 3) (7, 3))) +
+snd (BB13_BakersDozen.Kc_full (BB13_BakersDozen.Kd_iter (d / 3) (7, 3))) / 2 +
+2
+     : nat -> nat
+
+Arguments BB13_BakersDozen.round2 d%nat_scope
+BB13_BakersDozen.d1 = BB13_BakersDozen.round2 5
+     : nat
+BB13_BakersDozen.d2 = BB13_BakersDozen.round2 BB13_BakersDozen.d1
+     : nat
+BB13_BakersDozen.d3 = BB13_BakersDozen.round2 BB13_BakersDozen.d2
+     : nat
+BB13_BakersDozen.d4 = BB13_BakersDozen.round2 BB13_BakersDozen.d3
+     : nat
+BB13_BakersDozen.pb4 =
+BB13_BakersDozen.Kd_iter (BB13_BakersDozen.d4 / 3) (7, 3)
+     : nat * nat
+BB13_BakersDozen.Cd =
+fun p b d : nat =>
+[1] ^^ (b + 2) *> [0; 1] ^^ p *> const 0 {{I}}> [1; 0] ^^ d *> const 0
+     : nat -> nat -> nat -> Q * tape
+
+Arguments BB13_BakersDozen.Cd (p b d)%nat_scope
+BB13_BakersDozen.c_halt =
+fun p m : nat =>
+1 >> [0; 1] ^^ p *> const 0 <{{M}} 0 >> [1; 0] ^^ (m + 2) *> 1 >> const 0
+     : nat -> nat -> Q * tape
+
+Arguments BB13_BakersDozen.c_halt (p m)%nat_scope
+BB13_BakersDozen_bound.f =
+fix f (k : nat) : nat -> nat :=
+  match k with
+  | 0 => S
+  | S k' => fun n : nat => BB13_BakersDozen.iter n (f k') n
+  end
+     : nat -> nat -> nat
+
+Arguments BB13_BakersDozen_bound.f (k _)%nat_scope
+BB13_BakersDozen_bound.f_omega =
+fun n : nat => BB13_BakersDozen_bound.f n n
+     : nat -> nat
+
+Arguments BB13_BakersDozen_bound.f_omega n%nat_scope
+BB13_BakersDozen_bound.f_omega1 =
+fun n : nat => BB13_BakersDozen.iter n BB13_BakersDozen_bound.f_omega n
+     : nat -> nat
+
+Arguments BB13_BakersDozen_bound.f_omega1 n%nat_scope
+BB13_BakersDozen_bound.f_omega2 =
+fun n : nat => BB13_BakersDozen.iter n BB13_BakersDozen_bound.f_omega1 n
+     : nat -> nat
+
+Arguments BB13_BakersDozen_bound.f_omega2 n%nat_scope
+BB13_BakersDozen_bound.sym_val =
+fun s : Sym => match s with
+               | 0 => 0
+               | 1 => 1
+               end
+     : Sym -> nat
+
+Arguments BB13_BakersDozen_bound.sym_val s%sym_scope
+BB13_BakersDozen_bound.count1 =
+fix count1 (xs : list Sym) : nat :=
+  match xs with
+  | []%list => 0
+  | (x :: t)%list => BB13_BakersDozen_bound.sym_val x + count1 t
+  end
+     : list Sym -> nat
+
+Arguments BB13_BakersDozen_bound.count1 xs%list_scope
+BB13_BakersDozen_bound.ones =
+fun (c : Q * tape) (N : nat) =>
+exists (q : Q) (L R : list Sym) (s : Sym),
+  c = (q, (L *> const 0, s, R *> const 0)) /\
+  N =
+  BB13_BakersDozen_bound.count1 L + BB13_BakersDozen_bound.sym_val s +
+  BB13_BakersDozen_bound.count1 R
+     : Q * tape -> nat -> Prop
+
+Arguments BB13_BakersDozen_bound.ones c N%nat_scope
+BB13_BakersDozen.halt
+     : halts BB13_BakersDozen.tm c0
+BB13_BakersDozen_bound.score_exact
+     : exists c : Q * tape,
+         c0 -[ BB13_BakersDozen.tm ]->* c /\
+         halted BB13_BakersDozen.tm c /\
+         BB13_BakersDozen_bound.ones c
+           (fst BB13_BakersDozen.pb4 + snd BB13_BakersDozen.pb4 / 2 + 3)
+BB13_BakersDozen_bound.sigma_lower_bound
+     : exists (c : Q * tape) (N : nat),
+         c0 -[ BB13_BakersDozen.tm ]->* c /\
+         halted BB13_BakersDozen.tm c /\
+         BB13_BakersDozen_bound.ones c N /\
+         BB13_BakersDozen_bound.f_omega2
+           (BB13_BakersDozen_bound.f_omega2
+              (BB13_BakersDozen_bound.f_omega2
+                 (BB13_BakersDozen_bound.f_omega2
+                    (BB13_BakersDozen_bound.f_omega
+                       (BB13_BakersDozen_bound.f_omega 4))))) < N
+BB13_BakersDozen_bound.sigma_lower_bound_strong
+     : exists (c : Q * tape) (N : nat),
+         c0 -[ BB13_BakersDozen.tm ]->* c /\
+         halted BB13_BakersDozen.tm c /\
+         BB13_BakersDozen_bound.ones c N /\
+         BB13_BakersDozen_bound.f_omega2
+           (BB13_BakersDozen_bound.f_omega
+              (BB13_BakersDozen_bound.f_omega2
+                 (BB13_BakersDozen_bound.f_omega
+                    (BB13_BakersDozen_bound.f_omega2
+                       (BB13_BakersDozen_bound.f_omega
+                          (BB13_BakersDozen_bound.f_omega2
+                             (BB13_BakersDozen_bound.f_omega
+                                (BB13_BakersDozen_bound.f_omega 4)))))))) < N
+BB13_BakersDozen_bound.beats_M12_bound
+     : exists (c : Q * tape) (N : nat),
+         c0 -[ BB13_BakersDozen.tm ]->* c /\
+         halted BB13_BakersDozen.tm c /\
+         BB13_BakersDozen_bound.ones c N /\
+         BB13_BakersDozen_bound.f_omega2
+           (BB13_BakersDozen_bound.f_omega1
+              (BB13_BakersDozen_bound.f_omega1 3)) < N
+BB13_BakersDozen_bound.beats_M14_bound
+     : exists (c : Q * tape) (N : nat),
+         c0 -[ BB13_BakersDozen.tm ]->* c /\
+         halted BB13_BakersDozen.tm c /\
+         BB13_BakersDozen_bound.ones c N /\
+         BB13_BakersDozen_bound.f_omega2
+           (BB13_BakersDozen_bound.f_omega2
+              (BB13_BakersDozen_bound.f_omega2 15)) < N
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context
+Closed under the global context

@@ -1,0 +1,20 @@
+== The Coq Proof Assistant, version 8.20.1
+== fetching https://github.com/jeff87654/busy-beaver at f7975bf
+== fetching https://github.com/meithecatte/busycoq at bd2e36f
+== building busycoq's Flip.vo and Individual.vo
+   ok, 4 s
+== assembling
+  Jeff's files at commit f7975bf: BB12_M12.v, BB12_M12_bound.v, BB132.v, Individual132.v (SHA-256 checked)
+  build/BB132.v                    sha256 3919d2a57af7022e…  matches the recorded build
+  build/Individual132.v            sha256 bb4776495c5173fb…  matches the recorded build
+  build/BB13_BakersDozen.v         sha256 a04be3823ad50f8a…  matches the recorded build
+  build/BB13_BakersDozen_bound.v   sha256 ba6a0548c4ad77fc…  matches the recorded build
+== compiling in build/
+   BB132.v ok, 0 s
+   Individual132.v ok, 0 s
+   BB13_BakersDozen.v ok, 6 s
+   BB13_BakersDozen_bound.v ok, 0 s
+== probe
+   17 of 17 Print Assumptions closed under the global context (main theorems and rules)
+   build/probe.log is identical to the recorded probe.log
+== done

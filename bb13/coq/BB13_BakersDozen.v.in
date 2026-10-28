@@ -1,0 +1,517 @@
+(** * The Baker's Dozen, a 13-state machine, halts (main theorem [halt]); its score is in BB13_BakersDozen_bound.v *)
+
+(** The Baker's Dozen = M12 with L0 = 1RL (was 0LH), K0 = 0LM (was the halt) and a new state M = (0LG, ---).
+
+    This file is built on Jeff Ketchersid's Coq development for M12 (BB12/verify_m12/multifile/BB12_M12.v in
+    github.com/jeff87654/busy-beaver; M12 was found and proved by Argon, a Google Gemini model run by Jeff).  Blocks
+    marked "copied unchanged" are his text, byte for byte; they are replayed here against the Baker's Dozen's table, which
+    agrees with M12's on every slot those proofs read.  New here: the table, the rules G (halt), D1, RST (restart,
+    via RST_entry, RST_sweep, RST_restart, STARTUP) and START, the residues of W and of the Kc/Kd maps modulo 81,
+    and the four-round run.
+
+    The run (configurations as in BB12_M12.v; Cd p b d = 0^inf (10)^p 1^(b+2) I> (10)^d 0^inf):
+      c0 -->* Cd 7 3 5                                                   (START, 260 steps)
+      Cd 7 3 d -->+ Cd 7 3 (round2 d)            when d mod 3 = 2        (Kd_loop, Kc_full_all, D1, RST)
+      d1 = round2 5,  d2 = round2 d1,  d3 = round2 d2,  d4 = round2 d3
+      d1 = 32 (mod 81), d2 = 14 (mod 27), d3 = 8 (mod 9), d4 = 0 (mod 3)  (W_mod81 and the Kc/Kd residues)
+      Cd 7 3 d4 -->* Cd (fst pb4) (snd pb4) 0 -->+ c_halt _ _            (Kd_loop, G_HALT: M reads a 1) *)
+
+From BB8 Require Import Individual132.
+From Coq Require Import Lia PeanoNat List Wf_nat.
+Import ListNotations.
+Set Default Goal Selector "!".
+
+(* machine: 1RB1RA_1RI1RC_0LD1LG_0RE1LD_1LK1RF_1RG0RA_1RA0LH_1LG1LH_1RE0LJ_1LH1LI_0LM0LL_1RL1LK_0LG--- *)
+Definition tm : TM := fun '(q, s) =>
+  match q, s with
+  | A, 0 => Some (1, TM.R, B)  | A, 1 => Some (1, TM.R, A)
+  | B, 0 => Some (1, TM.R, I)  | B, 1 => Some (1, TM.R, C)
+  | C, 0 => Some (0, TM.L, D)  | C, 1 => Some (1, TM.L, G)
+  | D, 0 => Some (0, TM.R, E)  | D, 1 => Some (1, TM.L, D)
+  | E, 0 => Some (1, TM.L, K)  | E, 1 => Some (1, TM.R, F)
+  | F, 0 => Some (1, TM.R, G)  | F, 1 => Some (0, TM.R, A)
+  | G, 0 => Some (1, TM.R, A)  | G, 1 => Some (0, TM.L, H)
+  | H, 0 => Some (1, TM.L, G)  | H, 1 => Some (1, TM.L, H)
+  | I, 0 => Some (1, TM.R, E)  | I, 1 => Some (0, TM.L, J)
+  | J, 0 => Some (1, TM.L, H)  | J, 1 => Some (1, TM.L, I)
+  | K, 0 => Some (0, TM.L, M)  | K, 1 => Some (0, TM.L, L)
+  | L, 0 => Some (1, TM.R, L)  | L, 1 => Some (1, TM.L, K)
+  | M, 0 => Some (0, TM.L, G)  | M, 1 => None
+  end.
+
+(* ---- copied unchanged from BB12_M12.v (Jeff Ketchersid): the step notations, align_lpow, align_lpow_const,
+        align_tape, norm_nat, finish_norm, lpow_double ---- *)
+(* insert BB12_M12.v lines 25-49 *)
+(* ---- end of copied block ---- *)
+
+(** ** Basic shift lemmas *)
+
+(* ---- copied unchanged from BB12_M12.v: cr_AR_1_1, cr_DL_1_1, cr_HL_1_1, cr_HL_01_01, cr_IL_11_10, cr_KL_11_10
+        (cr_KL_11_10 reads K1 = 0LL and L1 = 1LK, which the Baker's Dozen shares with M12) ---- *)
+(* insert BB12_M12.v lines 53-69 *)
+(* ---- end of copied block ---- *)
+
+(** ** Configurations and inner cascade rules *)
+
+(* ---- copied unchanged from BB12_M12.v: configurations Ca, Ch, Ce, Cd, blk and the cascade rules CA_SH,
+        CA_SH_iter, CA_EXIT, CA_CH, CH_0, CH_S_aux, CH_S, E_EVEN ---- *)
+(* insert BB12_M12.v lines 73-167 *)
+(* ---- end of copied block ---- *)
+
+(* ---- copied unchanged from BB12_M12.v: C_REL_aux, D_STEP_aux.  (M12's D_REL_aux is not copied: it reads L0,
+        which the Baker's Dozen changes.) ---- *)
+(* insert BB12_M12.v lines 182-202 *)
+(* ---- end of copied block ---- *)
+
+(** ** Halting step at d = 0 *)
+
+(* ---- copied unchanged from BB12_M12.v: c_end, HALT_step.  In the Baker's Dozen, c_end is not a halting configuration
+        (K0 = 0LM); the halt is one step later, in rule G below. ---- *)
+(* insert BB12_M12.v lines 206-220 *)
+(* ---- end of copied block ---- *)
+
+(** ** New rules of the Baker's Dozen: G (halt), D1, RST (restart) *)
+
+(** G: the halting configuration, one step after [c_end] (K0 = 0LM), with M reading a 1 (M1 undefined). *)
+Definition c_halt (p m : nat) : Q * tape :=
+  (1 >> [0; 1]^^p *> const 0) <{{M}} (0 >> [1; 0]^^(m + 2) *> 1 >> const 0).
+
+Lemma c_halt_halted : forall p m, halted tm (c_halt p m).
+Proof. intros. unfold c_halt. simpl. reflexivity. Qed.
+
+(** G: from [Cd (p+1) (2m+1) 0], M12's HALT_step (I0, E0, the K sweep) reaches [c_end], then K0 = 0LM moves onto
+    the 1 of the top (10) pair and M1 halts.  p >= 1 is needed (with p = 0, M reads a 0 and the run continues). *)
+Lemma G_HALT : forall p m,
+  Cd (S p) (2 * m + 1) 0 -->+ c_halt p m.
+Proof.
+  intros p m.
+  eapply progress_evstep_trans; [apply HALT_step |].
+  unfold c_end, c_halt. cbn [lpow Str_app app].
+  execute.
+Qed.
+
+(** D1: [Ce p a 0 1] becomes [Ce p (a + 6) 0 0] in 6 steps (I0 E1 F0 G0 A0 B0). *)
+Lemma D1 : forall p a,
+  Ce p a 0 1 -->+ Ce p (a + 6) 0 0.
+Proof.
+  intros p a. unfold Ce. cbn [lpow Str_app app].
+  replace (a + 6 + 2)%nat with (6 + (a + 2))%nat by lia.
+  rewrite (lpow_add _ 6 (a + 2)).
+  start_progress; finish_norm.
+Qed.
+
+(** RST: the restart.  [Xk q n] is the sweep configuration 0^inf (10)^q 1 <K (10)^n 1 0^inf. *)
+Definition Xk (q n : nat) : Q * tape :=
+  (1 >> [0; 1]^^q *> const 0) <{{K}} ([1; 0]^^n *> 1 >> const 0).
+
+(** RST_entry: I0, E0, then the K sweep (cr_KL_11_10) over the 2k + 3 ones. *)
+Lemma RST_entry : forall p k,
+  Ce p (2 * k) 0 0 -->+ Xk p (S k).
+Proof.
+  intros p k. unfold Ce, Xk.
+  replace (2 * k + 2)%nat with (1 + (2 * k + 1))%nat by lia.
+  rewrite !lpow_add. cbn [lpow Str_app].
+  rewrite (lpow_double [1] k). cbn [app].
+  start_progress.
+  follow cr_KL_11_10.
+  finish_norm.
+Qed.
+
+(** RST_sweep_step: 6 steps (K1 L0 L0 L1 K1 L1); L0 = 1RL turns one (10) pair on the left into one more (10) on
+    the right. *)
+Lemma RST_sweep_step : forall q n,
+  Xk (S q) n -->+ Xk q (S n).
+Proof.
+  intros q n. unfold Xk. cbn [lpow Str_app app].
+  rewrite align_lpow. cbn [app].
+  start_progress; finish_norm.
+Qed.
+
+Lemma RST_sweep : forall q n,
+  Xk q n -->* Xk 0 (n + q).
+Proof.
+  induction q as [| q IHq]; intros n.
+  - replace (n + 0)%nat with n by lia. finish.
+  - eapply evstep_trans; [apply progress_evstep, RST_sweep_step |].
+    follow (IHq (S n)).
+    replace (S n + q)%nat with (n + S q)%nat by lia. finish.
+Qed.
+
+(** RST_restart: 11 steps; K0 = 0LM and M0 = 0LG restart the machine at the left end. *)
+Lemma RST_restart : forall n,
+  Xk 0 n -->+ Cd 0 1 (S (S n)).
+Proof.
+  intros n. unfold Xk, Cd. cbn [lpow Str_app app].
+  rewrite align_lpow. cbn [app]. rewrite align_lpow_const. cbn [app].
+  start_progress; finish_norm.
+Qed.
+
+(** STARTUP: 168 literal steps that consume four counter pairs and never read the other D. *)
+Lemma STARTUP : forall D,
+  Cd 0 1 (4 + D) -->* Cd 7 3 D.
+Proof.
+  intros D. unfold Cd.
+  rewrite lpow_add. cbn [lpow Str_app app].
+  do 168 step. finish_norm.
+Qed.
+
+(** RST: the whole tape becomes the new counter.  p + k >= 1 gives the four pairs STARTUP consumes. *)
+Lemma RST : forall p k,
+  1 <= p + k ->
+  Ce p (2 * k) 0 0 -->+ Cd 7 3 (p + k - 1).
+Proof.
+  intros p k Hpk.
+  eapply progress_evstep_trans; [apply RST_entry |].
+  follow (RST_sweep p (S k)).
+  eapply evstep_trans; [apply progress_evstep, RST_restart |].
+  replace (S (S (S k + p))) with (4 + (p + k - 1))%nat by lia.
+  apply STARTUP.
+Qed.
+
+(** ** START (new): 260 steps from the blank tape *)
+
+Lemma START : c0 -->* Cd 7 3 5.
+Proof.
+  unfold Cd. cbn [lpow Str_app].
+  do 260 step. finish_norm.
+Qed.
+
+(** ** Exact hierarchy functions W, Kc, Kd_step *)
+
+Local Open Scope nat_scope.
+
+(* ---- copied unchanged from BB12_M12.v: iter, iter_S', iter_add, W, W_0, W_S, BLK_iter_aux, CH_CA, CE_EVEN,
+        C_REL, D_STEP (the rules KC, CREL, DSTEP).  (M12's D_REL is not copied: it uses D_REL_aux.) ---- *)
+(* insert BB12_M12.v lines 229-286 *)
+(* insert BB12_M12.v lines 297-315 *)
+(* ---- end of copied block ---- *)
+
+(** ** Growth, parity, and mod-6 invariants *)
+
+(* ---- copied unchanged from BB12_M12.v: absmod, mods, iter_lin3, iter_par_nat, W_grow, W_par, iter_W0, W_1,
+        W_1_mod6, W_S_mod6, W_S_1_mod6 ---- *)
+(* insert BB12_M12.v lines 337-417 *)
+(* ---- end of copied block ---- *)
+
+(** ** New: W modulo 81 (the 3-adic fact the halting argument needs) *)
+
+(** [W 2 y = (3^(y+3) - 5) / 2]: W_1 is b -> 3b + 5, and 2x + 5 is multiplied by 3 at each application. *)
+Lemma iter_W1_pow : forall n, 2 * iter n (W 1) 2 + 5 = 3 ^ (n + 2).
+Proof.
+  induction n as [| n IHn]; cbn [iter].
+  - reflexivity.
+  - rewrite W_1. replace (S n + 2) with (S (n + 2)) by lia. rewrite Nat.pow_succ_r'. lia.
+Qed.
+
+Lemma W2_pow : forall y, 2 * W 2 y + 5 = 3 ^ (y + 3).
+Proof.
+  intros y. rewrite W_S. replace (y + 3) with (S y + 2) by lia. apply iter_W1_pow.
+Qed.
+
+(** Fact (A) of the paper proof: for j >= 2, 2 W j b + 5 is a power of 3, 3^(y+3) with y >= b. *)
+Lemma W_pow3 : forall j b, exists y, b <= y /\ 2 * W (S (S j)) b + 5 = 3 ^ (y + 3).
+Proof.
+  induction j as [| j IHj]; intros b.
+  - exists b. split; [lia | apply W2_pow].
+  - rewrite W_S. cbn [iter].
+    destruct (IHj (iter b (W (S (S j))) 2)) as [y [Hy Hpow]].
+    exists y. split; [| exact Hpow].
+    pose proof (iter_lin3 (W (S (S j))) (W_grow (S (S j))) b 2). lia.
+Qed.
+
+Lemma W2_mod81 : forall y, 1 <= y -> W 2 y mod 81 = 38.
+Proof.
+  intros y Hy. pose proof (W2_pow y) as H.
+  replace (y + 3) with (4 + (y - 1)) in H by lia.
+  rewrite Nat.pow_add_r in H. change (3 ^ 4) with 81 in H.
+  set (t := 3 ^ (y - 1)) in *. clearbody t.
+  mods; lia.
+Qed.
+
+(** For every level j >= 3 and every argument b, W j b = 38 (mod 81). *)
+Lemma W_mod81 : forall j b, W (S (S (S j))) b mod 81 = 38.
+Proof.
+  induction j as [| j IHj]; intros b.
+  - rewrite W_S. cbn [iter]. apply W2_mod81.
+    pose proof (iter_lin3 (W 2) (W_grow 2) b 2). lia.
+  - rewrite W_S. cbn [iter]. apply IHj.
+Qed.
+
+Opaque W.
+
+(* ---- copied unchanged from BB12_M12.v: Kc, Kc_step, Kc_props, Kc_mod6, Kc_loop, Kc_loop_mod6, Kc_full,
+        Kc_full_all, Kd_step, Kd_step_all, Kd_iter, Kd_loop (they use only CE_EVEN, C_REL, D_STEP) ---- *)
+(* insert BB12_M12.v lines 421-572 *)
+(* ---- end of copied block ---- *)
+
+(** ** New: residues of the Kc / Kd functions modulo 81 *)
+
+(** At level >= 3 every accumulator Kc produces is W _ 1 = 38 (mod 81) and even, i.e. = 38 (mod 162), so each Kc
+    step adds 19 (mod 81) to p. *)
+Lemma Kc_res : forall pa,
+  4 <= fst pa -> snd pa mod 162 = 38 ->
+  4 <= fst (Kc pa) /\ snd (Kc pa) mod 162 = 38 /\ fst (Kc pa) mod 81 = (fst pa + 19) mod 81.
+Proof.
+  intros [p a] Hp Ha. cbn [fst snd Kc] in *.
+  destruct p as [| [| [| [| p']]]]; try lia.
+  replace (S (S (S (S p'))) - 1) with (S (S (S p'))) by lia.
+  pose proof (W_mod81 p' 1) as H81.
+  pose proof (W_par (S (S (S p'))) 1) as H2.
+  split; [lia | split]; mods; lia.
+Qed.
+
+Lemma Kc_iter_res : forall c pa,
+  4 <= fst pa -> snd pa mod 162 = 38 ->
+  4 <= fst (iter c Kc pa) /\ snd (iter c Kc pa) mod 162 = 38 /\
+  fst (iter c Kc pa) mod 81 = (fst pa + 19 * c) mod 81.
+Proof.
+  induction c as [| c IHc]; intros pa Hp Ha.
+  - cbn [iter]. split; [lia | split; [exact Ha | f_equal; lia]].
+  - cbn [iter].
+    destruct (IHc pa Hp Ha) as [H1 [H2 H3]].
+    destruct (Kc_res (iter c Kc pa) H1 H2) as [H4 [H5 H6]].
+    split; [exact H4 | split; [exact H5 |]].
+    rewrite H6. clear H4 H5 H6.
+    set (x := fst (iter c Kc pa)) in *. clearbody x.
+    mods; lia.
+Qed.
+
+Lemma Kc_full_res : forall pb,
+  5 <= fst pb ->
+  4 <= fst (Kc_full pb) /\ snd (Kc_full pb) mod 162 = 38 /\
+  fst (Kc_full pb) mod 81 = (fst pb - 1 + 19 * (snd pb / 2)) mod 81.
+Proof.
+  intros [p b] Hp. cbn [fst snd Kc_full] in *.
+  destruct p as [| [| [| [| [| p']]]]]; try lia.
+  replace (S (S (S (S (S p')))) - 1) with (S (S (S (S p')))) by lia.
+  pose proof (W_mod81 (S p') 3) as H81.
+  pose proof (W_par (S (S (S (S p')))) 3) as H2.
+  assert (H162 : W (S (S (S (S p')))) 3 mod 162 = 38) by (mods; lia).
+  destruct (Kc_iter_res (b / 2) (S (S (S (S p'))), W (S (S (S (S p')))) 3) ltac:(cbn; lia) H162)
+    as [Hp1 [Ha1 Hm1]].
+  cbn [fst] in Hm1.
+  split; [exact Hp1 | split; [exact Ha1 | exact Hm1]].
+Qed.
+
+(** A Kd step ends with W p' (a' + 4), at level >= 3 and with an even argument: = 38 (mod 81) and odd. *)
+Lemma Kd_step_res : forall pb,
+  5 <= fst pb ->
+  fst (Kd_step pb) = fst (Kc_full pb) /\ snd (Kd_step pb) mod 162 = 119.
+Proof.
+  intros pb Hp. unfold Kd_step.
+  destruct (Kc_full_res pb Hp) as [Hp1 [Ha1 _]].
+  set (pa' := Kc_full pb) in *.
+  destruct pa' as [p' a']. cbn [fst snd] in *.
+  split; [reflexivity |].
+  destruct p' as [| [| [| p'']]]; try lia.
+  pose proof (W_mod81 p'' (a' + 4)) as H81.
+  pose proof (W_par (S (S (S p''))) (a' + 4)) as H2.
+  mods; lia.
+Qed.
+
+(** From [Cd 7 3 _], the n-th Kd step (n >= 1) leaves p = 25 + 67 (n - 1) (mod 81). *)
+Lemma Kd_iter_res : forall n,
+  7 <= fst (Kd_iter (S n) (7, 3)) /\ snd (Kd_iter (S n) (7, 3)) mod 162 = 119 /\
+  fst (Kd_iter (S n) (7, 3)) mod 81 = (25 + 67 * n) mod 81.
+Proof.
+  induction n as [| n IHn].
+  - unfold Kd_iter. cbn [iter].
+    destruct (Kd_step_all 0 (7, 3) ltac:(cbn; lia) ltac:(cbn; lia) eq_refl) as [_ [Hp _]].
+    destruct (Kd_step_res (7, 3) ltac:(cbn; lia)) as [Hf Hs].
+    destruct (Kc_full_res (7, 3) ltac:(cbn; lia)) as [_ [_ Hm]].
+    cbn [fst snd] in *.
+    split; [lia | split; [exact Hs |]].
+    rewrite Hf, Hm. reflexivity.
+  - destruct IHn as [Hp [Hs Hm]].
+    unfold Kd_iter in *. cbn [iter] in *.
+    set (pb := Kd_step (iter n Kd_step (7, 3))) in *.
+    assert (Hodd : snd pb mod 2 = 1) by (mods; lia).
+    destruct (Kd_step_all 0 pb ltac:(lia) ltac:(mods; lia) Hodd) as [_ [Hp1 _]].
+    destruct (Kd_step_res pb ltac:(lia)) as [Hf Hs1].
+    destruct (Kc_full_res pb ltac:(lia)) as [_ [_ Hm1]].
+    split; [lia | split; [exact Hs1 |]].
+    rewrite Hf, Hm1. clear Hf Hs1 Hm1 Hp1 Hodd.
+    set (P := fst pb) in *. set (Bv := snd pb) in *. clearbody P Bv.
+    mods; lia.
+Qed.
+
+(** ** New: one round with remainder 2, and its counter modulo 81 *)
+
+(** From [Cd 7 3 d] with d = 3n + 2: n Kd steps (Kd_loop), then C_REL and the KC steps (Kc_full_all) leave
+    [Ce p' a' 0 1], D1 gives [Ce p' (a' + 6) 0 0], and RST restarts at [Cd 7 3 (p' + a'/2 + 2)]. *)
+Definition round2 (d : nat) : nat :=
+  fst (Kc_full (Kd_iter (d / 3) (7, 3))) + snd (Kc_full (Kd_iter (d / 3) (7, 3))) / 2 + 2.
+
+Lemma round2_run : forall d,
+  d mod 3 = 2 -> Cd 7 3 d -->+ Cd 7 3 (round2 d).
+Proof.
+  intros d Hd. unfold round2.
+  assert (Hdn : d = 3 * (d / 3) + 2) by (pose proof (Nat.div_mod_eq d 3); lia).
+  destruct (Kd_loop (d / 3) 2 (7, 3) ltac:(cbn; lia) ltac:(cbn; lia) eq_refl) as [Hloop [Hp [Hb Hodd]]].
+  cbn [fst snd] in Hloop, Hp.
+  set (pb := Kd_iter (d / 3) (7, 3)) in *.
+  destruct (Kc_full_all 1 pb ltac:(lia) Hb Hodd) as [Hkc [Hp1 [Ha1 [Hev _]]]].
+  set (pa := Kc_full pb) in *.
+  rewrite Hdn at 1.
+  eapply evstep_progress_trans; [exact Hloop |].
+  eapply progress_trans; [exact Hkc |].
+  eapply progress_trans; [apply D1 |].
+  assert (Ha6 : snd pa + 6 = 2 * (snd pa / 2 + 3)) by (mods; lia).
+  rewrite Ha6.
+  replace (fst pa + snd pa / 2 + 2) with (fst pa + (snd pa / 2 + 3) - 1) by lia.
+  apply RST. lia.
+Qed.
+
+(** The counter after a round: round2 d = 46 + 67 (d / 3) (mod 81). *)
+Lemma round2_res : forall d,
+  3 <= d -> 9 <= round2 d /\ round2 d mod 81 = (46 + 67 * (d / 3)) mod 81.
+Proof.
+  intros d Hd. unfold round2.
+  assert (Hn : exists n, d / 3 = S n)
+    by (exists (d / 3 - 1); pose proof (Nat.div_mod_eq d 3); pose proof (Nat.mod_upper_bound d 3); lia).
+  destruct Hn as [n Hn]. rewrite Hn.
+  destruct (Kd_iter_res n) as [Hp [Hs Hm]].
+  set (pb := Kd_iter (S n) (7, 3)) in *.
+  assert (Hodd : snd pb mod 2 = 1) by (mods; lia).
+  destruct (Kc_full_all 0 pb ltac:(lia) ltac:(mods; lia) Hodd) as [_ [Hp1 [Ha1 _]]].
+  destruct (Kc_full_res pb ltac:(lia)) as [_ [Ha2 Hm2]].
+  set (pa := Kc_full pb) in *.
+  clearbody pa pb. destruct pa as [p' a']. destruct pb as [P Bv]. cbn [fst snd] in *.
+  split; [lia |].
+  mods; lia.
+Qed.
+
+(** ** The full run of the Baker's Dozen *)
+
+(** Round 0 starts at [Cd 7 3 5] (START); rounds 0-3 end with remainder 2 and restart; round 4 has remainder 0
+    and halts (G). *)
+Definition d1 : nat := round2 5.
+Definition d2 : nat := round2 d1.
+Definition d3 : nat := round2 d2.
+Definition d4 : nat := round2 d3.
+Definition pb4 : nat * nat := Kd_iter (d4 / 3) (7, 3).
+
+Lemma round2_def : forall d,
+  round2 d = fst (Kc_full (Kd_iter (d / 3) (7, 3))) + snd (Kc_full (Kd_iter (d / 3) (7, 3))) / 2 + 2.
+Proof. reflexivity. Qed.
+Lemma d1_def : d1 = round2 5. Proof. reflexivity. Qed.
+Lemma d2_def : d2 = round2 d1. Proof. reflexivity. Qed.
+Lemma d3_def : d3 = round2 d2. Proof. reflexivity. Qed.
+Lemma d4_def : d4 = round2 d3. Proof. reflexivity. Qed.
+Lemma pb4_def : pb4 = Kd_iter (d4 / 3) (7, 3). Proof. reflexivity. Qed.
+
+Opaque Kc Kc_full Kd_step Kd_iter round2 d1 d2 d3 d4 pb4.
+
+(** The counters d1..d4 are f_omega-sized constants: the arithmetic below is done in lemmas over variables and
+    then instantiated, so that no tactic tries to unfold or evaluate them. *)
+Lemma res_81_27 : forall y x, y mod 81 = 32 -> x mod 81 = (46 + 67 * (y / 3)) mod 81 -> x mod 27 = 14.
+Proof. intros y x H1 H2. mods; lia. Qed.
+
+Lemma res_27_9 : forall y x, y mod 27 = 14 -> x mod 81 = (46 + 67 * (y / 3)) mod 81 -> x mod 9 = 8.
+Proof. intros y x H1 H2. mods; lia. Qed.
+
+Lemma res_9_3 : forall y x, y mod 9 = 8 -> x mod 81 = (46 + 67 * (y / 3)) mod 81 -> x mod 3 = 0.
+Proof. intros y x H1 H2. mods; lia. Qed.
+
+Lemma res_rem2 : forall y, y mod 81 = 32 \/ y mod 27 = 14 \/ y mod 9 = 8 -> y mod 3 = 2.
+Proof. intros y H. mods; lia. Qed.
+
+Lemma le_3_9 : forall y, 9 <= y -> 3 <= y.
+Proof. intros. lia. Qed.
+
+(** The counters: d1 = 32 (mod 81), d2 = 14 (mod 27), d3 = 8 (mod 9), d4 = 0 (mod 3). *)
+Lemma d1_res : 9 <= d1 /\ d1 mod 81 = 32.
+Proof.
+  rewrite d1_def. destruct (round2_res 5 ltac:(lia)) as [H1 H2].
+  split; [exact H1 | rewrite H2; reflexivity].
+Qed.
+
+Lemma d2_res : 9 <= d2 /\ d2 mod 27 = 14.
+Proof.
+  destruct d1_res as [H1 H2].
+  rewrite d2_def. destruct (round2_res d1 (le_3_9 d1 H1)) as [H3 H4].
+  exact (conj H3 (res_81_27 d1 (round2 d1) H2 H4)).
+Qed.
+
+Lemma d3_res : 9 <= d3 /\ d3 mod 9 = 8.
+Proof.
+  destruct d2_res as [H1 H2].
+  rewrite d3_def. destruct (round2_res d2 (le_3_9 d2 H1)) as [H3 H4].
+  exact (conj H3 (res_27_9 d2 (round2 d2) H2 H4)).
+Qed.
+
+Lemma d4_res : d4 mod 3 = 0.
+Proof.
+  destruct d3_res as [H1 H2].
+  rewrite d4_def. destruct (round2_res d3 (le_3_9 d3 H1)) as [H3 H4].
+  exact (res_9_3 d3 (round2 d3) H2 H4).
+Qed.
+
+Lemma run_d4 : c0 -->* Cd 7 3 d4.
+Proof.
+  pose proof (round2_run 5 eq_refl) as R0. rewrite <- d1_def in R0.
+  pose proof (round2_run d1 (res_rem2 d1 (or_introl (proj2 d1_res)))) as R1.
+  rewrite <- d2_def in R1.
+  pose proof (round2_run d2 (res_rem2 d2 (or_intror (or_introl (proj2 d2_res))))) as R2.
+  rewrite <- d3_def in R2.
+  pose proof (round2_run d3 (res_rem2 d3 (or_intror (or_intror (proj2 d3_res))))) as R3.
+  rewrite <- d4_def in R3.
+  follow START.
+  eapply evstep_trans; [apply progress_evstep, R0 |].
+  eapply evstep_trans; [apply progress_evstep, R1 |].
+  eapply evstep_trans; [apply progress_evstep, R2 |].
+  apply progress_evstep, R3.
+Qed.
+
+(** The last round: remainder 0, so the Kd loop ends at [Cd p b 0] and G halts the machine. *)
+Lemma Kd_from_7_3 : forall n,
+  7 <= fst (Kd_iter n (7, 3)) /\ 3 <= snd (Kd_iter n (7, 3)) /\ snd (Kd_iter n (7, 3)) mod 2 = 1.
+Proof.
+  intros n.
+  destruct (Kd_loop n 0 (7, 3) ltac:(cbn; lia) ltac:(cbn; lia) eq_refl) as [_ [Hp [Hb Hodd]]].
+  cbn [fst snd] in Hp.
+  split; [exact Hp | split; [exact Hb | exact Hodd]].
+Qed.
+
+Lemma run_last_round : forall d,
+  c0 -->* Cd 7 3 d -> d mod 3 = 0 ->
+  c0 -->* Cd (fst (Kd_iter (d / 3) (7, 3))) (snd (Kd_iter (d / 3) (7, 3))) 0.
+Proof.
+  intros d Hrun Hd.
+  assert (Hdd : d = 3 * (d / 3) + 0) by (pose proof (Nat.div_mod_eq d 3); lia).
+  set (n := d / 3) in *. clearbody n. subst d.
+  destruct (Kd_loop n 0 (7, 3) ltac:(cbn; lia) ltac:(cbn; lia) eq_refl) as [Hloop _].
+  cbn [fst snd] in Hloop.
+  follow Hrun. exact Hloop.
+Qed.
+
+Lemma run_halt_gen : forall pb,
+  c0 -->* Cd (fst pb) (snd pb) 0 -> 1 <= fst pb -> snd pb mod 2 = 1 ->
+  c0 -->* c_halt (fst pb - 1) (snd pb / 2).
+Proof.
+  intros [p b] Hrun Hp Hodd. cbn [fst snd] in *.
+  destruct p as [| p']; [lia |].
+  replace (S p' - 1) with p' by lia.
+  assert (Hb : b = 2 * (b / 2) + 1) by (mods; lia).
+  set (m := b / 2) in *. clearbody m. subst b.
+  follow Hrun.
+  apply progress_evstep, G_HALT.
+Qed.
+
+Lemma pb4_props : 7 <= fst pb4 /\ 3 <= snd pb4 /\ snd pb4 mod 2 = 1.
+Proof. rewrite pb4_def. apply Kd_from_7_3. Qed.
+
+Lemma run_halt : c0 -->* c_halt (fst pb4 - 1) (snd pb4 / 2).
+Proof.
+  destruct pb4_props as [Hp [_ Hodd]].
+  apply run_halt_gen; [| exact (Nat.le_trans 1 7 _ ltac:(lia) Hp) | exact Hodd].
+  rewrite pb4_def.
+  exact (run_last_round d4 run_d4 d4_res).
+Qed.
+
+Theorem halt : halts tm c0.
+Proof.
+  destruct (with_counter run_halt) as [n Hn].
+  eapply halts_multistep; [| exact Hn].
+  apply halted_halts. apply c_halt_halted.
+Qed.
