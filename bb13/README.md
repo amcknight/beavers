@@ -24,9 +24,8 @@ Baker's Dozen was found independently and restarts from a different point, so it
 
 The proof is in Coq 8.20.1 with [busycoq](https://github.com/meithecatte/busycoq) at commit `bd2e36f`, built on Jeff
 Ketchersid's Coq development for M12 ([BB12/verify_m12](https://github.com/jeff87654/busy-beaver/tree/main/BB12)).
-It reuses two of his files whole and about 770 lines of his proofs unchanged. This repository does not copy them.
-[coq/build.sh](coq/build.sh) fetches his repository at a pinned commit and splices his lines into place, checking
-every file's SHA-256. See [coq/](coq/).
+It copies two of his files whole and about 770 lines of his proofs unchanged, with his permission. See
+[coq/](coq/).
 
 - `halt : halts tm c0`. The machine halts from the blank tape.
 - `score_exact`. The halting tape holds an explicit number of ones, written in terms of the four round outputs.
@@ -39,7 +38,7 @@ every file's SHA-256. See [coq/](coq/).
   halt on a 0 and score N + 1, so `< N` is the matching comparison.
 
 Every theorem is closed under the global context (no axioms). `probe.v` checks the compiled transition table against
-the machine string entry by entry. `bash coq/build.sh` fetches everything, builds and checks it in under 20 seconds.
+the machine string entry by entry. `bash coq/build.sh` fetches busycoq, builds and checks everything in under 20 seconds.
 
 The machine halts reading a 1 (M1 is undefined), so its score σ is N.
 

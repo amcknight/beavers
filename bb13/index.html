@@ -615,7 +615,7 @@ ul.parts li { margin-bottom: 6px; }
 
 <h2 id="verification">Verification</h2>
 <ul class="verlist">
-  <li>Coq 8.20.1 with <a href="https://github.com/meithecatte/busycoq">busycoq</a> proves that the Baker's Dozen halts from the blank tape, gives its exact count of ones, proves f<sub>ω+2</sub><sup>4</sup>(f<sub>ω</sub>(f<sub>ω</sub>(4))) &lt; σ, and proves that σ is above the proved bounds of M12 and M14. Every theorem is closed under the global context, with no axioms. The proof is in <a href="https://github.com/amcknight/beavers/tree/main/bb13/coq">bb13/coq</a>, and its build script fetches Jeff Ketchersid's files and checks everything in under 20 seconds.</li>
+  <li>Coq 8.20.1 with <a href="https://github.com/meithecatte/busycoq">busycoq</a> proves that the Baker's Dozen halts from the blank tape, gives its exact count of ones, proves f<sub>ω+2</sub><sup>4</sup>(f<sub>ω</sub>(f<sub>ω</sub>(4))) &lt; σ, and proves that σ is above the proved bounds of M12 and M14. Every theorem is closed under the global context, with no axioms. The proof is in <a href="https://github.com/amcknight/beavers/tree/main/bb13/coq">bb13/coq</a>, and its build script checks everything in under 20 seconds.</li>
   <li>A probe checks the compiled transition table against the machine string, entry by entry.</li>
   <li>Jeff Ketchersid's lemmas for the shared rules and for the bound go through unchanged on the new table, and every copied block is checked to match his files exactly.</li>
   <li>Before the Coq proof, our own symbolic prover and two independent simulations gave the same rules and the same four-round run.</li>

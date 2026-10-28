@@ -6,7 +6,6 @@
 .*.aux
 .lia.cache
 
-# Fetched by bb13/coq/build.sh (Jeff Ketchersid's repository and busycoq) and the files assembled from them.
-# Never commit these. They hold other people's code.
+# Made by bb13/coq/build.sh: the busycoq checkout and the compiled copies.
 bb13/coq/deps/
 bb13/coq/build/

@@ -1,2 +1,2 @@
-# Keep LF everywhere, the line ending bb13/coq/assemble.py hashes.
+# Keep LF everywhere, so Jeff Ketchersid's BB132.v and Individual132.v keep the sha256 values in his sha256.txt.
 * text=auto eol=lf
