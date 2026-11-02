@@ -16,17 +16,27 @@ the amendment check when amend.json amends this very summary.json, and --amend i
 passing check.json, reads the claims file only to count, digest and collect its UNKNOWN texts, verifies every line of
 amend.tsv and compares amend.json's counts, the shorter holdout lists and the census rule.
 
+A cell may also hold an import, which marks the holdouts that other people's holdout lists decide (section 13), and
+--import is the import check. It rests on the passing full check and amendment check, reads the registry with PyYAML
+(the one library beyond the standard library, imported by the import check alone) and every list file it names,
+classifies each list's lines by the cell's claims, computes the normal-form map of each imported machine and compares
+import.json, import.tsv and the two after-lists files with its own values.
+
     python bbi9check.py CELL_DIR --census CENSUS_TSV [--jobs N] [--plain]
     python bbi9check.py CELL_DIR --amend --census CENSUS_TSV [--jobs N]
+    python bbi9check.py CELL_DIR --import --census CENSUS_TSV --lists LISTS_YAML [--data DIR] [--jobs N]
 """
 
 from __future__ import annotations
 
 import argparse
+import codecs
+import functools
 import gzip
 import hashlib
 import json
 import multiprocessing
+import re
 import struct
 import sys
 import time
@@ -36,7 +46,7 @@ from bisect import insort
 from collections import deque
 from dataclasses import dataclass, field
 from operator import methodcaller
-from pathlib import Path
+from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import IO, Any, Callable, Iterable, Iterator, Optional, Sequence
 
 CHECKER = "bbi9check 1.5"
@@ -97,6 +107,17 @@ SCAN_TASK = 1 << 20  # with claims.idx, the compressed bytes of claims.tsv.gz pe
 AMEND_CHUNK = 64  # amend.tsv lines per pool task, few because one certificate may build a large C
 DIGITS = "0123456789"
 LETTERS = "ABCDEFGHIJ"
+# Imports (section 13)
+IMPORT_FORMAT = "bbi9-import/1"
+IMPORT_CHECK_FORMAT = "bbi9-import-check/1"
+IMPORT_KEYS = ("format", "cell", "depth", "base_summary_sha256", "base_amend_sha256", "lists", "decided",
+               "maker_holdouts", "maker_holdouts_by_list", "strangers", "holdouts", "parent_holdouts", "imported",
+               "import_digest")  # the keys of import.json a checker uses, all required
+DECIDED = "DECIDED_LIST"
+REQUIRED = ("id", "label", "credit", "domain", "file", "sha256", "entries", "complete")  # of an entry that decides
+LIST_KEYS = ("credit", "entry_sha256", "id", "label", "sha256", "speaks")  # of an object of import.json's lists
+LINE_SPACE = " \t\f\v"  # whitespace around and inside a line of a list file. CR and LF end lines.
+LIST_READ = 1 << 22  # bytes of a list file read at a time
 
 # A table is flat, indexed by state * width + symbol. A defined entry is (w, move, next_state * width) with move
 # -1 for L and +1 for R. An undefined entry is None.
@@ -1621,14 +1642,27 @@ def _unknown_lines(block: bytes) -> list[bytes]:
     return found
 
 
-def _scan_block(block: bytes) -> tuple[int, int, list[bytes], bool]:
-    """Pool worker: the number of lines in a block of lines, the sum of h over them, its UNKNOWN lines, and whether it
-    ends with a newline. A last line without one still counts."""
+# The texts that the import check looks for among the claims texts (section 13, "Speaking our language"). It is empty
+# for the amendment check. A pool's workers get it through _set_find.
+_FIND: frozenset[bytes] = frozenset()
+_TEXT_FIELD = re.compile(rb"^([^\t\n]*)\t", re.M)  # the text of each claims line, the field before its first TAB
+
+
+def _set_find(texts: frozenset[bytes]) -> None:
+    global _FIND
+    _FIND = texts
+
+
+def _scan_block(block: bytes) -> tuple[int, int, list[bytes], bool, set[bytes]]:
+    """Pool worker: the number of lines in a block of lines, the sum of h over them, its UNKNOWN lines, whether it
+    ends with a newline, and the texts of _FIND that are texts of its lines. A last line without a newline still
+    counts."""
     lines = block.split(b"\n")
     last = lines.pop()
     if last:
         lines.append(last)
-    return len(lines), _sum_h(lines), _unknown_lines(block), not last
+    found = _FIND.intersection(_TEXT_FIELD.findall(block)) if _FIND else set()
+    return len(lines), _sum_h(lines), _unknown_lines(block), not last, found
 
 
 def _blocks(chunks: Iterable[bytes]) -> Iterator[bytes]:
@@ -1686,13 +1720,15 @@ class ScanTally:
     unknown: list[bytes] = field(default_factory=list)  # the UNKNOWN lines without their newlines, in file order
     errors: list[str] = field(default_factory=list)  # reads that failed, so that U may be incomplete
     ragged: str | None = None  # the message when the file's last line has no newline
+    found: set[bytes] = field(default_factory=set)  # the texts of _FIND that are claims texts
 
-    def add(self, scanned: tuple[int, int, list[bytes], bool]) -> bool:
+    def add(self, scanned: tuple[int, int, list[bytes], bool, set[bytes]]) -> bool:
         """Add a _scan_block result and return whether its block ends with a newline."""
-        n, total, unknown, whole = scanned
+        n, total, unknown, whole, found = scanned
         self.lines += n
         self.total = (self.total + total) & MASK
         self.unknown.extend(unknown)
+        self.found |= found
         return whole
 
     def merge(self, other: ScanTally) -> None:
@@ -1700,6 +1736,7 @@ class ScanTally:
         self.total = (self.total + other.total) & MASK
         self.unknown.extend(other.unknown)
         self.errors.extend(other.errors)
+        self.found |= other.found
 
 
 def _scan_range(job: tuple[str, int, int]) -> ScanTally:
@@ -1771,7 +1808,7 @@ def _scan_claims(cell_dir: Path, pool: Any, jobs: int) -> ScanTally | None:
     pending: deque[Any] = deque()
     whole = True
 
-    def collect(scanned: tuple[int, int, list[bytes], bool]) -> None:
+    def collect(scanned: tuple[int, int, list[bytes], bool, set[bytes]]) -> None:
         nonlocal whole
         whole = t.add(scanned)
 
@@ -1799,8 +1836,12 @@ def _scan_claims(cell_dir: Path, pool: Any, jobs: int) -> ScanTally | None:
 
 
 def _same(theirs: object, ours: object) -> bool:
-    """Whether a JSON value is the checker's own value, compared as JSON, so that 4.0 and true are not 4."""
-    return _json(theirs) == _json(ours)
+    """Whether a JSON value is the checker's own value, compared as JSON, so that 4.0 and true are not 4. A value with
+    no JSON, such as a YAML date in a registry entry, equals nothing."""
+    try:
+        return _json(theirs) == _json(ours)
+    except (TypeError, ValueError, RecursionError):
+        return False
 
 
 def _summary_problem(summary: dict[str, Any]) -> str | None:
@@ -1841,14 +1882,15 @@ def _load(path: Path, fail: Callable[[str], None], why: str = "") -> tuple[bytes
     return raw, obj
 
 
-def _amend_base(cell_dir: Path, result: dict[str, Any], fail: Callable[[str], None]) -> dict[str, Any] | None:
-    """Step 1. Returns summary.json's object, or None when the check cannot go on without it."""
+def _amend_base(cell_dir: Path, result: dict[str, Any], fail: Callable[[str], None],
+                rests: str = ", and an amendment rests on a passing full check") -> dict[str, Any] | None:
+    """Step 1. Returns summary.json's object, or None when the check cannot go on without it. rests ends the
+    messages about check.json."""
     read = _load(cell_dir / "summary.json", fail)
     summary = None
     if read is not None:
         result["summary_sha256"] = hashlib.sha256(read[0]).hexdigest()
         summary = read[1]
-    rests = ", and an amendment rests on a passing full check"
     read = _load(cell_dir / "check.json", fail, rests)
     if read is not None and read[1] is not None:
         check = read[1]
@@ -1930,9 +1972,10 @@ def _read_amend(cell_dir: Path, summary: dict[str, Any], result: dict[str, Any],
     return amend, claims_fmt, corridor_ok
 
 
-def _base_set(cell_dir: Path, summary: dict[str, Any], pool: Any, jobs: int,
-              fail: Callable[[str], None]) -> dict[str, int] | None:
-    """Step 3. U, each text with its depth, or None when the claims file could not be read to the end."""
+def _base_set(cell_dir: Path, summary: dict[str, Any], pool: Any, jobs: int, fail: Callable[[str], None],
+              found: set[str] | None = None) -> dict[str, int] | None:
+    """Step 3. U, each text with its depth, or None when the claims file could not be read to the end. found, when
+    given, gets the texts of _FIND that are claims texts."""
     big_d = summary["depth"]
     if (cell_dir / "claims.idx").exists() and (cell_dir / "claims.tsv").exists():
         fail(BESIDE)
@@ -1940,6 +1983,8 @@ def _base_set(cell_dir: Path, summary: dict[str, Any], pool: Any, jobs: int,
     if scan is None:
         fail("the cell has no claims.tsv or claims.tsv.gz")
         return None
+    if found is not None:
+        found.update(t.decode("utf-8", "replace") for t in scan.found)
     for message in scan.errors + ([scan.ragged] if scan.ragged else []):
         fail(message)
     if not _same(summary.get("claims"), scan.lines):
@@ -2151,6 +2196,1096 @@ def amend_check(cell_dir: Path, census: Path, jobs: int = 1) -> dict[str, Any]:
 
 
 # ---------------------------------------------------------------------------------------------------------------------
+# Pairs, lines and the normal-form map (section 13)
+
+_SLOT = r"(?:---|[0-9][LR][A-J])"
+# A non-blank line of a list file, with the whitespace around it removed. An optional index number and whitespace,
+# then the machine, rows of 1 to 10 slots separated by _, at most 10 rows ("Pairs, lines and shapes"). [0-9] is ASCII
+# alone.
+_LIST_LINE = re.compile(rf"(?:[0-9]+[ \t\f\v]+)?({_SLOT}{{1,10}}(?:_{_SLOT}{{1,10}}){{0,9}})")
+_SPACES = re.compile(r"[ \t\f\v]+")
+_CELL = re.compile(r"(10|[1-9])x(10|[1-9])")  # the cell of a cell list, without a leading zero
+
+
+def _code(q: int, r: int, w: int, right: bool, t: int) -> int:
+    """The pair (q, r) with its instruction (w, m, t) as one number, right being True when m is R."""
+    return (((q * 10 + r) * 10 + w) * 2 + right) * 10 + t
+
+
+def _decode(c: int) -> tuple[int, int, int, bool, int]:
+    """(q, r, w, right, t) of a pair made by _code."""
+    c, t = divmod(c, 10)
+    c, right = divmod(c, 2)
+    c, w = divmod(c, 10)
+    q, r = divmod(c, 10)
+    return q, r, w, bool(right), t
+
+
+def _machine_codes(machine: str) -> list[int]:
+    """The pairs of a machine written as rows of three-character slots, as _LIST_LINE's machine is."""
+    out = []
+    for q, row in enumerate(machine.split("_")):
+        for r in range(len(row) // 3):
+            slot = row[3 * r:3 * r + 3]
+            if slot != "---":
+                out.append(_code(q, r, ord(slot[0]) - 48, slot[1] == "R", ord(slot[2]) - 65))
+    return out
+
+
+def _shape(codes: Iterable[int]) -> tuple[int, int]:
+    """(s, k), the number of states that own a pair and 1 plus the largest symbol written (section 2)."""
+    owners, k = set(), 1
+    for c in codes:
+        q, _, w, _, _ = _decode(c)
+        owners.add(q)
+        k = max(k, w + 1)
+    return len(owners), k
+
+
+def _codes_text(codes: Iterable[int]) -> str | None:
+    """A set of pairs written as a section 2 text, in its own letters. None when the states that own its pairs are not
+    A to the s-th letter, s their number, or when a pair's symbol is not below k, 1 plus the largest symbol written.
+    No claims text is such a set."""
+    cells: dict[tuple[int, int], str] = {}
+    k = 1
+    for c in codes:
+        q, r, w, right, t = _decode(c)
+        cells[(q, r)] = f"{w}{'R' if right else 'L'}{LETTERS[t]}"
+        k = max(k, w + 1)
+    s = len({q for q, _ in cells})
+    if any(q >= s or r >= k for q, r in cells):
+        return None
+    return "_".join("".join(cells.get((q, r), "---") for r in range(k)) for q in range(s))
+
+
+def _flat(codes: Iterable[int]) -> Table:
+    """The table of a set of pairs at width 10, for _run and _discover."""
+    table: Table = [None] * (MAX_STATES * MAX_SYMBOLS)
+    for c in codes:
+        q, r, w, right, t = _decode(c)
+        table[q * 10 + r] = (w, 1 if right else -1, t * 10)
+    return table
+
+
+def _discover(table: Table, st: int, limit: Callable[[int], int]) -> tuple[list[int], list[int], str]:
+    """Run a width 10 table from the blank tape in state st (as state * 10). Returns its defined pairs in the order the
+    run first reads them, each as state * 10 + symbol, the round of each first read, and why the run stopped. While i
+    pairs have been read, the run goes on through round limit(i) at most. It stops with "all" once every defined pair
+    has been read, with "undefined" when it reads an undefined pair, and with "limit"."""
+    total = sum(x is not None for x in table)
+    known: Table = [None] * len(table)  # the pairs read so far, so that the fast loop stops at every new one
+    order: list[int] = []
+    rounds: list[int] = []
+    tape = bytearray(129)
+    pos = 64
+    steps = 0
+    while True:
+        cap = limit(len(order))
+        c = min(cap + 1 - steps, pos, len(tape) - 1 - pos)  # c steps cannot leave the tape or pass round cap
+        for i in range(c):
+            ins = known[st + tape[pos]]
+            if ins is None:
+                steps += i
+                break
+            tape[pos], move, st = ins
+            pos += move
+        else:
+            steps += max(c, 0)
+            if steps > cap:
+                return order, rounds, "limit"
+            size = len(tape)
+            if size - 1 - pos < size // 4:
+                tape.extend(bytes(size))
+            if pos < size // 4:
+                tape[0:0] = bytes(size)
+                pos += size
+            continue
+        idx = st + tape[pos]
+        ins = table[idx]
+        if ins is None:
+            return order, rounds, "undefined"
+        order.append(idx)
+        rounds.append(steps)
+        known[idx] = ins
+        tape[pos], move, st = ins
+        pos += move
+        steps += 1
+        if len(order) == total:
+            return order, rounds, "all"
+
+
+def _prefix_codes(codes: Iterable[int], bounds: Sequence[int]) -> list[list[int]]:
+    """The run prefixes of a line, the sets of the first j distinct pairs its run reads, for each j such that the run
+    reads its j-th distinct pair within round B_(j-1) and that pair is defined.
+
+    Every claims text below the line is one of them, so the checker looks for a line's candidates among these alone.
+    A claims text M is a corridor machine. Its ancestors M_0 to M_j = M each halted within its depth's bound, after
+    n_i <= B_i steps, on the pair that the next one adds (sections 3 and 4). When M is a subset of the line, each M_i
+    agrees with the line, so it runs as the line runs until it halts. By induction M_i is the set of the first i
+    distinct pairs that the line's run reads, and the line reads the next one in round n_i <= B_i.
+    """
+    by_index = {}
+    for c in codes:
+        q, r, _, _, _ = _decode(c)
+        by_index[q * 10 + r] = c
+    order, _, _ = _discover(_flat(by_index.values()), 0, lambda i: bounds[i] if i < len(bounds) else -1)
+    pairs = [by_index[i] for i in order]
+    return [pairs[:j] for j in range(1, len(pairs) + 1)]
+
+
+def prefix_texts(machine: str, bounds: Sequence[int]) -> list[str]:
+    """The texts of the run prefixes (_prefix_codes) of a line that can be written as section 2 texts, shortest
+    first. bounds is B_0 to B_D."""
+    texts = (_codes_text(p) for p in _prefix_codes(_machine_codes(machine), bounds))
+    return [t for t in texts if t is not None]
+
+
+@dataclass(frozen=True)
+class NormalForm:
+    """m(t) of section 13, in the community's letters."""
+    text: str
+    codes: frozenset[int]
+    prefixes: tuple[frozenset[int], ...]  # its first j pairs in step 2's order, for j from 1 to its depth less 1
+
+
+def _normal_form(codes: Iterable[int], bound: int) -> NormalForm | str:
+    """The normal-form map of a machine with the bound B_d ("The normal-form map"), or why it has none."""
+    table: dict[int, tuple[int, bool, int]] = {}  # state * 10 + symbol -> (w, right, t)
+    for c in codes:
+        q, r, w, right, t = _decode(c)
+        table[q * 10 + r] = (w, right, t)
+    owners = {i // 10 for i in table}
+    for _, _, t in table.values():
+        if t not in owners:
+            return f"an instruction goes into {LETTERS[t]}, which owns nothing"
+    # Step 1. The tape stays all 0s, so the current pair is always (q, 0).
+    q, entered, prefix = 0, {0}, []
+    while True:
+        ins = table.get(q * 10)
+        if ins is None:
+            return f"the prefix reads the undefined pair ({LETTERS[q]}, 0)"
+        if ins[0] != 0:
+            break
+        prefix.append(q)
+        q = ins[2]
+        if q in entered:
+            return f"the prefix enters {LETTERS[q]} twice"
+        entered.add(q)
+    s = q
+    # Step 1b
+    dropping = True
+    while dropping:
+        dropping = False
+        for p in prefix:
+            if p * 10 in table and all(t != p for _, _, t in table.values()):
+                del table[p * 10]
+                dropping = True
+    # Step 2. A pair first read in round n runs in step n + 1, so the last new pair must be read by round B_d - 1.
+    flat: Table = [None] * (MAX_STATES * MAX_SYMBOLS)
+    for i, (w, right, t) in table.items():
+        flat[i] = (w, 1 if right else -1, t * 10)
+    order, _, why = _discover(flat, s * 10, lambda _: bound - 1)
+    if why == "undefined":
+        return f"the run from {LETTERS[s]} reads an undefined pair before every pair has run"
+    if why == "limit":
+        return f"some pair has not run after {_count(bound, 'step')} from {LETTERS[s]}"
+    # Step 3. Every state of M' owns a pair that ran, so the order of first entry is the order of first pairs.
+    letter: dict[int, int] = {}
+    for i in order:
+        letter.setdefault(i // 10, len(letter))
+    mirror = not table[order[0]][1]  # order[0] is (s, 0), and its move is the first move from s
+    pairs = []
+    for i in order:
+        w, right, t = table[i]
+        pairs.append(_code(letter[i // 10], i % 10, w, right != mirror, letter[t]))
+    # Step 4
+    text = _codes_text(pairs)
+    if text is None:  # cannot happen, since each pair read a symbol written before it or 0
+        return "the relabelled table is not a text"
+    if not text.startswith("1RB"):
+        return f"the map would start {text[:3]}"
+    return NormalForm(text, frozenset(pairs), tuple(frozenset(pairs[:j]) for j in range(1, len(pairs))))
+
+
+def normal_form_map(text: str, bound: int) -> str | None:
+    """m(t) for a machine text with the bound B_d, or None when the machine has no map (section 13)."""
+    nf = _normal_form(_machine_codes(text), bound)
+    return None if isinstance(nf, str) else nf.text
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# The registry and the list files (section 13 step 3)
+
+
+@dataclass
+class ListData:
+    """A registry entry with decides: true that covers the cell, and what its list file holds."""
+    id: str
+    form: str  # "states", "bbi" or "cell"
+    states: int = MAX_STATES  # S of a {states: S, symbols: K} list
+    symbols: int = MAX_SYMBOLS  # K of it
+    bbi: int = 0  # N of a {bbi: N} list or a cell list
+    entry: dict[str, Any] = field(default_factory=dict)
+    entry_sha256: str | None = None  # None when the entry has no JSON
+    readable_name: bool = False  # whether file is a name the checker reads
+    read: bool = False  # whether every line of the list file was read
+    sha256: str | None = None  # the SHA-256 hex of the list file as stored, once read
+    lines: int = 0  # its non-blank lines
+    kept: dict[frozenset[int], str] = field(default_factory=dict)  # a domain list's kept lines, each as first written
+    texts: set[str] = field(default_factory=set)  # a cell list's lines
+    candidates: dict[frozenset[int], list[tuple[int, str]]] = field(default_factory=dict)  # see _candidates
+    by_pair: dict[int, list[frozenset[int]]] | None = None  # the kept lines by each of their pairs
+    speaks: bool | None = None  # None until step 4 can tell
+    strangers: int | None = None
+    kinds: list[int] | None = None
+    maker: list[frozenset[int]] = field(default_factory=list)  # its kind 1 lines
+
+
+def _domain(domain: Any) -> tuple[str, int, int, int] | None:
+    """(form, S, K, N) of a domain of one of the three forms, with 0 for what its form lacks, or None. A YAML true or
+    false is not a whole number."""
+    def whole(x: Any, top: int) -> bool:
+        return type(x) is int and 1 <= x <= top
+
+    if not isinstance(domain, dict):
+        return None
+    keys = set(domain)
+    if keys == {"states", "symbols"} and whole(domain["states"], MAX_STATES) and whole(domain["symbols"], MAX_SYMBOLS):
+        return "states", domain["states"], domain["symbols"], 0
+    if keys == {"bbi"} and whole(domain["bbi"], 9):
+        return "bbi", 0, 0, domain["bbi"]
+    if keys == {"bbi", "cell"} and whole(domain["bbi"], 9) and isinstance(domain["cell"], str):
+        m = _CELL.fullmatch(domain["cell"])
+        if m:
+            return "cell", int(m.group(1)), int(m.group(2)), domain["bbi"]
+    return None
+
+
+def _covers(dom: tuple[str, int, int, int], big_s: int, big_k: int, big_d: int) -> bool:
+    form, s, k, n = dom
+    if form == "states":
+        return big_s <= s and big_k <= k
+    if form == "bbi":
+        return big_d == n
+    return big_d == n and (big_s, big_k) == (s, k)
+
+
+def _new_list(list_id: str, dom: tuple[str, int, int, int], entry: dict[str, Any]) -> ListData:
+    form, s, k, n = dom
+    if form == "states":
+        return ListData(list_id, form, states=s, symbols=k, entry=entry)
+    return ListData(list_id, form, bbi=n, entry=entry)
+
+
+def _shown(x: Any) -> str:
+    try:
+        return _json(x)
+    except (TypeError, ValueError):
+        return repr(x)
+
+
+def _relative_name(name: Any) -> bool:
+    """Whether name is a file name relative to --data that a file system may hold. A NUL never is."""
+    return (isinstance(name, str) and name != "" and "\0" not in name and not PurePosixPath(name).is_absolute()
+            and not PureWindowsPath(name).anchor)
+
+
+def _registry(path: Path, big_s: int, big_k: int, big_d: int, fail: Callable[[str], None]) -> list[ListData] | None:
+    """Step 3's reading of the registry. Returns the entries with decides: true that cover the cell, in registry
+    order, or None when the registry is not a sequence of mappings that yaml.safe_load can read."""
+    try:
+        import yaml  # PyYAML, the one library beyond the standard library, for the import check alone
+    except ImportError:
+        fail("PyYAML is not installed, so the registry cannot be read")
+        return None
+    try:
+        raw = path.read_bytes()
+    except OSError:
+        fail(f"the registry {path} is missing or could not be read")
+        return None
+    try:
+        entries = yaml.safe_load(raw)
+    except Exception as e:  # PyYAML raises YAMLError and others for a file it cannot read
+        fail(f"yaml.safe_load cannot read the registry {path} ({(str(e).splitlines() or [type(e).__name__])[0]})")
+        return None
+    if entries is None and not raw.strip():  # an empty file is a registry with no entries
+        entries = []
+    if not isinstance(entries, list) or not all(isinstance(e, dict) for e in entries):
+        fail(f"the registry is not a sequence of mappings ({path})")
+        return None
+    out: list[ListData] = []
+    first_with: dict[str, int] = {}
+    for no, e in enumerate(entries, 1):
+        name = f"registry entry {no}" + (f" ({e['id']})" if isinstance(e.get("id"), str) else "")
+        if isinstance(e.get("id"), str):
+            if e["id"] in first_with:
+                fail(f"{name} shares its id with registry entry {first_with[e['id']]}")
+            else:
+                first_with[e["id"]] = no
+        if "decides" in e and type(e["decides"]) is not bool:
+            fail(f"{name} has decides {_shown(e['decides'])}, which is neither true nor false")
+        if e.get("decides") is not True:
+            continue
+        for key in REQUIRED:
+            if key not in e:
+                fail(f"{name} has decides: true and no {key}")
+        if "complete" in e and not (isinstance(e["complete"], str) and e["complete"].strip()):
+            fail(f"{name} has a complete that is empty or not a string")
+        dom = _domain(e["domain"]) if "domain" in e else None
+        if "domain" in e and dom is None:
+            fail(f"{name} has a domain of none of the three forms")
+        if dom is not None and dom[0] == "cell":
+            if "made_from" not in e:
+                fail(f"{name} is a cell list with decides: true and no made_from")
+            elif not isinstance(e["made_from"], str):
+                fail(f"{name} has a made_from that is not a string")
+        # CHECKING.md gives no type for these keys, so a value that cannot be what the key names fails
+        if "id" in e and not (isinstance(e["id"], str) and e["id"]):
+            fail(f"{name} has an id that is not a string of one or more characters")
+        if "file" in e and not _relative_name(e["file"]):
+            fail(f"{name} has a file that is not a name relative to --data")
+        if "sha256" in e and not isinstance(e["sha256"], str):
+            fail(f"{name} has a sha256 that is not a string")
+        if "entries" in e and not _uint_value(e["entries"]):
+            fail(f"{name} has entries that are not a whole number")
+        if dom is None or not _covers(dom, big_s, big_k, big_d) or not (isinstance(e.get("id"), str) and e["id"]):
+            continue
+        lst = _new_list(e["id"], dom, e)
+        try:
+            lst.entry_sha256 = hashlib.sha256(json.dumps(e, sort_keys=True, separators=(",", ":"),
+                                                         ensure_ascii=False).encode("utf-8")).hexdigest()
+        except (TypeError, ValueError, RecursionError) as err:
+            fail(f"{name} has decides: true, covers the cell and has no JSON for its entry_sha256 ({err})")
+        lst.readable_name = _relative_name(e.get("file"))
+        out.append(lst)
+    return out
+
+
+@functools.cache
+def _beyond(letters: int, symbols: int) -> re.Pattern[str] | None:
+    """A pattern for a target letter at index letters or past it, or a written digit at symbols or past it. In a
+    machine the letters A to J are its targets and the digits its written symbols."""
+    chars = LETTERS[letters:] + DIGITS[symbols:]
+    return re.compile(f"[{chars}]") if chars else None
+
+
+@functools.cache
+def _inside(states: int, symbols: int) -> re.Pattern[str]:
+    """A machine of a {states: S, symbols: K} list that defines no pair outside the domain. Every slot after the K-th
+    of a row and every row after the S-th hold nothing but ---, which owns nothing (section 13 step 3)."""
+    row = rf"{_SLOT}{{1,{symbols}}}(?:---)*"
+    return re.compile(rf"{row}(?:_{row}){{0,{states - 1}}}(?:_(?:---)+)*")
+
+
+def _form_problem(line: str) -> str:
+    """Why a non-blank line, stripped, is neither a machine nor an index number and a machine."""
+    tokens = _SPACES.split(line)
+    if len(tokens) > 2 or (len(tokens) == 2 and not (tokens[0].isascii() and tokens[0].isdigit())):
+        return "is not a machine or an index and a machine"
+    if "Z" in tokens[-1]:
+        return f"{tokens[-1]} has a Z"
+    return f"{tokens[-1]} does not parse"
+
+
+def _line_problems(machine: str, rows: int, defined: int, lst: ListData) -> list[str]:
+    """Step 3's checks of a domain list's line that parses, each failure as a clause."""
+    out = []
+    if not machine.startswith("1RB"):
+        out.append("does not start with 1RB at (A, 0)")
+    top = max((LETTERS.index(ch) for ch in machine if ch in LETTERS), default=-1)
+    if top > rows:
+        out.append(f"targets {LETTERS[top]}, past its {_count(rows, 'row')} plus one")
+    if lst.form == "states":
+        if top >= lst.states:
+            out.append(f"targets {LETTERS[top]}, a state at or past S = {lst.states}")
+        w = max((int(ch) for ch in machine if ch in DIGITS), default=0)
+        if w >= lst.symbols:
+            out.append(f"writes the symbol {w}, at or past K = {lst.symbols}")
+        pairs = [(q, r) for q, row in enumerate(machine.split("_")) for r in range(len(row) // 3)
+                 if row[3 * r:3 * r + 3] != "---"]
+        r = max((r for _, r in pairs if r >= lst.symbols), default=-1)
+        if r >= 0:
+            out.append(f"defines a pair reading the symbol {r}, at or past K = {lst.symbols}")
+        q = max((q for q, _ in pairs if q >= lst.states), default=-1)
+        if q >= 0:
+            out.append(f"defines a pair of the state {LETTERS[q]}, at or past S = {lst.states}")
+    if lst.form == "bbi" and defined > lst.bbi:
+        out.append(f"has {defined} instructions, more than N = {lst.bbi}")
+    return out
+
+
+def _take_lines(lst: ListData, lines: Iterable[str], start: int, big_d: int, problem: Callable[[str], None],
+                where: str) -> None:
+    """Read lines, numbered from start, into lst by the reading rules of section 13, with step 3's checks of each line
+    of a domain list. A domain list keeps the pairs of its lines of at most big_d instructions, and a cell list its
+    lines as texts. A line that fails is not kept."""
+    match = _LIST_LINE.fullmatch
+    domain = lst.form != "cell"
+    letters = lst.states if lst.form == "states" else MAX_STATES + 1
+    symbols = lst.symbols if lst.form == "states" else MAX_SYMBOLS
+    most = lst.bbi if lst.form == "bbi" else MAX_STATES * MAX_SYMBOLS
+    inside = _inside(lst.states, lst.symbols).fullmatch if lst.form == "states" else None
+    width = 3 * lst.symbols + 1  # a row of exactly K slots and its _
+    kept = lst.kept
+    count = 0
+    for no, raw in enumerate(lines, start):
+        line = raw.strip(LINE_SPACE)
+        if not line:
+            continue
+        count += 1
+        m = match(line)
+        if m is None:
+            problem(f"{where} line {no} {_form_problem(line)}")
+            continue
+        machine = m.group(1)
+        if not domain:
+            lst.texts.add(machine)
+            continue
+        rows = machine.count("_") + 1
+        beyond = _beyond(rows + 1 if rows + 1 < letters else letters, symbols)
+        defined = (len(machine) - rows + 1) // 3 - machine.count("---")
+        # At most S rows of exactly K slots each define nothing outside the domain, and _inside judges the rest
+        if machine.startswith("1RB") and (beyond is None or beyond.search(machine) is None) and defined <= most \
+                and (inside is None or (rows <= lst.states and len(machine) == rows * width - 1
+                                        and machine[width - 1::width].count("_") == rows - 1) or inside(machine)):
+            if defined <= big_d:
+                codes = frozenset(_machine_codes(machine))
+                if codes not in kept:
+                    kept[codes] = machine
+            continue
+        for why in _line_problems(machine, rows, defined, lst):
+            problem(f"{where} line {no} {machine} {why}")
+    lst.lines += count
+
+
+def _hashed(chunks: Iterable[bytes], sha: Any) -> Iterator[bytes]:
+    for chunk in chunks:
+        sha.update(chunk)
+        yield chunk
+
+
+def _members(chunks: Iterable[bytes]) -> Iterator[bytes]:
+    """The decompressed contents of the gzip members in the bytes of chunks, one member after another."""
+    z = zlib.decompressobj(wbits=31)
+    fed = False  # whether z holds part of a member it has not finished
+    for data in chunks:
+        while data:
+            fed = True
+            out = z.decompress(data)
+            if out:
+                yield out
+            if not z.eof:
+                break
+            data = z.unused_data
+            z = zlib.decompressobj(wbits=31)
+            fed = False
+    if fed:
+        raise EOFError("the file ends inside a gzip member")
+
+
+def _universal(text: str) -> list[str]:
+    """text split at each CRLF, LF and bare CR, as Python's universal newlines split it."""
+    return text.replace("\r\n", "\n").replace("\r", "\n").split("\n")
+
+
+def _read_list_file(lst: ListData, data: Path, big_d: int, problem: Callable[[str], None]) -> None:
+    """Read lst's list file below data, gunzipped when its name ends in .gz, and check its SHA-256, its lines and its
+    number of non-blank lines (step 3). It is UTF-8, a byte-order mark at its start is ignored, and CRLF, LF and a
+    bare CR each end a line."""
+    name = lst.entry["file"]
+    where = f"list {lst.id} file {name}"
+    sha = hashlib.sha256()
+    decoder = codecs.getincrementaldecoder("utf-8-sig")()
+    carry = ""  # the end of the text read so far, after its last whole line
+    no = 1
+    try:
+        with open(data / name, "rb") as f:
+            chunks = _hashed(iter(lambda: f.read(LIST_READ), b""), sha)
+            for chunk in (_members(chunks) if name.endswith(".gz") else chunks):
+                text = carry + decoder.decode(chunk)
+                hold = ""
+                if text.endswith("\r"):  # a CR at the end may be the first half of a CRLF
+                    text, hold = text[:-1], "\r"
+                lines = _universal(text)
+                carry = lines.pop() + hold
+                _take_lines(lst, lines, no, big_d, problem, where)
+                no += len(lines)
+            _take_lines(lst, _universal(carry + decoder.decode(b"", final=True)), no, big_d, problem, where)
+    except UnicodeDecodeError:
+        problem(f"{where} is not UTF-8")
+        return
+    except (EOFError, zlib.error) as e:
+        problem(f"{where} could not be decompressed as gzip ({e})")
+        return
+    except (OSError, ValueError):  # ValueError for a name open() refuses
+        problem(f"{where} is missing or could not be read")
+        return
+    lst.read = True
+    lst.sha256 = sha.hexdigest()
+    registered = lst.entry.get("sha256")
+    if not (isinstance(registered, str) and registered.lower() == lst.sha256):
+        problem(f"{where} has the SHA-256 {lst.sha256}, and the registry's sha256 is {_shown(registered)}")
+    if _uint_value(lst.entry.get("entries")) and lst.entry["entries"] != lst.lines:
+        problem(f"{where} has {_count(lst.lines, 'non-blank line')}, and the registry's entries is "
+                f"{lst.entry['entries']}")
+
+
+def list_data(list_id: str, domain: Any, lines: Iterable[str], big_d: int) -> tuple[ListData, list[str]]:
+    """A list of the given domain read from lines as from its list file, for the cell depth big_d, and the problems
+    that step 3 finds in its lines."""
+    dom = _domain(domain)
+    if dom is None:
+        raise ValueError(f"{domain!r} is a domain of none of the three forms")
+    lst = _new_list(list_id, dom, {})
+    problems: list[str] = []
+    _take_lines(lst, lines, 1, big_d, problems.append, f"list {list_id}")
+    lst.read = True
+    return lst, problems
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# Kinds and decisions (section 13, "Speaking our language" and "Which machines a list decides")
+
+
+def _candidates(lst: ListData, cor: Corridor) -> None:
+    """For each kept line in the corridor, its run prefixes that can be written as section 2 texts, each as (j, text)
+    with j its number of pairs. The claims texts among them are the line's candidates (_prefix_codes)."""
+    for codes in lst.kept:
+        s, k = _shape(codes)
+        if not _in_corridor(cor, len(codes), s, k):
+            continue
+        out = []
+        for prefix in _prefix_codes(codes, cor.bounds):
+            text = _codes_text(prefix)
+            if text is not None:
+                out.append((len(prefix), text))
+        lst.candidates[codes] = out
+
+
+def _classify(lst: ListData, cor: Corridor, v: dict[str, int], found: set[str]) -> None:
+    """Step 4 for a domain list. Each kept line in the corridor gets the first of the four kinds that holds. v is V,
+    each text with its depth, and found the candidate texts that are claims texts."""
+    kinds = [0, 0, 0, 0]
+    maker = []
+    for codes, cands in lst.candidates.items():
+        d = len(codes)
+        if any(j < d and text in v for j, text in cands):
+            kind = 1  # a claims text in V is a proper subset
+        elif any((j == d and text in v) or (text in found and text not in v) for j, text in cands):
+            kind = 2  # the line's own text is in V, or a certified claims text is a subset or equal
+        elif _run(_flat(codes), cor.bounds[d])[0]:
+            kind = 3  # halts within B_d from the start
+        else:
+            kind = 4
+        kinds[kind - 1] += 1
+        if kind == 1:
+            maker.append(codes)
+    lst.kinds, lst.strangers, lst.speaks, lst.maker = kinds, kinds[3], kinds[3] == 0, maker
+
+
+def _supersets(lst: ListData, codes: frozenset[int]) -> list[frozenset[int]]:
+    """The kept lines whose pairs are a proper superset of codes, in the order they were first written."""
+    if lst.by_pair is None:
+        lst.by_pair = {}
+        for line in lst.kept:
+            for c in line:
+                lst.by_pair.setdefault(c, []).append(line)
+    if not codes:
+        return [line for line in lst.kept if line]
+    smallest = min((lst.by_pair.get(c, []) for c in codes), key=len)
+    return [line for line in smallest if codes < line]
+
+
+def decide_problems(lst: ListData, text: str, bound: int, big_d: int, holdout_texts: set[str] | frozenset[str],
+                    maps: dict[str, NormalForm | str] | None = None) -> list[str]:
+    """Why the list may not decide the machine of V with this text, each reason a clause, or [] when it decides it.
+    bound is B_d for the text's depth d, holdout_texts the texts of the cell's depth-D holdout list, and maps a cache
+    of maps by text. It does not ask whether the list speaks ("Which machines a list decides")."""
+    depth = len(_machine_codes(text))
+    if lst.form == "cell":
+        if depth < big_d:
+            return [f"{lst.id} is a cell list and the text is a parent holdout"]
+        out = []
+        if text not in holdout_texts:
+            out.append(f"the text is not in the cell's depth-{big_d} holdout list")
+        if text in lst.texts:
+            out.append(f"the text is a line of {lst.id}")
+        return out
+    if lst.form == "bbi" and depth != lst.bbi:
+        return [f"{lst.id} is a {{bbi: {lst.bbi}}} list and the text has {_count(depth, 'instruction')}"]
+    nf = maps.get(text) if maps is not None else None
+    if nf is None:
+        nf = _normal_form(_machine_codes(text), bound)
+        if maps is not None:
+            maps[text] = nf
+    if isinstance(nf, str):
+        return [f"the text has no map with the bound {bound} ({nf})"]
+    out = []
+    if lst.form == "bbi" and len(nf.codes) != lst.bbi:
+        out.append(f"its map {nf.text} has {_count(len(nf.codes), 'instruction')}, not {lst.bbi}")
+    if nf.codes in lst.kept:
+        out.append(f"a kept line of {lst.id} equals its map {nf.text}")
+    for prefix in nf.prefixes:
+        if prefix in lst.kept:
+            out.append(f"a kept line of {lst.id} equals the prefix {_codes_text(prefix)} of its map {nf.text}")
+    for line in _supersets(lst, nf.codes):
+        out.append(f"the kept line {lst.kept[line]} of {lst.id} is a proper superset of its map {nf.text}")
+    return out
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# The import check (section 13, "The import check")
+
+
+class _Failures:
+    """The import check's failures, kept by step so that they are reported in step order, at most MAX_FAILURES a
+    step, and all of them counted."""
+
+    def __init__(self) -> None:
+        self.by_step: list[list[str]] = [[] for _ in range(8)]
+        self.count = 0
+
+    def at(self, step: int) -> Callable[[str], None]:
+        def fail(message: str) -> None:
+            self.count += 1
+            if len(self.by_step[step]) < MAX_FAILURES:
+                self.by_step[step].append(message)
+        return fail
+
+    def first(self) -> list[str]:
+        return [m for messages in self.by_step for m in messages][:MAX_FAILURES]
+
+
+def _text_list(cell_dir: Path, name: str, texts: Iterable[str], what: str) -> str | None:
+    """Why the file is not exactly the texts sorted in byte order, each followed by a newline, or None."""
+    texts = sorted(texts, key=lambda t: t.encode("utf-8"))
+    expected = "".join(t + "\n" for t in texts).encode("utf-8")
+    try:
+        actual = (cell_dir / name).read_bytes()
+    except OSError:
+        return f"{name} is missing"
+    if actual != expected:
+        lines = actual.count(b"\n")
+        return f"{name} does not hold exactly the {_count(len(texts), 'sorted text')} of V {what} (it has " \
+               f"{_count(lines, 'line')})"
+    return None
+
+
+def _counts(sets: Iterable[frozenset[int]], big_d: int) -> dict[str, int]:
+    depths = [len(x) for x in sets]
+    return {"holdouts": sum(d == big_d for d in depths), "parent_holdouts": sum(d < big_d for d in depths)}
+
+
+class _Import:
+    """The steps of the import check for a cell whose summary.json was read."""
+
+    def __init__(self, cell_dir: Path, summary: dict[str, Any], registry: Path, data: Path | None, jobs: int,
+                 result: dict[str, Any], failures: _Failures) -> None:
+        self.dir, self.summary, self.registry, self.data, self.jobs = cell_dir, summary, registry, data, jobs
+        self.result = result
+        self.fail = [failures.at(step) for step in range(8)]  # self.fail[n] adds a failure of step n
+        self.big_s, self.big_k = summary["cell"]
+        self.big_d = summary["depth"]
+        self.stem = f"BBi{self.big_d}_{self.big_s}x{self.big_k}"
+        self.cor: Corridor | None = None
+        self.has_amend = (cell_dir / "amend.json").exists()
+        self.amend: dict[str, Any] | None = None
+        self.imp: dict[str, Any] | None = None
+        self.lists: list[ListData] | None = None
+        self.v: dict[str, int] | None = None  # V, each text with its depth
+        self.found: set[str] = set()  # the candidate texts that are claims texts
+        self.holdout_texts: set[str] = set()  # the texts of the cell's depth-D holdout list
+        self.holdout_sha256: str | None = None
+        self.tsv: list[bytes] | None = None  # the lines of import.tsv, each without its newline
+        self.maps: dict[str, NormalForm | str] = {}
+
+    def run(self) -> None:
+        self.bounds()
+        self.amendment()
+        self.import_json()
+        self.read_lists()
+        self.claims()
+        self.classify()
+        self.compare_lists()
+        self.import_tsv()
+        self.counts()
+        self.after_lists()
+        if self.lists is not None:
+            self.result["lists"] = [{"id": x.id, "sha256": x.sha256, "speaks": x.speaks} for x in self.lists]
+
+    def bounds(self) -> None:
+        """B_0 to B_D, the bounds of the map and of the kind 3 test."""
+        bounds = []
+        for d, entry in enumerate(self.summary["corridor"]):
+            b = entry.get("max_halt_steps")
+            if not (_uint_value(b) and b <= MAX_BOUND):
+                self.fail[1](f"summary.json corridor entry {d} has no max_halt_steps from 0 to {MAX_BOUND}")
+                return
+            bounds.append(b)
+        self.cor = Corridor(self.big_s, self.big_k, self.big_d, tuple(bounds))
+
+    def amendment(self) -> None:
+        """Step 1 for an amended cell. Its amendment check must pass for the same files."""
+        if not self.has_amend:
+            return
+        fail = self.fail[1]
+        why = ", and an import into an amended cell rests on a passing amendment check"
+        read = _load(self.dir / "amend_check.json", fail, why)
+        if read is not None and read[1] is not None:
+            check = read[1]
+            if check.get("pass") is not True:
+                fail(f"amend_check.json does not pass{why}")
+            if check.get("summary_sha256") != self.result["summary_sha256"]:
+                fail("amend_check.json's summary_sha256 is not the SHA-256 of summary.json")
+            if self.result["amend_sha256"] is None or check.get("amend_sha256") != self.result["amend_sha256"]:
+                fail("amend_check.json's amend_sha256 is not the SHA-256 of amend.json")
+        read = _load(self.dir / "amend.json", fail)
+        if read is not None and read[1] is not None:
+            self.amend = read[1]
+            for key in ("amended", "amend_digest"):
+                if key not in self.amend:
+                    fail(f"amend.json has no {key}")
+
+    def import_json(self) -> None:
+        """Step 2."""
+        fail = self.fail[2]
+        read = _load(self.dir / "import.json", fail)
+        if read is None or read[1] is None:
+            return
+        imp = self.imp = read[1]
+        for key in IMPORT_KEYS:
+            if key not in imp:
+                fail(f"import.json has no {key}")
+        if "format" in imp and imp["format"] != IMPORT_FORMAT:
+            fail(f"import.json has format {_shown(imp['format'])}, not {IMPORT_FORMAT!r}")
+        for key in ("cell", "depth"):
+            if key in imp and not _same(imp[key], self.summary[key]):
+                fail(f"import.json has {key} {_shown(imp[key])}, and summary.json has {_json(self.summary[key])}")
+        if "base_summary_sha256" in imp and imp["base_summary_sha256"] != self.result["summary_sha256"]:
+            fail("import.json's base_summary_sha256 is not the SHA-256 of summary.json, so it imports into another "
+                 "summary.json")
+        if "base_amend_sha256" in imp:
+            base = imp["base_amend_sha256"]
+            if not self.has_amend:
+                if base is not None:
+                    fail("import.json's base_amend_sha256 is not null, and the cell has no amend.json")
+            elif base is None or base != self.result["amend_sha256"]:
+                fail("import.json's base_amend_sha256 is not the SHA-256 of amend.json")
+
+    def read_lists(self) -> None:
+        """Step 3's reading of the registry and of every list file, and each kept line's candidates."""
+        self.lists = _registry(self.registry, self.big_s, self.big_k, self.big_d, self.fail[3])
+        if self.lists and self.data is None:
+            self.fail[3](f"the registry {self.registry} has no directory two levels above its own, so the list files "
+                         "need --data")
+        for lst in self.lists or []:
+            if lst.readable_name and self.data is not None:
+                _read_list_file(lst, self.data, self.big_d, self.fail[3])
+            if lst.read and lst.form != "cell" and self.cor is not None:
+                _candidates(lst, self.cor)
+
+    def claims(self) -> None:
+        """Step 1. One scan of the claims file binds it to summary.json, gives V and finds which candidate texts are
+        claims texts. Then the amendment's lines leave V, and the holdout lists must be V."""
+        fail = self.fail[1]
+        find = frozenset(text.encode("utf-8") for lst in self.lists or [] for cands in lst.candidates.values()
+                         for _, text in cands)
+        if self.jobs > 1:
+            with multiprocessing.get_context("spawn").Pool(self.jobs, initializer=_set_find,
+                                                           initargs=(find,)) as pool:
+                base = _base_set(self.dir, self.summary, pool, self.jobs, fail, self.found)
+        else:
+            _set_find(find)
+            try:
+                base = _base_set(self.dir, self.summary, None, 1, fail, self.found)
+            finally:
+                _set_find(frozenset())
+        try:
+            raw = (self.dir / f"{self.stem}_holdouts_unofficial.txt").read_bytes()
+            self.holdout_sha256 = hashlib.sha256(raw).hexdigest()
+            self.holdout_texts = set(raw.decode("utf-8", "replace").split("\n")[:-1])
+        except OSError:
+            pass
+        if base is None:
+            return
+        v = {text: d for text, d in base.items() if d <= self.big_d}
+        if self.has_amend:
+            if self.amend is None:
+                return
+            read = _read_amend_tsv(self.dir, fail)
+            if read is None:
+                return
+            name, data = read
+            lines = data.split(b"\n")
+            last = lines.pop()
+            if last:
+                lines.append(last)
+            if "amended" in self.amend and not _same(self.amend["amended"], len(lines)):
+                fail(f"amend.json has amended {_shown(self.amend['amended'])}, and {name} has "
+                     f"{_count(len(lines), 'line')}")
+            amend_digest = _hex(_sum_h(lines))
+            if "amend_digest" in self.amend and not _same(self.amend["amend_digest"], amend_digest):
+                fail(f"amend.json has amend_digest {_shown(self.amend['amend_digest'])}, and the digest of {name} is "
+                     f"{_json(amend_digest)}")
+            for raw in lines:
+                v.pop(raw.split(b"\t", 1)[0].decode("utf-8", "replace"), None)
+        self.v = v
+        for name, texts, what in (
+                (f"{self.stem}_holdouts_unofficial.txt", [t for t, d in v.items() if d == self.big_d],
+                 f"at depth {self.big_d}"),
+                (f"{self.stem}_parent_holdouts_unofficial.txt", [t for t, d in v.items() if d < self.big_d],
+                 f"at depths below {self.big_d}")):
+            message = _text_list(self.dir, name, texts, what)
+            if message:
+                fail(message)
+
+    def classify(self) -> None:
+        """Step 4's kinds and speaks for each list."""
+        for lst in self.lists or []:
+            if lst.form == "cell":
+                lst.strangers = 0
+                if lst.read and self.holdout_sha256 is not None:
+                    made = lst.entry.get("made_from")
+                    lst.speaks = (isinstance(made, str) and made.lower() == self.holdout_sha256
+                                  and lst.texts <= self.holdout_texts)
+            elif lst.read and self.v is not None and self.cor is not None:
+                _classify(lst, self.cor, self.v, self.found)
+
+    def maker(self) -> tuple[dict[str, int], dict[str, dict[str, int]]] | None:
+        """maker_holdouts and maker_holdouts_by_list, or None while some list's speaks is unknown."""
+        if self.lists is None:
+            return None
+        union: set[frozenset[int]] = set()
+        by_list = {}
+        for lst in self.lists:
+            if lst.form == "cell" or lst.speaks is False:
+                by_list[lst.id] = {"holdouts": 0, "parent_holdouts": 0}
+                continue
+            if lst.speaks is None:
+                return None
+            by_list[lst.id] = _counts(lst.maker, self.big_d)
+            union.update(lst.maker)
+        return _counts(union, self.big_d), by_list
+
+    def compare_lists(self) -> None:
+        """Step 3's comparison of lists and strangers, and step 4's of speaks and the maker holdouts."""
+        imp, lists = self.imp, self.lists
+        maker = self.maker()
+        if maker is not None:
+            self.result["maker_holdouts"] = maker[0]
+        if imp is None or lists is None:
+            return
+        fail3, fail4 = self.fail[3], self.fail[4]
+        by_id: dict[str, Any] = {}
+        if "lists" in imp:
+            theirs = imp["lists"]
+            if not isinstance(theirs, list):
+                fail3("import.json's lists is not a list")
+                theirs = []
+            ids = [x.get("id") if isinstance(x, dict) else None for x in theirs]
+            want = [lst.id for lst in lists]
+            if ids != want:
+                fail3(f"import.json's lists has the ids {_shown(ids)}, and the registry's entries with decides: true "
+                      f"that cover the cell are {_json(want)} in registry order")
+            for x in theirs:
+                if isinstance(x, dict) and isinstance(x.get("id"), str):
+                    by_id.setdefault(x["id"], x)
+            for lst in lists:
+                x = by_id.get(lst.id)
+                if x is None:
+                    continue
+                if set(x) != set(LIST_KEYS):
+                    fail3(f"import.json's lists entry {lst.id} does not have exactly the keys credit, entry_sha256, "
+                          "id, label, sha256 and speaks")
+                registered = lst.entry.get("sha256")
+                for key, ours in (("sha256", registered.lower() if isinstance(registered, str) else None),
+                                  ("entry_sha256", lst.entry_sha256), ("credit", lst.entry.get("credit")),
+                                  ("label", lst.entry.get("label"))):
+                    if key in x and (ours is not None or key in lst.entry) and not _same(x[key], ours):
+                        fail3(f"import.json's lists entry {lst.id} has {key} {_shown(x[key])}, and the registry "
+                              f"entry gives {_shown(ours)}")
+        if "strangers" in imp and all(lst.strangers is not None for lst in lists):
+            ours = {lst.id: lst.strangers for lst in lists}
+            if not _same(imp["strangers"], ours):
+                fail3(f"import.json has strangers {_shown(imp['strangers'])}, and the checker finds {_json(ours)}")
+        for lst in lists:
+            x = by_id.get(lst.id)
+            if x is not None and "speaks" in x and lst.speaks is not None and not _same(x["speaks"], lst.speaks):
+                fail4(f"import.json's lists entry {lst.id} has speaks {_shown(x['speaks'])}, and the checker finds "
+                      f"{_json(lst.speaks)}")
+        if maker is not None:
+            for key, ours in (("maker_holdouts", maker[0]), ("maker_holdouts_by_list", maker[1])):
+                if key in imp and not _same(imp[key], ours):
+                    fail4(f"import.json has {key} {_shown(imp[key])}, and the checker finds {_json(ours)}")
+
+    def import_tsv(self) -> None:
+        """Step 5."""
+        fail = self.fail[5]
+        plain, packed = self.dir / "import.tsv", self.dir / "import.tsv.gz"
+        path = plain if plain.is_file() else packed if packed.is_file() else None
+        if path is None:
+            fail("neither import.tsv nor import.tsv.gz exists")
+            return
+        try:
+            if path == plain:
+                data = path.read_bytes()
+            else:
+                with open(path, "rb") as f:
+                    data = b"".join(_gunzip(f, 0, None))
+        except (OSError, EOFError, zlib.error) as e:
+            fail(f"{path.name} could not be read ({e})")
+            return
+        lines = data.split(b"\n")
+        last = lines.pop()
+        if last:
+            lines.append(last)
+        self.tsv = lines
+        position = {lst.id: i for i, lst in enumerate(self.lists or [])}
+        seen: set[str] = set()
+        prev: bytes | None = None
+        for no, raw in enumerate(lines, 1):
+            where = f"{path.name} line {no}"
+            if last and no == len(lines):
+                fail(f"{where} does not end with a newline")
+            try:
+                line = raw.decode("utf-8")
+            except UnicodeDecodeError:
+                fail(f"{where} is not UTF-8")
+                line = raw.decode("utf-8", "replace")
+            if prev is not None and raw <= prev:
+                fail(f"{where} does not come after the line before it in byte order")
+            prev = raw
+            fields = line.split("\t")
+            text = fields[0]
+            repeated = text in seen
+            seen.add(text)
+            if len(fields) != 3:
+                fail(f"{where} does not have exactly three fields separated by TAB")
+                continue
+            verdict, list_id = fields[1], fields[2]
+            if verdict != DECIDED:
+                fail(f"{where} has the verdict {verdict}, not {DECIDED}")
+            in_v = self.v is not None and text in self.v
+            if self.v is not None and not in_v:
+                fail(f"{where} has {text}, which is not in V")
+            if repeated:
+                fail(f"{where} has {text}, which an earlier line has too")
+            if self.lists is None:
+                continue
+            if list_id not in position:
+                fail(f"{where} names {list_id}, which is not in lists")
+                continue
+            lst = self.lists[position[list_id]]
+            if lst.speaks is False:
+                fail(f"{where} names {list_id}, whose speaks is false")
+            if not (in_v and lst.read and self.cor is not None):
+                continue
+            assert self.v is not None
+            bound = self.cor.bounds[self.v[text]]
+            for why in decide_problems(lst, text, bound, self.big_d, self.holdout_texts, self.maps):
+                fail(f"{where} names {list_id} for {text}, but {why}")
+            for earlier in self.lists[:position[list_id]]:
+                if earlier.speaks and earlier.read and not decide_problems(earlier, text, bound, self.big_d,
+                                                                           self.holdout_texts, self.maps):
+                    fail(f"{where} names {list_id} for {text}, but {earlier.id}, earlier in registry order, would also "
+                         "decide it")
+                    break
+
+    def named(self) -> set[str]:
+        assert self.tsv is not None
+        return {raw.split(b"\t", 1)[0].decode("utf-8", "replace") for raw in self.tsv}
+
+    def counts(self) -> None:
+        """Step 6."""
+        if self.tsv is None:
+            return
+        fail = self.fail[6]
+        own: dict[str, Any] = {"imported": len(self.tsv), "import_digest": _hex(_sum_h(self.tsv))}
+        if self.v is not None:
+            named = self.named()
+            left = [d for text, d in self.v.items() if text not in named]
+            own["holdouts"] = sum(d == self.big_d for d in left)
+            own["parent_holdouts"] = sum(d < self.big_d for d in left)
+        self.result.update(own)
+        imp = self.imp
+        if imp is None:
+            return
+        if self.lists is not None and self.v is not None and "decided" in imp:
+            decided = {lst.id: {"holdouts": 0, "parent_holdouts": 0} for lst in self.lists}
+            for raw in self.tsv:
+                fields = raw.decode("utf-8", "replace").split("\t")
+                if len(fields) != 3 or fields[2] not in decided:
+                    continue
+                d = self.v.get(fields[0])
+                if d is None:
+                    m = _LIST_LINE.fullmatch(fields[0])
+                    d = len(_machine_codes(m.group(1))) if m and m.start(1) == 0 else None
+                if d is not None and d <= self.big_d:
+                    decided[fields[2]]["holdouts" if d == self.big_d else "parent_holdouts"] += 1
+            if not _same(imp["decided"], decided):
+                fail(f"import.json has decided {_shown(imp['decided'])}, and the checker finds {_json(decided)}")
+        for key in ("holdouts", "parent_holdouts", "imported", "import_digest"):
+            if key in own and key in imp and not _same(imp[key], own[key]):
+                fail(f"import.json has {key} {_shown(imp[key])}, and the checker finds {_json(own[key])}")
+
+    def after_lists(self) -> None:
+        """Step 7."""
+        if self.v is None or self.tsv is None:
+            return
+        named = self.named()
+        left = {text: d for text, d in self.v.items() if text not in named}
+        for name, texts, what in (
+                (f"{self.stem}_holdouts_after_lists_unofficial.txt", [t for t, d in left.items() if d == self.big_d],
+                 f"at depth {self.big_d} that no line of import.tsv names"),
+                (f"{self.stem}_parent_holdouts_after_lists_unofficial.txt",
+                 [t for t, d in left.items() if d < self.big_d], f"at depths below {self.big_d} that no line of "
+                                                                  "import.tsv names")):
+            message = _text_list(self.dir, name, texts, what)
+            if message:
+                self.fail[7](message)
+
+
+def _file_sha256(path: Path) -> str | None:
+    try:
+        return hashlib.sha256(path.read_bytes()).hexdigest()
+    except OSError:
+        return None
+
+
+def _import_check(cell_dir: Path, census: Path, registry: Path, data: Path | None,
+                  jobs: int) -> tuple[dict[str, Any], int]:
+    """The import check. The census is named on the command line but not otherwise used (section 13)."""
+    started = time.perf_counter()
+    result: dict[str, Any] = {
+        "format": IMPORT_CHECK_FORMAT, "checker": CHECKER, "cell": None, "depth": None, "pass": False, "failures": [],
+        "holdouts": None, "parent_holdouts": None, "maker_holdouts": None, "imported": None, "import_digest": None,
+        "lists": None, "seconds": 0.0, "summary_sha256": None, "amend_sha256": None, "import_sha256": None,
+    }
+    result["amend_sha256"] = _file_sha256(cell_dir / "amend.json")
+    result["import_sha256"] = _file_sha256(cell_dir / "import.json")
+    if data is None:  # the directory two levels above the directory that holds the registry
+        parents = registry.resolve().parents
+        data = parents[2] if len(parents) > 2 else None
+    failures = _Failures()
+    summary = _amend_base(cell_dir, result, failures.at(1), ", and an import rests on a passing full check")
+    if summary is not None:
+        _Import(cell_dir, summary, registry, data, jobs, result, failures).run()
+    result["pass"] = failures.count == 0
+    result["failures"] = failures.first()
+    result["seconds"] = round(time.perf_counter() - started, 3)
+    with open(cell_dir / "import_check.json", "w", encoding="utf-8", newline="\n") as f:
+        f.write(json.dumps(result, indent=2) + "\n")
+    return result, failures.count
+
+
+def import_check(cell_dir: Path, census: Path, lists: Path, data: Path | None = None, jobs: int = 1) -> dict[str, Any]:
+    """Check one cell's import against the registry lists and its list files (section 13), write import_check.json
+    into the cell directory and return its object. data is the directory that the registry's file names are relative
+    to, by default the directory two levels above the registry's own. It never writes check.json or amend_check.json."""
+    return _import_check(Path(cell_dir), Path(census), Path(lists), None if data is None else Path(data), jobs)[0]
+
+
+# ---------------------------------------------------------------------------------------------------------------------
 # The command line
 
 
@@ -2159,6 +3294,15 @@ def _jobs(x: str) -> int:
     if n < 1:
         raise argparse.ArgumentTypeError("--jobs must be at least 1")
     return n
+
+
+def _say(line: str, stream: IO[str] | None = None) -> None:
+    """Print a line that may quote text from the cell or a list file. A character that the stream's encoding cannot
+    write is printed as a backslash escape, so the line prints under any encoding, cp1252 among them. The JSON files
+    keep the text as it is."""
+    stream = sys.stdout if stream is None else stream
+    encoding = getattr(stream, "encoding", None) or "utf-8"
+    print(line.encode(encoding, "backslashreplace").decode(encoding), file=stream)
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -2170,15 +3314,37 @@ def main(argv: Sequence[str] | None = None) -> int:
                         help="check every machine to its depth's bound and read the claims apart, even with claims.idx")
     parser.add_argument("--amend", action="store_true",
                         help="check the cell's amendment (CHECKING.md section 12) instead of the cell")
+    parser.add_argument("--import", dest="import_", action="store_true",
+                        help="check the cell's import from other people's lists (CHECKING.md section 13)")
+    parser.add_argument("--lists", type=Path, metavar="LISTS_YAML", help="the registry of lists, with --import")
+    parser.add_argument("--data", type=Path, metavar="DIR",
+                        help="the directory of the list files, with --import (default two levels above the registry's)")
     args = parser.parse_args(argv)  # exits with 2 on bad usage
     if args.amend and args.plain:
         parser.error("--amend with --plain is bad usage")  # exits with 2
+    if args.import_ and (args.amend or args.plain):
+        parser.error("--import with --amend or --plain is bad usage")
+    if args.import_ and args.lists is None:
+        parser.error("--import without --lists is bad usage")
+    if not args.import_ and (args.lists is not None or args.data is not None):
+        parser.error("--lists or --data without --import is bad usage")
     if not args.cell_dir.is_dir():
-        print(f"bbi9check.py: {args.cell_dir} is not a directory", file=sys.stderr)
+        _say(f"bbi9check.py: {args.cell_dir} is not a directory", sys.stderr)
         return 2
     if not args.census.is_file():
-        print(f"bbi9check.py: {args.census} is not a file", file=sys.stderr)
+        _say(f"bbi9check.py: {args.census} is not a file", sys.stderr)
         return 2
+    if args.import_:
+        r, count = _import_check(args.cell_dir, args.census, args.lists, args.data, args.jobs)
+        cell = f"{r['cell'][0]}x{r['cell'][1]} depth {r['depth']}" if r["cell"] else str(args.cell_dir)
+        if r["pass"]:
+            maker = r["maker_holdouts"]
+            _say(f"PASS {cell} import: {r['imported']} imported from {len(r['lists'])} lists, {r['holdouts']} holdouts "
+                 f"and {r['parent_holdouts']} parent holdouts after the lists, {maker['holdouts']} and "
+                 f"{maker['parent_holdouts']} maker holdouts, {r['seconds']} s")
+            return 0
+        _say(f"FAIL {cell} import: {count} failures, the first is: {r['failures'][0]}")
+        return 1
     if args.amend:
         r, count = _amend_check(args.cell_dir, args.census, args.jobs)
     else:
@@ -2187,17 +3353,17 @@ def main(argv: Sequence[str] | None = None) -> int:
     census = {True: "matches", None: "skipped"}.get(r["census_match"], "differs")
     if args.amend:
         if r["pass"]:
-            print(f"PASS {cell} amendment: {r['amended']} amended, {r['holdouts']} holdouts, {r['parent_holdouts']} "
-                  f"parent holdouts, census {r['census']} {census}, {r['seconds']} s")
+            _say(f"PASS {cell} amendment: {r['amended']} amended, {r['holdouts']} holdouts, {r['parent_holdouts']} "
+                 f"parent holdouts, census {r['census']} {census}, {r['seconds']} s")
             return 0
-        print(f"FAIL {cell} amendment: {count} failures, the first is: {r['failures'][0]}")
+        _say(f"FAIL {cell} amendment: {count} failures, the first is: {r['failures'][0]}")
         return 1
     lists = ", holdout lists left to the amendment check" if r["holdout_lists"] == "amendment" else ""
     if r["pass"]:
-        print(f"PASS {cell}: {r['cell_machines']} machines ({r['late_cell_machines']} late), {r['holdouts']} holdouts, "
-              f"{r['parent_holdouts']} parent holdouts, census {r['census']} {census}{lists}, {r['seconds']} s")
+        _say(f"PASS {cell}: {r['cell_machines']} machines ({r['late_cell_machines']} late), {r['holdouts']} holdouts, "
+             f"{r['parent_holdouts']} parent holdouts, census {r['census']} {census}{lists}, {r['seconds']} s")
         return 0
-    print(f"FAIL {cell}{lists}: {count} failures, the first is: {r['failures'][0]}")
+    _say(f"FAIL {cell}{lists}: {count} failures, the first is: {r['failures'][0]}")
     return 1
 
 

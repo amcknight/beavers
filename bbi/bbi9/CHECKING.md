@@ -68,7 +68,8 @@ This is plain Tree Normal Form after Allen Brady, as the wiki's Instruction-Limi
 One directory per cell. For D = 9 it is named `SxK`, for example `cells/9x1`. It holds four files, and a fifth,
 `claims.idx`, when the claims are grouped (below). A cell may also hold an amendment, which reruns its holdouts. Its
 files are `amend.json`, `amend.tsv` or `amend.tsv.gz` and, once checked, `amend_check.json`, and section 12
-describes them.
+describes them. A cell may also hold an import (section 13), which marks the holdouts that other people's holdout
+lists decide.
 
 A cell's claims and digests reproduce with the producer that the RUNS.md row of its full run names, in the
 `producer` column. An amendment's lines reproduce with the producer its own row names (section 12). A later producer may certify more machines, or certify them differently, and then a rerun gives other claims and other
@@ -537,7 +538,8 @@ only with a passing amendment check as well.
 
 The command line is `python bbi9check.py CELL_DIR --census CENSUS_TSV [--jobs N] [--plain]`, for Python 3.11 or
 later with the standard library only. `--jobs` spreads the walk and the certificate checks over N processes, and it
-changes no result except `seconds`. The amendment check of section 12 is the same program with `--amend`.
+changes no result except `seconds`. The amendment check of section 12 is the same program with `--amend`. The import
+check of section 13 is the same program with `--import`, and it alone also uses PyYAML.
 
 ## 10. Control numbers
 
@@ -757,6 +759,76 @@ the holdout lists equal `z5_3x3`'s, which are empty, every line of `amend.tsv` e
 and with no parent holdouts left the census rule holds, with the census count 35,848 and 35,848 cell machines, none of
 them late.
 
+The table of normal-form maps below gives, for each machine, the map of section 13 or `no map`. Its N column is the
+map's bound B_d, the most steps step 2 may run, and not the N of a `{bbi: N}` list.
+
+**Normal-form maps.**
+
+| machine | N | map | why |
+|---|---|---|---|
+| `1RB------_2LC---1RA_0RA0LC---` | 33 | `1RB------_2LC---1RA_0RA0LC---` | a 1RB-first holdout is its own map |
+| `1RB2LC---_0LA---0RB_2LA------` | 33 | `1RB2LC---_0LA---0RB_2LA------` | a 1RB-first holdout is its own map |
+| `0RB0LA---_1RC------_2LA---1RB` | 33 | `1RB------_2LC---1RA_0RA0LC---` | A1 and C0 target A, so A0 stays and runs again |
+| `0RB0LA---_1RC------_2LA---1RB` | 5 | no map | C2 first runs 6 steps from s |
+| `0RB---0LA_1LA2RC---_2RB------` | 33 | `1RB2LC---_0LA---0RB_2LA------` | the first move from s is L, so the map mirrors |
+| `0RB---_1LA---` | 3 | `1RB---_0LA---` | A0 runs again on the way to the halt |
+| `0RB---_1LA---` | 1 | no map | A0 first runs again 2 steps from s |
+| `0RA` | 1 | no map | the prefix enters A twice |
+| `0RB_0RC_0LA` | 5 | no map | the prefix enters A again |
+| `1RA---` | 1 | no map | the map would start `1RA` |
+| `0RB1LC_1LC1LA_1RB---` | 16 | no map | B1 targets A, but A0 never runs again |
+| `0RB------_1LC------_2RC2RB0LC` | 33 | `1RB------_2LB2LA0RB` | nothing targets A, so A0 drops |
+| `0RB------_1LC------_2RC2RB0LC` | 4 | no map | C2 first runs 5 steps from s |
+| `0RB---_0RC---_1LD---_1RC---` | 5 | `1RB---_1LA---` | A0 drops, and then B0 |
+| `0RB---_1LA1RC` | 5 | no map | an instruction into C, which owns nothing |
+| `0RB---_1LC0RB_0LD---_1LE---_1RF0LF_1LB1RA` | 2,655 | `1RB0LA_0RC---_1RD---_1LE0RE_1RA1LF_0LA---` | F1 targets A, so A0 stays |
+| `0RB---_1LC0RB_0LD---_1LE---_1RF0LF_1LB1RA` | 18 | no map | F0 first runs 19 steps from s |
+| `0RB---_1LC0RB_0LD---_1LE---_0RE0LF_1RF1LB` | 2,655 | `1RB0LA_0RC---_1RD---_0LD0RE_1LE1RA` | nothing targets A, so A0 drops |
+| `0RB---_1LC0RB_0LD---_1LE---_0RE0LF_1RF1LB` | 9 | no map | B1 first runs 10 steps from s |
+| `1RB---_0RC0RB_0RD1LF_1LE---_0LE1RA_1LB---` | 2,655 | `1RB---_0RC0RB_0RD1LF_1LE---_0LE1RA_1LB---` | a 1RB-first survivor is its own map |
+
+The steps in the why column are counted from s, as step 2 of section 13 counts them. The first four machines of the
+table are the holdouts of `y5_3x3`, and the two 0RB-first ones map to the two 1RB-first ones. `0RB---_1LA---` halts
+after 3 steps, so it is never in V, and its map is only a function here. Row 12 is a holdout of `x5_3x3` whose map is
+that fixture's parent holdout `1RB------_2LB2LA0RB`, one instruction shorter. Its twin `0RB------_1RC------_2LC2LB0RC`
+maps to the same text without mirroring. Rows 16 to 20 hold the three six-state survivors of
+`experiments/bbi/results/mxdys_s6_d9/survivors_6state.txt`, with the bound 2,655, the `max_halt_steps` at depth 9 of
+the cell (6, 2). The first maps to the 1RB form that `experiments/bbi/notes.md` gives for it. The second maps to the 1RB
+form given there less its row F, whose pair the map drops, so its map has eight instructions.
+
+Two of the rows worked through. A trace step reads "state@position reads r, instruction, next state@position", with
+positions from 0 at the start.
+
+- `0RB0LA---_1RC------_2LA---1RB`. The prefix is the one step A0 = `0RB`, so p = 1 and s = B. A1 and C0 target A,
+  so step 1b drops nothing. From B@1 on a blank tape, B@1 reads 0, `1RC`, C@2. C@2 reads 0, `2LA`, A@1. A@1 reads
+  1, `0LA`, A@0. A@0 reads 0, `0RB`, B@1. B@1 reads 0, `1RC`, C@2. C@2 reads 2, `1RB`, B@3. The pairs are first
+  executed in the order B0, C0, A1, A0, C2, so every pair has run after 6 steps. B, C and A were first entered in that
+  order and become A, B and C. The first move is R, so nothing mirrors.
+- `0RB---0LA_1LA2RC---_2RB------`. Again p = 1 and s = B. B@1 reads 0, `1LA`, A@0. A@0 reads 0, `0RB`, B@1. B@1
+  reads 1, `2RC`, C@2. C@2 reads 0, `2RB`, B@3. B@3 reads 0, `1LA`, A@2. A@2 reads 2, `0LA`, A@1. The pairs are
+  first executed in the order B0, A0, B1, C0, A2, and B, A and C become A, B and C. The first move is L, so every L
+  and R swap.
+
+**Imports.** Fixture `m5_3x3` is `y5_3x3` with the `check.json` of the full check and an import of the registry
+`checker/fixtures/lists/lists.yaml`. Its V is the four holdouts at depth 5 and no parents, and the map's bound is
+B_5 = 33 for each of them. The bounds of the depths below are B_3 = 5 and B_4 = 16. Lists `fx-bb3x3`, `fx-cell` and
+`fx-bbi5` cover the cell with `decides: true` and all speak our language, and `fx-off` covers it with `decides: false`
+and is left out. fx-bb3x3's kept lines are two of kind 2 (`1RB------_2LC---1RA_0RA0LC---`, a holdout of ours, and
+`1RB1LA_1LB1LB` over the certified `1RB---_1LB1LB`) and one of kind 3 (`1RB1LB_1LA---`, which halts after 5 steps
+with B_3 = 5), and its fourth line has six instructions and is not kept. fx-bbi5's one line is kind 2, a holdout of
+ours. No list has a stranger. The import has 3 lines, `import_digest` `3b783303fee43fd8`, decided `fx-bb3x3` 2 and
+`fx-cell` 1 and `fx-bbi5` 0 (all holdouts, no parents), `maker_holdouts` 0 and 0, and leaves the holdout
+`0RB0LA---_1RC------_2LA---1RB`, which every list leaves open (fx-cell lists it, and fx-bb3x3 and fx-bbi5 list its
+map).
+
+Why each line is there. `0RB---0LA_1LA2RC---_2RB------` maps to `1RB2LC---_0LA---0RB_2LA------`, which no kept line
+of fx-bb3x3 equals, contains or extends, so fx-bb3x3, first in registry order, decides both of them. The prefixes of
+that map in step 2's order are `1RB---`, `1RB---_0LA---`, `1RB2LC---_0LA------` and
+`1RB2LC---_0LA------_2LA------`, and none is a line. `1RB------_2LC---1RA_0RA0LC---` is a line of fx-bb3x3, and
+fx-cell decides it, as a text of its `made_from` file that it does not list. `0RB0LA---_1RC------_2LA---1RB` is
+fx-cell's line, and its map `1RB------_2LC---1RA_0RA0LC---` is a line of fx-bb3x3 and of fx-bbi5, so nothing decides
+it.
+
 ## 11. Fixtures
 
 `checker/fixtures/` holds producer output for small cells, `d1_1x1`, `d4_3x3`, `d4_4x1`, `d5_3x3` and `d9_9x1`
@@ -785,6 +857,12 @@ and are empty.
 A correct checker passes all of them, and passes `a5_3x3`, `b5_3x3`, `g5_3x3` and `h5_3x3` with `--amend` too. Its
 full check of those four skips the holdout lists. If one fails, the producer may be at fault, so report the failure
 rather than change the checker to agree.
+
+`m5_3x3` holds an import (section 13). It is a copy of `y5_3x3` with the `check.json` that checker 1.4's full check
+wrote and a hand-made import of the registry `checker/fixtures/lists/lists.yaml`, whose hand-made list files are in
+`checker/fixtures/lists/data`. Section 10 gives the import's numbers. A correct checker passes `m5_3x3`, and passes it
+with `--import --lists checker/fixtures/lists/lists.yaml --data checker/fixtures/lists` too. If it fails, report the
+failure rather than change the checker to agree.
 
 ## 12. Amendments
 
@@ -953,3 +1031,366 @@ counts may split the non-halting verdicts differently from a full rerun's.
 An amendment's lines reproduce with the producer its own RUNS.md row names, run on the cell's full run, whose claims
 reproduce with the producer that the full run's row names (section 5). The control numbers of the four amended
 fixtures are in section 10, and the fixtures themselves in section 11.
+
+## 13. Imports from other people's lists
+
+An import marks the holdouts of a cell that other people's holdout lists decide, each line naming the list. A list's
+maker posted the machines they left open in some domain, so a holdout of ours whose form a covering list leaves out
+was decided by that maker, as a halter or as a non-halter, and nothing more is known. An import changes no claim,
+count or list of sections 5 and 12. It adds one credited line for each such holdout and two shorter holdout lists
+beside our own, and the import check verifies every line from the cell, the registry and the list files alone.
+
+### The registry
+
+The registry is a YAML file, `experiments/bbi/lists.yaml` in this repository, that holds a sequence of mappings, one
+for each list. A checker reads it with PyYAML's `yaml.safe_load`, the one library beyond the standard library that the
+import check uses. An empty file is a registry with no entries. A checker uses these keys of an entry and ignores any
+others.
+
+- `id` names the list in the import's files, and no two entries have the same `id`.
+- `label` is what the community calls the domain, such as `BB(3,3)` or `BBi(5)`, and `credit` names the maker and a
+  date.
+- `domain` is what the list covers, in one of three forms.
+  - `{states: S, symbols: K}` is a BB(S,K) holdout list. It covers the cell (S′, K′) at any depth when S′ ≤ S and
+    K′ ≤ K.
+  - `{bbi: N}` holds the machines of N instructions that its maker left open, and their undecided machines of fewer
+    instructions. It covers every cell at depth N.
+  - `{bbi: N, cell: SxK}`, with the cell written like `3x3`, is a list of one of our cells, made from our holdout
+    file of that cell. It covers that cell at depth N.
+
+  A domain is a mapping with exactly the keys of one form, `states` and `symbols`, or `bbi`, or `bbi` and `cell`. S,
+  K and N are whole numbers, S and K from 1 to 10 and N from 1 to 9, and a YAML true or false is not a whole number.
+  The cell is a string SxK, with S and K from 1 to 10 written in decimal without a leading zero, such as `3x3` or
+  `10x2`. The first two forms are domain lists, and the third is a cell list. In this section N is always the N of a
+  `{bbi: N}` domain, and the map's step bound is written B_d.
+- `file` is the list file's name relative to the directory `--data DIR`. By default that directory is the directory
+  two levels above the directory that holds the registry file, so for `experiments/bbi/lists.yaml` it is the
+  repository root. A name ending in `.gz` is a gzip file, and the bytes read from it are the decompressed contents of
+  all its members in order.
+- `sha256` is the SHA-256 hex of the list file's bytes as stored. Capitals are allowed, and it is compared in
+  lowercase.
+- `entries` is the number of non-blank lines of the list file.
+- `decides` is true or false, and a missing `decides` means false. A list decides our holdouts only when it is true.
+- `complete` is a short statement of what the file is, such as "the maker's full TNF-1RB holdout list, nothing pruned
+  by equivalence". Every entry with `decides: true` has one.
+- `made_from`, which every cell list with `decides: true` has, is the SHA-256 hex of the bytes of our holdout file of
+  its cell that the maker ran on. Like `sha256` it may have capitals, and it is compared in lowercase.
+
+A list file is read as the list intake reads it. It is UTF-8 text, and a byte-order mark at its start is ignored.
+CRLF, LF and a bare CR each end a line, as in Python's universal newlines. Whitespace around a line is ignored and
+blank lines are skipped. A line is then a machine, or an index number (decimal digits) and a machine separated by
+whitespace, and the index is dropped. A file that is not UTF-8, or a line of any other form, makes the import check
+fail at step 3.
+
+`entry_sha256` of an entry is the SHA-256 hex of the UTF-8 bytes of the Python expression
+`json.dumps(entry, sort_keys=True, separators=(",", ":"), ensure_ascii=False)`, where entry is the whole mapping that
+`yaml.safe_load` gives for it, every key included. A change to any key of the entry changes it. Some mappings have
+no such JSON, for example one with an unquoted YAML date such as `2026-11-01`, which `yaml.safe_load` reads as a
+date. Such an entry has no `entry_sha256`, and when it has `decides: true` and covers the cell the import check fails
+at step 3 and names it, rather than stopping with an error.
+
+`complete` affirms three things that no check can see. The file is the maker's whole list for its domain, with
+nothing removed except by deciding. Every undefined pair is written `---`, and no pair is filled in by convention.
+For a `{bbi: N}` list, the maker's undecided machines of fewer than N instructions are listed too, or there are none.
+Step 3 refuses a pair outside a `{states: S, symbols: K}` list's domain, but a pair inside the domain that no run of
+its line can reach, such as one of a state that nothing targets or one reading a symbol that nothing writes, is not
+checked. For such a pair the import rests on the second of these, that no pair is filled in by convention. A list of
+class representatives never has `decides: true`, because a holdout that is not a representative would count as
+decided. The registry records the statement beside the credit, and an import rests on it.
+
+### Pairs, lines and shapes
+
+A line of a domain list is compared by its set of defined pairs, never by its bytes. Its rows, separated by `_`, are
+the states A, B, C and so on in order, and each row is a run of three-character slots for the symbols 0, 1, 2 and so
+on. A slot is `---` for an undefined pair, or a digit w, then `L` or `R`, then a letter t from A to J, for the
+instruction (w, m, t) of section 1. A line parses when it has this form, with at most 10 rows and at most 10 slots in
+a row. Rows need not have the same number of slots. A cell list's lines are our own texts and are compared as texts.
+
+Two machines are equal when their sets of pairs are equal. Rows and columns that own nothing do not matter, so
+`1RB1LA_1LA---_------` equals `1RB1LA_1LA---`, and a BB(6) list's line in six rows equals a text of ours with three.
+A line's depth is its number of defined pairs. Its shape is (s, k), where s counts the states that own a pair and k
+is 1 plus the largest symbol it writes, as in section 2. It is in the cell's corridor when its depth d is at most D
+and its shape is in the corridor at depth d (section 4).
+
+A domain list's kept lines are the sets of pairs of its lines with at most D instructions. Two lines with the same
+pairs are one kept line. A longer line can equal no machine of the cell and is not kept.
+
+A subset of a line's pairs is written as a section 2 text, in the line's own letters, when the states that own its
+pairs are A to the s-th letter, s their number. A subset owned by other states is never a claims text. A claims text
+is the text of a line of the cell's claims file (section 5). It is open when it is in V, the base set defined under
+The files below, and certified otherwise, by its claim or, in an amended cell, by the amendment's line for it.
+
+### The normal-form map
+
+Our tree is plain Tree Normal Form (section 3), so a machine's first instruction may write 0, as in `0RB---_1LA---`.
+Community lists use TNF with a 1RB start. The map m takes a machine M of our tree, with text t, to the text m(t) of
+the same machine in the community's form, or says that M has no map. The map's bound is B_d, the `max_halt_steps` of
+corridor entry d of summary.json, where d is the depth of t. It is the bound the full check already uses, at most
+10,000,000.
+
+A machine with an instruction into a state that owns no pair has no map. For every other machine these steps run in
+order, whatever its first instruction.
+
+- **Step 1.** Run M from the start. While the current pair is defined and its instruction writes 0, take the step.
+  The tape stays all 0s, and the head is on a 0. Stop at the first round whose instruction writes a non-zero symbol,
+  in state s after p steps. If the run reads an undefined pair first, M has no map. If it enters some state twice in
+  this prefix, M has no map. The start counts as the first entry of A, so `0RA` enters A twice. When the first
+  instruction writes a non-zero symbol, p = 0 and s = A.
+- **Step 1b.** The prefix pairs are the p pairs (q, 0) that step 1 executed. Drop a prefix pair (q, 0) from M while
+  no remaining pair of M targets q, again and again until nothing more drops. The other pairs of a state whose 0-pair
+  drops stay. They can then never run, so step 2 gives no map. M′ is the pairs of M that remain.
+- **Step 2.** From the configuration after p steps, which is the blank tape in state s, run M′ for at most B_d steps.
+  Record the order in which pairs are first executed and the order in which states are first entered, s first. Stop as
+  soon as every pair of M′ has been executed once. If the run reads an undefined pair before that, or if some pair of
+  M′ has not been executed after B_d steps, M has no map.
+- **Step 3.** Relabel. Each state gets the letter of its place in the order of first entry, so s becomes A. Symbols
+  keep their digits. If the first move from s is L, swap every L and R.
+- **Step 4.** m(t) is the text of the relabelled table of M′, written as section 2 writes a text. A map whose first
+  instruction is not `1RB` does not exist, and then M has no map. In the tree the only would-be map this rules out is
+  `1RA---`, the map of `1RA---` itself and of 0RB-first machines such as `0RB---_1RB---`, whose run after the prefix
+  stays in s forever.
+
+For a machine whose first instruction writes a non-zero symbol, p = 0, s = A and nothing drops. Its states were first
+entered in the order of their letters on the path that built it in the tree, and its first move is R (section 3), so
+its map, when it has one, is t itself.
+
+m(t) has the depth of t less the dropped pairs, so it may be a shorter machine than t. Where the rules below speak of
+the maker's node they use m(t)'s depth, and where they speak of ours they use t's. The prefixes of m(t) are the sets
+of its first j pairs in step 2's order, in m(t)'s letters, for j from 1 to m(t)'s depth less 1. Every line of a domain
+list must start with `1RB`, and so must every map. That is what a TNF-1RB list promises, and it rules out a list in
+some other labelling, which would match nothing and so decide everything.
+
+**Why the map is sound.** Step 2 makes M′'s relabelled table a node of the community's tree, because each of its
+pairs is reached in first-use order from the TNF-1RB start. The maker's enumeration therefore saw exactly m(t) and
+either left it in the list or decided it. m(t)'s run is M's run after the prefix, so a verdict on one is a verdict on
+the other. If step 2 did not require every pair to run, a pair that the run from s never reaches within B_d steps but
+might reach later would be undefined in the maker's node. That shorter node might halt on that very pair after B_d
+steps, and its absence from the list would say nothing about M. So a holdout with no map is never decided by a domain
+list and stays in the counts. Step 1b is safe because a prefix state that no pair targets can never be entered again
+after the prefix, so its 0-pair can never run again. The run of M′ from s is the run of M from s.
+
+**Speaking our language.** Before a domain list decides anything in a cell, each of its kept lines in the cell's
+corridor is classified by our claims. The line's candidates are the texts of its subsets, the whole line included,
+that are claims texts. A line has at most 2^D − 1 non-empty subsets, 511 at D = 9, so a checker may collect the
+candidates of every line of every list first and then mark them in one scan of the claims file. The kinds are tested
+in this order.
+
+1. **Under one of ours left open.** Some claims text in V is a proper subset of the line. The maker expanded a
+   machine we left open, so the line is one of the maker's undecided machines that our tree never reached.
+2. **Settled by us.** Otherwise the line's own text is in V, or a claims text not in V is a subset of the line or
+   equal to it, so its claim or the amendment's line for it certifies it. A line equal to a text of V is ours. A
+   machine that never reads an undefined pair stays that way when pairs are added, so a line over a certified text
+   never halts, by our certificate.
+3. **A halter of ours.** Otherwise the line halts after at most B_d steps from the start, d its depth. We expanded it,
+   the maker left it open, and every machine of ours below it is covered by the prefix rule below.
+4. **A stranger.** Otherwise. The list and our tree disagree about this machine, and the list does not speak our
+   language in the cell.
+
+A domain list speaks our language in the cell when none of its kept lines in the corridor is of kind 4. Kind 1 is
+tested first on purpose. A line that halts within B_d may still sit under a parent holdout of ours that the maker
+found halting past our bound, and then its own children are machines of the cell that nobody has enumerated for us.
+Kind 1 catches it, and kind 3 alone would not. A line equal to a text of V is not of kind 1. It is a machine both of
+us left open, it is already in the after-lists counts as ours, and counting it again would count it twice. It is
+kind 2.
+
+The kind 1 lines are the maker holdouts. `maker_holdouts` counts them over all the domain lists that speak, once per
+set of pairs, so a machine that two makers both list counts once, at depth D and below D by the line's depth.
+A domain list that does not speak adds nothing to `maker_holdouts`. `maker_holdouts_by_list` counts each list's own
+kind 1 lines the same way, and it is 0 and 0 for a cell list and for a list that does not speak. A machine that
+another list decides is still counted, which overcounts and is the safe side. No line is run except for a kind 3
+test, which is one run of at most B_d steps.
+
+**Which machines a list decides.** Take a list that covers the cell, has `decides: true` and speaks our language in
+the cell, and a machine t of V of depth d.
+
+- A domain list decides t when t has a map with the bound B_d, no kept line of the list equals m(t) or one of its
+  prefixes, and no kept line has a set of pairs that is a proper superset of m(t)'s. A `{states: S, symbols: K}` list
+  holds everything its maker left open in the whole domain, so it may decide t at every depth. A `{bbi: N}` list
+  decides t only when t and m(t) both have N instructions.
+- A cell list decides t when t is a text of the cell's current depth-D holdout list
+  `BBi{D}_{S}x{K}_holdouts_unofficial.txt` and not a line of the list. So it never decides a parent holdout, and never
+  a text that a later run added.
+
+**Prefixes.** The maker's tree node for our machine may be a proper ancestor of m(t). If the list holds a prefix of
+m(t), the maker never expanded it, and m(t)'s absence says nothing.
+
+**Supersets.** A kept line whose pairs are a proper superset of m(t)'s means that the maker expanded m(t), that is,
+found it halting past our bound. Such a machine is not decided and stays in the after-lists counts. Its children under
+the maker are kind 1 lines anyway.
+
+**Cell lists.** A cell list was made from one version of our depth-D holdout list, which `made_from` pins by digest.
+Its lines are our own texts, 0RB-first ones included, so no map, no 1RB rule and no kinds apply. It speaks our
+language in the cell when `made_from`, in lowercase, is the SHA-256 hex of the bytes of the cell's current depth-D
+holdout list and every line is a text of that list. A machine with no map can be decided by a cell list, never by a
+domain list.
+
+**The first list.** When several lists decide a machine, its line names the first of them in registry order, so the
+import is a function of the registry and the list files.
+
+### The files
+
+A cell directory may hold an import, beside an amendment or without one. The importer writes `import.json`,
+`import.tsv` and the two after-lists files, and the import check writes `import_check.json`. A cell has at most one
+import. A newer import replaces the older one, and a full rerun or a new amendment of the cell removes it, since its
+base changed.
+
+The base set V is the set of texts of the cell's holdouts and parent holdouts, the two holdout lists of section 5 or,
+in an amended cell, of section 12. Without an amendment V is the set of UNKNOWN texts of the claims file, and with one
+it is that set less the texts of `amend.tsv`.
+
+**import.tsv.** There is one line for each machine of V that some list decides, and there are no other lines. A line
+is `text<TAB>DECIDED_LIST<TAB>id`, where id is the registry `id` of the first list in registry order that decides the
+machine. The lines are sorted in byte order, every line ends with a newline, and no text is on two lines. An import
+that decides nothing has an empty `import.tsv`. The file may be `import.tsv.gz` instead, the gzip of the same bytes,
+read as `claims.tsv.gz` is (section 5), so it may hold several gzip members. If both exist, a checker reads
+`import.tsv`.
+
+The verdict is `DECIDED_LIST` and not a non-halting one on purpose. The maker may have found the machine halting, past
+our bound, so a page says "decided", never "never halts", for these machines.
+
+**import.json.** A JSON object. A checker uses these keys and ignores any others, and each of these keys is required.
+
+- `format` is `"bbi9-import/1"`.
+- `cell` is `[S, K]` and `depth` is D, as in summary.json.
+- `base_summary_sha256` is the SHA-256 hex of the bytes of the summary.json the import was made from, and
+  `base_amend_sha256` that of its amend.json, or null when the cell has no amendment.
+- `lists` is a list with one object for each registry entry that has `decides: true` and whose domain covers the
+  cell, in registry order, whether or not the list decided anything. Each object has exactly the keys `id`, `sha256`
+  (in lowercase), `entry_sha256`, `credit` and `label` of the entry, and `speaks`, which is true when the list speaks
+  our language in the cell and false when it does not. A list that does not speak decides nothing.
+- `decided` maps every id of `lists` to `{"holdouts": h, "parent_holdouts": p}`, the numbers of lines of import.tsv
+  that name that id at depth D and at depths below D.
+- `maker_holdouts` is `{"holdouts": h, "parent_holdouts": p}`, the kind 1 lines of the domain lists that speak,
+  counted once per set of pairs, at depth D and below D. `maker_holdouts_by_list` maps every id of `lists` to the same
+  counts for that list alone, which are 0 and 0 for a cell list and for a list that does not speak.
+- `strangers` maps every id of `lists` to the number of that list's kept lines in the corridor that are of kind 4,
+  which is 0 for a cell list.
+- `holdouts` and `parent_holdouts` count the machines of V that no line of import.tsv names, at depth D and below D.
+- `imported` is the number of lines of import.tsv, and `import_digest` is the digest (section 7) of those lines, each
+  without its newline.
+
+`decided`, `maker_holdouts_by_list` and `strangers` have exactly the ids of `lists` as keys, and every count object is
+exactly `{"holdouts": h, "parent_holdouts": p}`, with no other keys.
+
+The keys `importer`, `seconds`, `no_map` (how many machines of V have no map) and `kinds_by_list` (for each domain list
+of `lists`, how many of its kept lines in the corridor are of each kind, as `[k1, k2, k3, k4]`) are for people to read.
+
+**The after-lists files.** `BBi{D}_{S}x{K}_holdouts_after_lists_unofficial.txt` holds the texts of V at depth D that
+no line of import.tsv names, and `BBi{D}_{S}x{K}_parent_holdouts_after_lists_unofficial.txt` those at depths below D.
+Both are sorted in byte order, one text per line, each line ending with a newline, and a list with no machines is an
+empty file. Our own two holdout lists stay as they are.
+
+### The import check
+
+The inputs are the cell directory, the census file, the registry and the directory of list files. The command line is
+`python bbi9check.py CELL_DIR --import --census CENSUS_TSV --lists LISTS_YAML [--data DIR] [--jobs N]`. `--lists`
+names the registry, and `--data` the directory that its `file` names are relative to. By default that is the
+directory two levels above the directory that holds the registry file, so for `experiments/bbi/lists.yaml` it is the
+repository root. A `--lists` file that is missing or that `yaml.safe_load` cannot read is a failure at step 3, with
+exit 1, not bad usage. `--census` must name a file, as for the other checks, or the command is bad usage, and the
+import check does not otherwise use it. `--jobs` spreads the work over that many processes, and it changes no result
+except `seconds`. `--import` with `--amend` or `--plain`, `--import` without `--lists`, and `--lists` or `--data`
+without `--import` are bad usage.
+
+The check passes only when none of the steps below fails. Each failure adds a message. A step that needs something an
+earlier failure left unread, such as import.json's keys after step 2 fails, is skipped. A checker may do the work in
+another order, for example reading the registry and the list files before the claims file, so that one scan of the
+claims file serves steps 1 and 4.
+
+1. Read summary.json and check.json, and fail as step 1 of the amendment check does (section 12). If amend.json
+   exists, fail unless amend_check.json exists, is a JSON object, passes, and has `summary_sha256` and
+   `amend_sha256` equal to the SHA-256 hex of the bytes of summary.json and of amend.json. Read every line of the
+   claims file, and fail unless it is bound to summary.json as step 3 of the amendment check binds it, by its count,
+   its digest and its UNKNOWN lines at each depth. V is the set of texts of the UNKNOWN lines. With an amendment, read
+   `amend.tsv`, or `amend.tsv.gz` when there is no `amend.tsv`. Fail if neither exists, if the number of its lines is
+   not amend.json's `amended`, or if their digest (section 7) is not its `amend_digest`, and take the texts of its
+   lines out of V. Fail unless the two holdout lists of section 5 are exactly the texts of V at depth D and at depths
+   below D, sorted in byte order, each followed by a newline, by recomputing them this way. A missing list fails. The
+   checker takes V from these files, never from the lists it is handed.
+2. Read import.json. Fail if it is missing or is not a JSON object, if a key a checker uses is missing, if `format`
+   is not `"bbi9-import/1"`, or if `cell` or `depth` differs from summary.json's. Fail if `base_summary_sha256` is
+   not the SHA-256 hex of the bytes of summary.json, or if `base_amend_sha256` is not the SHA-256 hex of the bytes of
+   amend.json, or null when there is no amend.json.
+3. Read the registry with PyYAML's `yaml.safe_load`, the one thing outside the standard library in the whole checker.
+   Fail if the file is missing or `yaml.safe_load` cannot read it, if it is not a sequence of mappings, if an entry's
+   `decides` is present and neither true nor false, or if an entry with `decides: true` lacks one of `id`, `label`,
+   `credit`, `domain`, `file`, `sha256`, `entries` and `complete`, has a `complete` that is empty or not a string, has
+   a domain of none of the three forms, shares its `id` with another such entry, or is a cell list without
+   `made_from`. Fail, naming the entry, if one that has `decides: true` and covers the cell has no JSON for its
+   `entry_sha256`. Fail unless `lists` holds exactly the entries with `decides: true` that cover the cell, in registry
+   order, each an object with exactly the entry's `id`, `credit`, `label` and `sha256` in lowercase, its
+   `entry_sha256` and `speaks`. For each of these lists, read its file below `--data`, gunzipped when its name ends in
+   `.gz`. Fail if the file is missing, if its SHA-256 hex is not the entry's `sha256`, if it has a
+   line of a form that the reading rules above do not allow, or if its number of non-blank lines is not `entries`.
+   For a domain list, fail on each line that does not parse, whose first instruction, at (A, 0), is not `1RB`, that
+   has a `Z` or targets a letter past its rows plus one (a line of r rows may target the first r + 1 letters), that
+   targets a state at or past S or writes a symbol at or past K in a `{states: S, symbols: K}` list, or that has more
+   than N instructions in a `{bbi: N}` list. In a `{states: S, symbols: K}` list, also fail on each line that defines
+   a pair reading a symbol at or past K (a slot other than `---` after the K-th slot of some row) or a pair of a
+   state at or past S (a slot other than `---` in a row after the S-th). A slot or a row of nothing but `---` owns
+   nothing and passes. Keep each domain list's kept lines, and each cell list's lines as texts.
+   Fail unless `strangers` maps each id of `lists`, and no other key, to that list's number of kind 4 lines in step
+   4, 0 for a cell list.
+4. Classify each kept line of each domain list that is in the cell's corridor by the four kinds above, with the
+   claims lines that step 1 bound to summary.json for the candidates and one run of at most B_d steps for a kind 3
+   test. A kind 4 line makes the list not speak our language in this cell. A cell list speaks when its `made_from`, in
+   lowercase, is the SHA-256 hex of the bytes of the cell's depth-D holdout list and every line is a text of that
+   list. Fail unless each list's `speaks` is this result. Fail unless `maker_holdouts` and `maker_holdouts_by_list` are
+   the kind 1 counts above, with every id of `lists` and no other key in `maker_holdouts_by_list`, and 0 and 0 for a
+   cell list and for a list that does not speak.
+5. Read `import.tsv`, or `import.tsv.gz` when there is no `import.tsv`. Fail if neither exists. Fail on each line
+   that does not end with a newline, does not have exactly three fields separated by TAB, has a verdict other than
+   `DECIDED_LIST`, names an id that is not in `lists` or one whose `speaks`, as step 4 computes it, is false, has a
+   text that is not in V or that an earlier line has, or does not come after the line before it in byte order. Fail
+   on each line whose list may not decide the text's depth, that is a `{bbi: N}` list and a text of fewer than N
+   instructions, or a cell list and a parent holdout. For a cell list, fail unless the text is a text of the cell's
+   depth-D holdout list and not a line of the list. For a domain list, compute m(text) with the bound B_d, d the
+   text's depth, and fail if the machine has no map, if its map does not start `1RB`, or, for a `{bbi: N}` list, if
+   its map does not have N instructions. Fail if a kept line of the list equals m(text) or one of its prefixes, or if
+   a kept line's set of pairs is a proper superset of m(text)'s. Fail if a list earlier in registry order that speaks
+   would also decide the machine, since the line must name the first.
+6. Count. Fail unless `decided` maps every id of `lists`, and no other key, to the numbers of lines that name it at
+   depth D and at depths below D, unless `holdouts` and `parent_holdouts` are the numbers of machines of V that no
+   line names at depth D and at depths below D, unless `imported` is the number of lines, and unless `import_digest`
+   is their digest (section 7, each line without its newline).
+7. Fail unless the two after-lists files are exactly the texts of V that no line of import.tsv names, at depth D and
+   at depths below D, sorted in byte order, each followed by a newline. A missing file fails, and when no text is
+   left the file is empty.
+
+Then write `import_check.json` into the cell directory, print one line starting with `PASS` or `FAIL`, and exit with
+0 on a pass, 1 on a fail and 2 on bad usage. `import_check.json` has the keys `format` (`"bbi9-import-check/1"`),
+`checker` (name and version), `cell` and `depth` (summary.json's), `pass`, `failures` (the first 50 messages),
+`holdouts`, `parent_holdouts`, `maker_holdouts` (an object with the keys `holdouts` and `parent_holdouts`),
+`imported`, `import_digest`, `lists` (one object `{"id", "sha256", "speaks"}` for each entry with `decides: true` that
+covers the cell, in registry order), `seconds`, `summary_sha256`, `amend_sha256` and `import_sha256`, the SHA-256 hex
+of the bytes of summary.json, of amend.json (null when there is none) and of import.json. Every value is the
+checker's own, and on a fail a value that a failure left uncomputed is null. The import check never writes check.json
+or amend_check.json, and the other two checks never write `import_check.json`.
+
+The tracker trusts an import check only while it passes, its `summary_sha256`, `amend_sha256` and `import_sha256`
+match the current summary.json, amend.json and import.json (`amend_sha256` is null exactly when there is no
+amend.json), check.json is trusted for the same summary.json (section 9), and amend_check.json is trusted for the same
+files when amend.json exists (section 12). import.json's `lists` must also carry `entry_sha256` for each entry, and
+the sequence of its pairs `(id, entry_sha256)` must equal that of the registry's current entries with `decides: true`
+that cover the cell, in registry order. So turning `decides` off, adding a list, reordering those lists, which
+can change the list that must name a machine in step 5, or changing a list's `domain`, `made_from` or `complete` hides
+the import at once, before it is made again. A cell with import.json and no such trusted check counts as having
+no import, never as unchecked, because an import is a layer on top of the cell.
+
+### Why this is enough
+
+Step 1 fixes V as the machines that our checked run and amendment left. Step 3 fixes each list to the bytes its maker
+posted, by the digest the registry records, and to the TNF-1RB form. Its line checks also refuse a halt written as an
+instruction, as `1RZ` or as `1RH` with H past the line's rows plus one, which would make a line one instruction
+longer than the machine it lists. A `{bbi: N}` line of more than N instructions is refused for the same reason, since
+at depth N it would not be kept and the machine it lists would count as decided. A `{states: S, symbols: K}` line
+that defines a pair reading a symbol at or past K or a pair of a state at or past S is refused too. No run reaches
+such a pair, so the line is a machine of the domain with a pair added, and a listed prefix of a machine's map hidden
+in it would let that machine count as decided. Step 4 shows that the list and our tree agree on every machine both
+could hold, which is what makes absence from the list mean something, and it counts the maker's undecided machines
+that our tree never reached. Step 5 shows that each imported machine is a TNF-1RB node (it has a map) that the maker's
+enumeration reached (no prefix of it is listed) and left out of their list. What the check cannot see is whether the
+file is the maker's whole list, with no pair filled in by convention, which `complete` asserts and the page states.
+Only `complete` is taken on trust. The cell's own numbers are untouched, and the after-lists numbers say which
+machines no one has left open. An import that leaves out a machine some list decides still passes, since that machine
+then stays in the after-lists counts, which is the safe side.
