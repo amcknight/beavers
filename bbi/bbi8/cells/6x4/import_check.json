@@ -1,0 +1,30 @@
+{
+  "format": "bbi9-import-check/1",
+  "checker": "bbi9check 1.5",
+  "cell": [
+    6,
+    4
+  ],
+  "depth": 8,
+  "pass": true,
+  "failures": [],
+  "holdouts": 30,
+  "parent_holdouts": 16,
+  "maker_holdouts": {
+    "holdouts": 0,
+    "parent_holdouts": 0
+  },
+  "imported": 444,
+  "import_digest": "448127ad71ea6e23",
+  "lists": [
+    {
+      "id": "bbi8-2026-10-25",
+      "sha256": "aabde837dd73b5ef74f77bfd4f39737fe4d8755e5aead05d7e84141ad595b2c0",
+      "speaks": true
+    }
+  ],
+  "seconds": 7.882,
+  "summary_sha256": "2233915f2459afbe7fd34a5b7b60b62bdff39eb8b279dda7caf2013dfb190845",
+  "amend_sha256": "8c8eb7b91bf03cfc4eb18fc1c5aa0be6575048a8f529fe672b68b9fd86cdc72c",
+  "import_sha256": "5f2f68b22a0d21d1ace3e5d34ca0b23531418d3c288dc1aebe7dcc06f1ea133d"
+}
