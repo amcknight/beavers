@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Busy Beaver results by Andrew McKnight.">
+<title>beavers</title>
+<style>
+:root {
+  color-scheme: light dark;
+  --bg: #fbfaf6;
+  --ink: #1f1d1a;
+  --muted: #6d685e;
+  --rule: #e2ddd3;
+  --link: #1f5fa8;
+  --panel: #ffffff;
+  --irr: #33295c;
+  --irr-ink: #f3f0ff;
+  --open: #f2c96b;
+  --open-ink: #3a2a00;
+  --big-ink: #6b5200;
+  --res: #dcebd8;
+  --res-ink: #2c4a28;
+  --ns-ink: #77726a;
+  --ns-line: #d9d4c9;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #141412;
+    --ink: #ebe9e4;
+    --muted: #a39e94;
+    --rule: #33312c;
+    --link: #8db6ee;
+    --panel: #1b1b19;
+    --irr: #b8acf2;
+    --irr-ink: #1a1530;
+    --open: #c4952f;
+    --open-ink: #1f1600;
+    --big-ink: #dcae45;
+    --res: #223520;
+    --res-ink: #b6d8ae;
+    --ns-ink: #8f8a81;
+    --ns-line: #3a3833;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+main { max-width: 62rem; margin: 0 auto; padding: 2.5rem 1rem 2rem; }
+h1 { font-size: 2.1rem; line-height: 1.15; margin: 0 0 1rem; letter-spacing: -0.01em; }
+p { max-width: 42rem; }
+a { color: var(--link); }
+.table-wrap { overflow-x: auto; margin: 1.6rem -1rem; padding: 0 1rem 0.4rem; }
+table { border-collapse: collapse; font-size: 0.95rem; line-height: 1.45; }
+th, td { padding: 0.6rem 0.9rem 0.6rem 0; border-top: 1px solid var(--rule); text-align: left; vertical-align: top; }
+tr > :last-child { padding-right: 0; }
+thead th { border-top: 0; color: var(--muted); font-weight: 400; vertical-align: bottom; }
+tbody th { font-weight: 700; white-space: nowrap; }
+td { min-width: 7.5rem; }
+sub { font-size: 0.75em; line-height: 0; }
+</style>
+</head>
+<body>
+<main>
+<h1>beavers</h1>
+<p>Busy Beaver results by Andrew McKnight.</p>
+<div class="table-wrap">
+<table>
+<thead>
+<tr><th scope="col">folder</th><th scope="col">result</th><th scope="col">status</th></tr>
+</thead>
+<tbody>
+<tr><th scope="row"><a href="bb13/">bb13</a></th><td>The Baker's Dozen, a 13-state, 2-symbol machine that halts after four f<sub>ω+2</sub>-sized rounds</td><td>proved in Coq, superseded a day later by <a href="https://github.com/jeff87654/busy-beaver/tree/main/BB13">M13b</a></td></tr>
+<tr><th scope="row"><a href="bbi/">bbi</a></th><td>Nick Drozd's BBi(9) project, extended to BBi(1) to BBi(9) and sorted cell by cell, with every open cell's holdouts posted</td><td>work in progress, updated as cells are checked</td></tr>
+</tbody>
+</table>
+</div>
+<p>Background on the Busy Beaver problem and the current <a href="https://wiki.bbchallenge.org/wiki/Champions">Champions</a>.</p>
+</main>
+</body>
+</html>
