@@ -1,0 +1,54 @@
+{
+  "format": "bbi9-import/1",
+  "importer": "bbi9 imports 1.0",
+  "cell": [
+    6,
+    2
+  ],
+  "depth": 9,
+  "base_summary_sha256": "33114005795a4179cd4b0329d7e36dda43a0cc95d84c30f5172704bd30b0af42",
+  "base_amend_sha256": "3f575d22e9acf641a3745adcc233a410888bc1720335bbe019730b4d1ea1517e",
+  "lists": [
+    {
+      "id": "bb6-2026-10-24",
+      "sha256": "52c825d1e6194e07951cdcd8a8deec38943b6eb27dcf71cba66655a99e581c42",
+      "entry_sha256": "40592e920f03702c265514753d12f89dbb7a8f90593fae40766e9000c44b2535",
+      "credit": "mxdys, 2026-10-24",
+      "label": "BB(6)",
+      "speaks": true
+    }
+  ],
+  "decided": {
+    "bb6-2026-10-24": {
+      "holdouts": 199,
+      "parent_holdouts": 9
+    }
+  },
+  "maker_holdouts": {
+    "holdouts": 0,
+    "parent_holdouts": 0
+  },
+  "maker_holdouts_by_list": {
+    "bb6-2026-10-24": {
+      "holdouts": 0,
+      "parent_holdouts": 0
+    }
+  },
+  "strangers": {
+    "bb6-2026-10-24": 0
+  },
+  "holdouts": 0,
+  "parent_holdouts": 0,
+  "imported": 208,
+  "import_digest": "8d96b6260b98dd41",
+  "no_map": 0,
+  "kinds_by_list": {
+    "bb6-2026-10-24": [
+      0,
+      0,
+      0,
+      0
+    ]
+  },
+  "seconds": 0.01
+}
