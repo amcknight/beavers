@@ -1,0 +1,77 @@
+{
+  "format": "bbi9-import/1",
+  "importer": "bbi9 imports 1.0",
+  "cell": [
+    2,
+    4
+  ],
+  "depth": 7,
+  "base_summary_sha256": "ef4db0ab800c1b40fdcd8e8bdfe0d124c79aa19fbef79dbc0c4cb89ba0fc5fad",
+  "base_amend_sha256": "470917eac5d1500697d9360a0c6255face6f021e2598de7fc1483a01bb4a476b",
+  "lists": [
+    {
+      "id": "bb2x6-2025-10-06",
+      "sha256": "4d18230c9e6207aa6646858d0ff103998ea201b578b6628b0d0fd89c4529ae17",
+      "entry_sha256": "cca4865dddface6f08b8daf284631102d1850e247aa2ca7e7901a03acd5af558",
+      "credit": "Terry Ligocki, 2025-10-06",
+      "label": "BB(2,6)",
+      "speaks": true
+    },
+    {
+      "id": "bb3x4-2026-05-11",
+      "sha256": "a06e234f51f9c58a7f5e906d8332643762a4af6164346950e2c70fa6ecf852cf",
+      "entry_sha256": "78c8e900df76953e3b84a84356352b8b4f47f46f56b89406d5273f452c55f4cd",
+      "credit": "XnoobSpeakable, 2026-05-11",
+      "label": "BB(3,4)",
+      "speaks": true
+    }
+  ],
+  "decided": {
+    "bb2x6-2025-10-06": {
+      "holdouts": 14,
+      "parent_holdouts": 0
+    },
+    "bb3x4-2026-05-11": {
+      "holdouts": 0,
+      "parent_holdouts": 0
+    }
+  },
+  "maker_holdouts": {
+    "holdouts": 0,
+    "parent_holdouts": 0
+  },
+  "maker_holdouts_by_list": {
+    "bb2x6-2025-10-06": {
+      "holdouts": 0,
+      "parent_holdouts": 0
+    },
+    "bb3x4-2026-05-11": {
+      "holdouts": 0,
+      "parent_holdouts": 0
+    }
+  },
+  "strangers": {
+    "bb2x6-2025-10-06": 0,
+    "bb3x4-2026-05-11": 0
+  },
+  "holdouts": 0,
+  "parent_holdouts": 0,
+  "imported": 14,
+  "import_digest": "4c5b2b58d16ae89b",
+  "no_map": 0,
+  "kinds_by_list": {
+    "bb2x6-2025-10-06": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "bb3x4-2026-05-11": [
+      0,
+      0,
+      0,
+      0
+    ]
+  },
+  "seconds": 24.646
+}
