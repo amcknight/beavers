@@ -951,5 +951,5 @@ the same line. A machine the base run proved may get another certificate in a fu
 counts may split the non-halting verdicts differently from a full rerun's.
 
 An amendment's lines reproduce with the producer its own RUNS.md row names, run on the cell's full run, whose claims
-reproduce with the producer that the full run's row names (section 5). The control numbers of the two amended
+reproduce with the producer that the full run's row names (section 5). The control numbers of the four amended
 fixtures are in section 10, and the fixtures themselves in section 11.
