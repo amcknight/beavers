@@ -1,0 +1,100 @@
+{
+  "format": "bbi9-import/1",
+  "importer": "bbi9 imports 1.0",
+  "cell": [
+    2,
+    4
+  ],
+  "depth": 8,
+  "base_summary_sha256": "51867041d0952cc0bbd7c71a2e0b72657a68f55375f8664f8739a2a11dc2bf06",
+  "base_amend_sha256": null,
+  "lists": [
+    {
+      "id": "bbi8-2026-10-25",
+      "sha256": "aabde837dd73b5ef74f77bfd4f39737fe4d8755e5aead05d7e84141ad595b2c0",
+      "entry_sha256": "76cc693aaa31c97861963e6ee6af631cefd03a49f0f70d593a3bb028c43d6c0c",
+      "credit": "Nick Drozd, 2026-10-25",
+      "label": "BBi(8)",
+      "speaks": true
+    },
+    {
+      "id": "bb2x6-2025-10-06",
+      "sha256": "4d18230c9e6207aa6646858d0ff103998ea201b578b6628b0d0fd89c4529ae17",
+      "entry_sha256": "cca4865dddface6f08b8daf284631102d1850e247aa2ca7e7901a03acd5af558",
+      "credit": "Terry Ligocki, 2025-10-06",
+      "label": "BB(2,6)",
+      "speaks": true
+    },
+    {
+      "id": "bb3x4-2026-05-11",
+      "sha256": "a06e234f51f9c58a7f5e906d8332643762a4af6164346950e2c70fa6ecf852cf",
+      "entry_sha256": "78c8e900df76953e3b84a84356352b8b4f47f46f56b89406d5273f452c55f4cd",
+      "credit": "XnoobSpeakable, 2026-05-11",
+      "label": "BB(3,4)",
+      "speaks": true
+    }
+  ],
+  "decided": {
+    "bbi8-2026-10-25": {
+      "holdouts": 0,
+      "parent_holdouts": 0
+    },
+    "bb2x6-2025-10-06": {
+      "holdouts": 0,
+      "parent_holdouts": 14
+    },
+    "bb3x4-2026-05-11": {
+      "holdouts": 0,
+      "parent_holdouts": 0
+    }
+  },
+  "maker_holdouts": {
+    "holdouts": 0,
+    "parent_holdouts": 0
+  },
+  "maker_holdouts_by_list": {
+    "bbi8-2026-10-25": {
+      "holdouts": 0,
+      "parent_holdouts": 0
+    },
+    "bb2x6-2025-10-06": {
+      "holdouts": 0,
+      "parent_holdouts": 0
+    },
+    "bb3x4-2026-05-11": {
+      "holdouts": 0,
+      "parent_holdouts": 0
+    }
+  },
+  "strangers": {
+    "bbi8-2026-10-25": 0,
+    "bb2x6-2025-10-06": 0,
+    "bb3x4-2026-05-11": 0
+  },
+  "holdouts": 0,
+  "parent_holdouts": 0,
+  "imported": 14,
+  "import_digest": "4c5b2b58d16ae89b",
+  "no_map": 0,
+  "kinds_by_list": {
+    "bbi8-2026-10-25": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "bb2x6-2025-10-06": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "bb3x4-2026-05-11": [
+      0,
+      0,
+      0,
+      0
+    ]
+  },
+  "seconds": 24.803
+}
