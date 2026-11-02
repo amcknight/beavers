@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="BBi(1) cell 1×2, one-instruction Turing machines with 1 state and 2 symbols, and its champion.">
+<title>1×2, BBi(1)</title>
+<style>
+:root {
+  color-scheme: light dark;
+  --bg: #fbfaf6;
+  --ink: #1f1d1a;
+  --muted: #6d685e;
+  --rule: #e2ddd3;
+  --link: #1f5fa8;
+  --panel: #ffffff;
+  --irr: #33295c;
+  --irr-ink: #f3f0ff;
+  --open: #f2c96b;
+  --open-ink: #3a2a00;
+  --big-ink: #6b5200;
+  --res: #dcebd8;
+  --res-ink: #2c4a28;
+  --ns-ink: #77726a;
+  --ns-line: #d9d4c9;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #141412;
+    --ink: #ebe9e4;
+    --muted: #a39e94;
+    --rule: #33312c;
+    --link: #8db6ee;
+    --panel: #1b1b19;
+    --irr: #b8acf2;
+    --irr-ink: #1a1530;
+    --open: #c4952f;
+    --open-ink: #1f1600;
+    --big-ink: #dcae45;
+    --res: #223520;
+    --res-ink: #b6d8ae;
+    --ns-ink: #8f8a81;
+    --ns-line: #3a3833;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+main { max-width: 62rem; margin: 0 auto; padding: 2.5rem 1rem 2rem; }
+h1 { font-size: 2.1rem; line-height: 1.15; margin: 0 0 1rem; letter-spacing: -0.01em; }
+h2 { font-size: 1.15rem; margin: 2.4rem 0 0.6rem; }
+h3 { font-size: 1rem; margin: 1.2rem 0 0.3rem; }
+p, dl, ul, pre { max-width: 42rem; }
+a { color: var(--link); }
+code, pre { font-family: ui-monospace, "Cascadia Mono", Consolas, Menlo, monospace; font-size: 0.88em; }
+pre {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 0.7rem 0.9rem;
+  overflow-x: auto;
+}
+.statement { font-size: 1.25rem; font-weight: 600; line-height: 1.4; margin: 1.6rem 0 1.2rem; }
+.grid-wrap { overflow-x: auto; margin: 0 -1rem; padding: 0 1rem 0.4rem; }
+table.grid { border-collapse: separate; border-spacing: 3px; font-size: 0.74rem; line-height: 1.3; }
+.grid th { font-weight: 400; color: var(--muted); padding: 0.2rem 0.35rem; }
+.grid th.in { font-weight: 700; color: var(--ink); }
+.grid thead th { text-align: center; }
+.grid tbody th { text-align: right; }
+.grid .axis { font-weight: 400; color: var(--muted); letter-spacing: 0.04em; }
+.grid td {
+  width: 5.6rem; min-width: 5.6rem; height: 3.6rem; vertical-align: top; padding: 0.3rem 0.4rem; border-radius: 5px;
+}
+.grid tbody td:nth-child(2) { width: 4.3rem; min-width: 4.3rem; }
+td.cell { position: relative; }
+td.cell span { display: block; }
+.cell .top {
+  display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; column-gap: 0.3rem;
+}
+.cell .label { font-size: 0.9rem; font-weight: 700; }
+.cell .count { font-size: 0.95em; font-variant-numeric: tabular-nums; }
+.cell a { color: inherit; text-decoration-thickness: 1px; text-underline-offset: 2px; }
+.cell .steps a { font-weight: 700; }
+.cell sup { font-size: 0.75em; line-height: 0; }
+.o { display: inline-block; width: 0.78em; height: 0.78em; border: 1.6px solid currentColor; border-radius: 50%;
+     vertical-align: -0.06em; margin-right: 0.12em; }
+.vh { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden;
+      clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.cell.irreducible { background: var(--irr); color: var(--irr-ink); }
+.cell.open { background: var(--open); color: var(--open-ink); }
+.cell.too-big { background: var(--panel); color: var(--big-ink); box-shadow: inset 0 0 0 2px var(--open); }
+.cell.resolved { background: var(--res); color: var(--res-ink); }
+.cell.not-started { background: var(--panel); color: var(--ns-ink); box-shadow: inset 0 0 0 1px var(--ns-line); }
+.cell.champion { box-shadow: 0 0 0 2px #fff, 0 0 0 3px var(--ink); }
+.cell.too-big.champion { box-shadow: inset 0 0 0 2px var(--open), 0 0 0 2px #fff, 0 0 0 3px var(--ink); }
+.cell.not-started.champion { box-shadow: inset 0 0 0 1px var(--ns-line), 0 0 0 2px #fff, 0 0 0 3px var(--ink); }
+.cell.running { outline: 3px solid var(--link); outline-offset: -3px; }
+.legend { display: flex; flex-wrap: wrap; gap: 0.4rem 1.3rem; margin: 0.9rem 0 0.4rem; font-size: 0.88rem; }
+.legend .key { display: inline-flex; align-items: center; gap: 0.45rem; }
+.legend .sym { display: inline-block; min-width: 1rem; text-align: center; }
+.swatch { display: inline-block; width: 1rem; height: 1rem; border-radius: 3px; }
+.swatch.irreducible { background: var(--irr); }
+.swatch.open { background: var(--open); }
+.swatch.too-big { background: var(--panel); box-shadow: inset 0 0 0 2px var(--open); }
+.swatch.resolved { background: var(--res); }
+.swatch.not-started { background: var(--panel); box-shadow: inset 0 0 0 1px var(--ns-line); }
+.swatch.champion { background: var(--panel); box-shadow: 0 0 0 2px #fff, 0 0 0 3px var(--ink); }
+.swatch.running { background: var(--panel); outline: 3px solid var(--link); outline-offset: -3px; }
+.note { color: var(--muted); font-size: 0.88rem; }
+.reasons { margin: 0; }
+.reasons > div {
+  display: grid;
+  grid-template-columns: 3rem 1fr;
+  gap: 0.2rem 1rem;
+  padding: 0.6rem 0;
+  border-top: 1px solid var(--rule);
+}
+.reasons dt { font-weight: 700; }
+.reasons dd { margin: 0; }
+.claims-head { margin: 0.6rem 0 0.2rem; font-size: 0.85rem; color: var(--muted); }
+.claims { margin: 0.3rem 0 0; padding: 0; list-style: none; }
+.claims li { margin: 0.4rem 0; padding-left: 0.7rem; border-left: 2px solid var(--rule); }
+.claims span, .claims code { display: block; }
+.claims .who { font-size: 0.85rem; color: var(--muted); }
+.claims code { overflow-wrap: anywhere; }
+.credits { padding-left: 1.2rem; }
+footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--rule); color: var(--muted); font-size: 0.85rem; }
+:root {
+  --sym0: #7d7d7d;
+  --sym1: #0f67e0;
+  --sym2: #ef6505;
+  --sym3: #04ab62;
+  --sym4: #af3b43;
+  --sym5: #7d1b9f;
+  --sym6: #623f0a;
+  --sym7: #ff71bb;
+  --sym8: #ceb01e;
+  --sym9: #29b4e3;
+  --hd0: var(--ink);
+  --hd1: var(--bg);
+  --hd2: var(--ink);
+  --hd3: var(--ink);
+  --hd4: var(--bg);
+  --hd5: var(--bg);
+  --hd6: var(--bg);
+  --hd7: var(--ink);
+  --hd8: var(--ink);
+  --hd9: var(--ink);
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --sym0: #8c8c8c;
+    --sym1: #6f9fff;
+    --sym2: #fe9839;
+    --sym3: #4aca7c;
+    --sym4: #f04c5a;
+    --sym5: #ae5ecf;
+    --sym6: #9c5216;
+    --sym7: #ea95c7;
+    --sym8: #fadf27;
+    --sym9: #71e3fe;
+    --hd0: var(--ink);
+    --hd1: var(--bg);
+    --hd2: var(--bg);
+    --hd3: var(--bg);
+    --hd4: var(--bg);
+    --hd5: var(--bg);
+    --hd6: var(--ink);
+    --hd7: var(--bg);
+    --hd8: var(--bg);
+    --hd9: var(--bg);
+  }
+}
+.s0 { stroke: var(--sym0); fill: var(--sym0); }
+.s1 { stroke: var(--sym1); fill: var(--sym1); }
+.s2 { stroke: var(--sym2); fill: var(--sym2); }
+.s3 { stroke: var(--sym3); fill: var(--sym3); }
+.s4 { stroke: var(--sym4); fill: var(--sym4); }
+.s5 { stroke: var(--sym5); fill: var(--sym5); }
+.s6 { stroke: var(--sym6); fill: var(--sym6); }
+.s7 { stroke: var(--sym7); fill: var(--sym7); }
+.s8 { stroke: var(--sym8); fill: var(--sym8); }
+.s9 { stroke: var(--sym9); fill: var(--sym9); }
+.sw.s0 { background: var(--sym0); }
+.sw.s1 { background: var(--sym1); }
+.sw.s2 { background: var(--sym2); }
+.sw.s3 { background: var(--sym3); }
+.sw.s4 { background: var(--sym4); }
+.sw.s5 { background: var(--sym5); }
+.sw.s6 { background: var(--sym6); }
+.sw.s7 { background: var(--sym7); }
+.sw.s8 { background: var(--sym8); }
+.sw.s9 { background: var(--sym9); }
+.dg-st .h0 { fill: var(--hd0); }
+.dg-st .h1 { fill: var(--hd1); }
+.dg-st .h2 { fill: var(--hd2); }
+.dg-st .h3 { fill: var(--hd3); }
+.dg-st .h4 { fill: var(--hd4); }
+.dg-st .h5 { fill: var(--hd5); }
+.dg-st .h6 { fill: var(--hd6); }
+.dg-st .h7 { fill: var(--hd7); }
+.dg-st .h8 { fill: var(--hd8); }
+.dg-st .h9 { fill: var(--hd9); }
+svg.dg { display: block; max-width: 100%; height: auto; }
+.dg-wrap { overflow-x: auto; }
+.dg text { fill: var(--ink); stroke: none; text-anchor: middle; }
+.dg .e { fill: none; stroke-width: 2.2; }
+.dg .e.halt { stroke-dasharray: 6 4; }
+.dg .ah { stroke: none; }
+.dg .n { fill: var(--panel); stroke: var(--muted); stroke-width: 1.5; }
+.dg .nl { font-size: 17px; font-weight: 700; }
+.dg .bdg { fill: var(--panel); stroke-width: 2.2; }
+.dg .bl { font-size: 11px; font-weight: 700; }
+.dg .hbox { fill: var(--ink); stroke: none; }
+.dg text.hl { fill: var(--bg); font-size: 12px; font-weight: 700; letter-spacing: 0.04em; }
+.dg-st rect { stroke: none; }
+.dg-st .bgp { fill: var(--panel); stroke: var(--rule); stroke-width: 1; }
+.dg-st text.cap { fill: var(--muted); font-size: 12px; text-anchor: start; }
+table.tt { border-collapse: collapse; font-size: 0.85rem; margin: 0.6rem 0; }
+.tt th, .tt td { border: 1px solid var(--rule); padding: 0.15rem 0.5rem; text-align: center; }
+.tt thead th { white-space: nowrap; }
+.tt td { font-family: ui-monospace, "Cascadia Mono", Consolas, Menlo, monospace; }
+.tt td.u { color: var(--muted); }
+.sw { display: inline-block; width: 0.7rem; height: 0.7rem; border-radius: 2px; margin-right: 0.3rem; }
+
+.status { font-size: 1.05rem; }
+.back { font-size: 0.9rem; }
+h3 { font-size: 1rem; margin: 1.6rem 0 0.4rem; }
+code.m { overflow-wrap: anywhere; }
+p.who { margin: 0.8rem 0 0.1rem; font-size: 0.85rem; color: var(--muted); }
+.drawing { display: flex; flex-wrap: wrap; gap: 1rem 2.5rem; align-items: flex-start; margin: 1rem 0 0.5rem; }
+.drawing > div { min-width: 0; max-width: 100%; }
+table.runs { border-collapse: collapse; font-size: 0.85rem; margin: 0.4rem 0; }
+.runs th, .runs td { text-align: left; vertical-align: top; padding: 0.25rem 0.9rem 0.25rem 0; }
+.runs td { border-top: 1px solid var(--rule); }
+.runs th { font-weight: 400; color: var(--muted); }
+.runs td.n, .runs th.n { text-align: right; font-variant-numeric: tabular-nums; }
+.runs code { overflow-wrap: anywhere; }
+.files { padding-left: 1.2rem; }
+.files a { overflow-wrap: anywhere; }
+.claims .name { font-weight: 600; }
+</style>
+</head>
+<body>
+<main>
+<h1>1×2</h1>
+<p class="status">Resolved, every machine decided and checked. The cell has 2 machines.</p>
+<p class="back"><a href="../../index.html">BBi(1), cell by cell</a></p>
+<section>
+<h2 id="champion">Champion</h2>
+<p>The <a href="https://wiki.bbchallenge.org/wiki/Instruction-Limited_Busy_Beaver">bbchallenge wiki</a> gives the longest known run, 1 step†.</p>
+<p><code class="m">1RB---</code> halts after <b>1 step</b>.</p>
+<div class="drawing">
+<div><div class="dg-wrap"><svg class="dg dg-graph" viewBox="0 0 156 48" width="156" height="48" role="img" aria-label="Transition graph of 1RB---">
+<path class="e s0" d="M44.0,24.0 L86.5,24.0"/>
+<path class="ah s0" d="M94.5,24.0 L85.5,28.5 L85.5,19.5 Z"/>
+<rect class="hbox" x="96.0" y="12.0" width="56.0" height="24.0" rx="5"/>
+<text class="hl" x="124.0" y="24.0" dy=".35em">HALT</text>
+<circle class="n" cx="24.0" cy="24.0" r="20.0"/>
+<text class="nl" x="24.0" y="24.0" dy=".35em">A</text>
+<circle class="bdg s0" cx="65.2" cy="24.0" r="8.5"/>
+<text class="bl" x="65.2" y="24.0" dy=".35em">0</text>
+</svg></div>
+<div class="dg-wrap"><table class="tt"><thead><tr><td></td><th scope="col"><span class="sw s0" aria-hidden="true"></span>0</th><th scope="col"><span class="sw s1" aria-hidden="true"></span>1</th></tr></thead><tbody><tr><th scope="row">A</th><td>1RB</td><td class="u">—</td></tr></tbody></table></div></div>
+<div class="dg-wrap"><svg class="dg dg-st" viewBox="0 0 40 28" width="40" height="28" role="img" aria-label="The tape over 1 steps, a row per step, time going down" shape-rendering="crispEdges">
+<rect class="bgp" x="0.5" y="0.5" width="39" height="27"/>
+<rect class="hd h0" x="6" y="0" width="8" height="14"/>
+<rect class="s1" x="0" y="14" width="20" height="14"/>
+<rect class="hd h0" x="26" y="14" width="8" height="14"/>
+</svg></div>
+</div>
+</section>
+<section>
+<h2>Other holdout lists</h2>
+<p><a href="https://wiki.bbchallenge.org/wiki/Holdouts_lists">mxdys</a>'s BB(6) holdout list (2026-10-24) leaves none of this cell's machines open.</p>
+<p><a href="https://wiki.bbchallenge.org/wiki/BB(2,5)#Holdouts">Andrew Ducharme</a>'s BB(2,5) holdout list (2026-10-09) leaves none of this cell's machines open.</p>
+<p><a href="https://drive.google.com/file/d/1xZqEZFPke02pwBHX0EYsyDVaNU5o_OuO/view">Terry Ligocki</a>'s BB(2,6) holdout list (2025-10-06) leaves none of this cell's machines open.</p>
+<p><a href="https://drive.google.com/file/d/1-Fnexjfq0mWyZDPa2MNFmU64EpSu-3Ig/view">XnoobSpeakable</a>'s BB(3,4) holdout list (2026-05-11) leaves none of this cell's machines open.</p>
+<p><a href="https://drive.google.com/file/d/1xHukBgJnm1zctZkOMR0UzdQyzr4Fx5pC/view">Andrew Ducharme</a>'s BB(4,3) holdout list (2026-05-09) leaves none of this cell's machines open.</p>
+<p>These are other people's lists. They do not change this cell's status or counts.</p>
+</section>
+<section>
+<h2>The longest run</h2>
+<table class="runs"><thead><tr><th class="n" scope="col">steps</th><th scope="col">machine</th></tr></thead><tbody><tr><td class="n">1</td><td><code class="m">1RB---</code></td></tr></tbody></table>
+</section>
+<section>
+<h2>Files</h2>
+<ul class="files"><li><a href="summary.json">summary.json</a>, the producer's counts and digests</li><li><a href="check.json">check.json</a>, the checker's report</li><li><a href="BBi1_1x2_holdouts_unofficial.txt">BBi1_1x2_holdouts_unofficial.txt</a>, 0 holdouts</li><li><a href="BBi1_1x2_parent_holdouts_unofficial.txt">BBi1_1x2_parent_holdouts_unofficial.txt</a>, 0 parents</li><li><a href="claims.tsv.gz">claims.tsv.gz</a>, 1 claim, one for each machine the run did not show to halt</li></ul>
+</section>
+<section>
+<h2>Reproducing this cell</h2>
+<p>Anyone can check this cell without trusting us. The <a href="../../../bbi9/checker/bbi9check.py">checker</a> is one Python file written from <a href="../../../bbi9/CHECKING.md">CHECKING.md</a>, and it reads the files above and the <a href="../../../bbi9/census.tsv">census</a>.</p>
+<pre><code>python bbi9check.py &lt;this cell's directory&gt; --census census.tsv</code></pre>
+<p>The claims were made by our producer, version 0.1.0, as this cell's summary records, and the checker verifies them without it.</p>
+<p><code>summary.json</code> records the halter digest <code>65a996c64c5084ed</code> and the claims digest <code>c491632b797b6aaa</code>, for comparing a rerun with the same producer, bbi9 0.1.0.</p>
+</section>
+<footer>Part of <a href="../../index.html">BBi(1), cell by cell</a>.</footer>
+</main>
+</body>
+</html>

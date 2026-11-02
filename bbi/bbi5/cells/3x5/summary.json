@@ -1,0 +1,38 @@
+{
+  "format": "bbi9-cell/1",
+  "cell": [3, 5],
+  "depth": 5,
+  "producer": "bbi9 0.1.0",
+  "caps": [10000, 100000, 1000000, 10000000],
+  "tc_windows": [10000, 100000, 100000, 100000],
+  "threads": 16,
+  "seconds": 0.041,
+  "corridor": [
+    {"depth": 0, "machines": 1, "HALT": 1, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 0, "UNKNOWN": 0, "max_halt_steps": 0, "halt_steps": 0},
+    {"depth": 1, "machines": 4, "HALT": 2, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 2, "UNKNOWN": 0, "max_halt_steps": 1, "halt_steps": 2},
+    {"depth": 2, "machines": 24, "HALT": 15, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 9, "UNKNOWN": 0, "max_halt_steps": 3, "halt_steps": 31},
+    {"depth": 3, "machines": 190, "HALT": 151, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 39, "UNKNOWN": 0, "max_halt_steps": 5, "halt_steps": 501},
+    {"depth": 4, "machines": 1492, "HALT": 1243, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 249, "UNKNOWN": 0, "max_halt_steps": 11, "halt_steps": 5639},
+    {"depth": 5, "machines": 8808, "HALT": 7818, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 990, "UNKNOWN": 0, "max_halt_steps": 12, "halt_steps": 44981}
+  ],
+  "cell_machines": 8808,
+  "late_cell_machines": 0,
+  "holdouts": 0,
+  "parent_holdouts": 0,
+  "top_halters": [
+    {"machine": "1RB------------_0LC------4RA---_---2RB3LA------", "steps": 12},
+    {"machine": "1RB------------_2LC---3RB------_---2LA---4LC---", "steps": 12},
+    {"machine": "1RB------4LC---_0LC---3RA------_---2LA---------", "steps": 12},
+    {"machine": "1RB---4RC------_2LC------------_3RA0LB---------", "steps": 12},
+    {"machine": "1RB------------_0LC---4RC------_3RA2LB---------", "steps": 11},
+    {"machine": "1RB------------_2LC---4RA------_3RB0LB---------", "steps": 11},
+    {"machine": "1RB---4RA------_2LC------------_3RA2LB---------", "steps": 11},
+    {"machine": "0RB------------_1LA2RC4LC------_3LB------------", "steps": 10},
+    {"machine": "0RB---3LC------_1LA2RB---------_4LB------------", "steps": 10},
+    {"machine": "1RB------------_0LC------------_3RC2LB4RA------", "steps": 10}
+  ],
+  "halter_digest": "95d2c4b61c169dfe",
+  "claims": 1289,
+  "claims_digest": "21024bc1bbb25e75",
+  "claims_split": 5
+}

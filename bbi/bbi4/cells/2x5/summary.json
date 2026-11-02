@@ -1,0 +1,37 @@
+{
+  "format": "bbi9-cell/1",
+  "cell": [2, 5],
+  "depth": 4,
+  "producer": "bbi9 0.1.0",
+  "caps": [10000, 100000, 1000000, 10000000],
+  "tc_windows": [10000, 100000, 100000, 100000],
+  "threads": 16,
+  "seconds": 0.001,
+  "corridor": [
+    {"depth": 0, "machines": 1, "HALT": 1, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 0, "UNKNOWN": 0, "max_halt_steps": 0, "halt_steps": 0},
+    {"depth": 1, "machines": 2, "HALT": 1, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 1, "UNKNOWN": 0, "max_halt_steps": 1, "halt_steps": 1},
+    {"depth": 2, "machines": 6, "HALT": 4, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 2, "UNKNOWN": 0, "max_halt_steps": 2, "halt_steps": 8},
+    {"depth": 3, "machines": 12, "HALT": 11, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 1, "UNKNOWN": 0, "max_halt_steps": 5, "halt_steps": 37},
+    {"depth": 4, "machines": 42, "HALT": 35, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 7, "UNKNOWN": 0, "max_halt_steps": 6, "halt_steps": 164}
+  ],
+  "cell_machines": 42,
+  "late_cell_machines": 0,
+  "holdouts": 0,
+  "parent_holdouts": 0,
+  "top_halters": [
+    {"machine": "1RB3LB---------_2LA---4LB------", "steps": 6},
+    {"machine": "1RB3LB---------_2LA---4LC------", "steps": 6},
+    {"machine": "1RB3LB---------_2LA---4RA------", "steps": 6},
+    {"machine": "1RB3LB---------_2LA---4RB------", "steps": 6},
+    {"machine": "1RB3LB---------_2LA---4RC------", "steps": 6},
+    {"machine": "1RB------------_2LB3LA---4LA---", "steps": 5},
+    {"machine": "1RB------------_2LB3LA---4LC---", "steps": 5},
+    {"machine": "1RB------------_2LB3LA---4RA---", "steps": 5},
+    {"machine": "1RB------------_2LB3LA---4RB---", "steps": 5},
+    {"machine": "1RB------------_2LB3LA---4RC---", "steps": 5}
+  ],
+  "halter_digest": "66cd6e5416d34146",
+  "claims": 11,
+  "claims_digest": "2c70462ad0229e39",
+  "claims_split": 4
+}

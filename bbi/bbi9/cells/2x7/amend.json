@@ -1,0 +1,28 @@
+{
+  "format": "bbi9-amend/1",
+  "producer": "bbi9 0.5.0",
+  "cell": [2, 7],
+  "depth": 9,
+  "base_summary_sha256": "c75ab409a7bb62a4c83a43452a3f80ed4f060941f901e2b7a59c1e93399d315f",
+  "claims_format": "bbi9-cell/4",
+  "corridor": [
+    {"depth": 0, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 0, "NONHALT_CPS": 0, "NONHALT_RWL": 0, "NONHALT_FAR": 0, "UNKNOWN": 0},
+    {"depth": 1, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 0, "NONHALT_CPS": 0, "NONHALT_RWL": 0, "NONHALT_FAR": 0, "UNKNOWN": 0},
+    {"depth": 2, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 0, "NONHALT_CPS": 0, "NONHALT_RWL": 0, "NONHALT_FAR": 0, "UNKNOWN": 0},
+    {"depth": 3, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 0, "NONHALT_CPS": 0, "NONHALT_RWL": 0, "NONHALT_FAR": 0, "UNKNOWN": 0},
+    {"depth": 4, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 0, "NONHALT_CPS": 0, "NONHALT_RWL": 0, "NONHALT_FAR": 0, "UNKNOWN": 0},
+    {"depth": 5, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 0, "NONHALT_CPS": 0, "NONHALT_RWL": 0, "NONHALT_FAR": 0, "UNKNOWN": 0},
+    {"depth": 6, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 0, "NONHALT_CPS": 0, "NONHALT_RWL": 0, "NONHALT_FAR": 6, "UNKNOWN": 0},
+    {"depth": 7, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 0, "NONHALT_CPS": 0, "NONHALT_RWL": 0, "NONHALT_FAR": 68, "UNKNOWN": 28},
+    {"depth": 8, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 0, "NONHALT_CPS": 0, "NONHALT_RWL": 0, "NONHALT_FAR": 427, "UNKNOWN": 253},
+    {"depth": 9, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 0, "NONHALT_CPS": 0, "NONHALT_RWL": 0, "NONHALT_FAR": 1791, "UNKNOWN": 1731}
+  ],
+  "holdouts": 1731,
+  "parent_holdouts": 281,
+  "amended": 2292,
+  "amend_digest": "2dd0e6a15e0e5965",
+  "caps": [10000, 100000, 1000000, 10000000],
+  "tc_windows": [10000, 100000, 100000, 100000],
+  "threads": 16,
+  "seconds": 67.992
+}

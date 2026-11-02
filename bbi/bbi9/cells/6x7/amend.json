@@ -1,0 +1,28 @@
+{
+  "format": "bbi9-amend/1",
+  "producer": "bbi9 0.5.0",
+  "cell": [6, 7],
+  "depth": 9,
+  "base_summary_sha256": "a0500ca50ffdc3a915b0db77f1c12b4cd6e9f5e91f67cbd1a2cf3125af69cb78",
+  "claims_format": "bbi9-cell/4",
+  "corridor": [
+    {"depth": 0, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 0, "NONHALT_CPS": 0, "NONHALT_RWL": 0, "NONHALT_FAR": 0, "UNKNOWN": 0},
+    {"depth": 1, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 0, "NONHALT_CPS": 0, "NONHALT_RWL": 0, "NONHALT_FAR": 0, "UNKNOWN": 0},
+    {"depth": 2, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 0, "NONHALT_CPS": 0, "NONHALT_RWL": 0, "NONHALT_FAR": 0, "UNKNOWN": 0},
+    {"depth": 3, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 0, "NONHALT_CPS": 0, "NONHALT_RWL": 0, "NONHALT_FAR": 0, "UNKNOWN": 0},
+    {"depth": 4, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 0, "NONHALT_CPS": 13, "NONHALT_RWL": 1, "NONHALT_FAR": 0, "UNKNOWN": 0},
+    {"depth": 5, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 0, "NONHALT_CPS": 310, "NONHALT_RWL": 24, "NONHALT_FAR": 4, "UNKNOWN": 0},
+    {"depth": 6, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 0, "NONHALT_CPS": 2204, "NONHALT_RWL": 228, "NONHALT_FAR": 68, "UNKNOWN": 0},
+    {"depth": 7, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 0, "NONHALT_CPS": 6804, "NONHALT_RWL": 354, "NONHALT_FAR": 156, "UNKNOWN": 20},
+    {"depth": 8, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 0, "NONHALT_CPS": 20588, "NONHALT_RWL": 616, "NONHALT_FAR": 281, "UNKNOWN": 175},
+    {"depth": 9, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 0, "NONHALT_CPS": 53779, "NONHALT_RWL": 901, "NONHALT_FAR": 291, "UNKNOWN": 745}
+  ],
+  "holdouts": 745,
+  "parent_holdouts": 195,
+  "amended": 86622,
+  "amend_digest": "4c19361877bbceff",
+  "caps": [10000, 100000, 1000000, 10000000],
+  "tc_windows": [10000, 100000, 100000, 100000],
+  "threads": 16,
+  "seconds": 23.058
+}

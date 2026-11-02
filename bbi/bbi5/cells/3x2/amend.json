@@ -1,0 +1,24 @@
+{
+  "format": "bbi9-amend/1",
+  "producer": "bbi9 0.5.0",
+  "cell": [3, 2],
+  "depth": 5,
+  "base_summary_sha256": "a0bcd44c59b6e88e2f769dd741b84570d2d4d764a268ebc1660f5cb77fc5a25f",
+  "claims_format": "bbi9-cell/4",
+  "corridor": [
+    {"depth": 0, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 0, "NONHALT_CPS": 0, "NONHALT_RWL": 0, "NONHALT_FAR": 0, "UNKNOWN": 0},
+    {"depth": 1, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 0, "NONHALT_CPS": 0, "NONHALT_RWL": 0, "NONHALT_FAR": 0, "UNKNOWN": 0},
+    {"depth": 2, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 0, "NONHALT_CPS": 0, "NONHALT_RWL": 0, "NONHALT_FAR": 0, "UNKNOWN": 0},
+    {"depth": 3, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 0, "NONHALT_CPS": 0, "NONHALT_RWL": 0, "NONHALT_FAR": 0, "UNKNOWN": 0},
+    {"depth": 4, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 0, "NONHALT_CPS": 0, "NONHALT_RWL": 0, "NONHALT_FAR": 0, "UNKNOWN": 0},
+    {"depth": 5, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 0, "NONHALT_CPS": 0, "NONHALT_RWL": 0, "NONHALT_FAR": 4, "UNKNOWN": 0}
+  ],
+  "holdouts": 0,
+  "parent_holdouts": 0,
+  "amended": 4,
+  "amend_digest": "8cfb2e2748c3d30f",
+  "caps": [10000, 100000, 1000000, 10000000],
+  "tc_windows": [10000, 100000, 100000, 100000],
+  "threads": 16,
+  "seconds": 0.012
+}

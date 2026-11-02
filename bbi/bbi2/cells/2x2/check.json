@@ -1,0 +1,63 @@
+{
+  "format": "bbi9-check/1",
+  "checker": "bbi9check 1.1",
+  "cell": [
+    2,
+    2
+  ],
+  "depth": 2,
+  "pass": true,
+  "failures": [],
+  "cell_machines": 18,
+  "census": 18,
+  "late_cell_machines": 0,
+  "census_match": true,
+  "holdouts": 0,
+  "parent_holdouts": 0,
+  "top_halters": [
+    {
+      "machine": "0RB---_1LA---",
+      "steps": 3
+    },
+    {
+      "machine": "0RB---_1LC---",
+      "steps": 2
+    },
+    {
+      "machine": "0RB---_1RC---",
+      "steps": 2
+    },
+    {
+      "machine": "1RB---_0LA---",
+      "steps": 2
+    },
+    {
+      "machine": "1RB---_0LB---",
+      "steps": 2
+    },
+    {
+      "machine": "1RB---_0LC---",
+      "steps": 2
+    },
+    {
+      "machine": "1RB---_0RC---",
+      "steps": 2
+    },
+    {
+      "machine": "1RB---_1LA---",
+      "steps": 2
+    },
+    {
+      "machine": "1RB---_1LB---",
+      "steps": 2
+    },
+    {
+      "machine": "1RB---_1LC---",
+      "steps": 2
+    }
+  ],
+  "halter_digest": "9f0162a84b091e76",
+  "claims_digest": "7034d7a85fa581be",
+  "seconds": 0.155,
+  "summary_sha256": "962132c94dea42c140ce5fcba2d2d105c2661cedb5a229e17ef121b0c13730a5"
+}

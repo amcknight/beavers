@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Which cells of nine-instruction Turing machines may hold the BBi(9) champion, from checked data.">
+<title>BBi(9), cell by cell</title>
+<style>
+:root {
+  color-scheme: light dark;
+  --bg: #fbfaf6;
+  --ink: #1f1d1a;
+  --muted: #6d685e;
+  --rule: #e2ddd3;
+  --link: #1f5fa8;
+  --panel: #ffffff;
+  --irr: #33295c;
+  --irr-ink: #f3f0ff;
+  --open: #f2c96b;
+  --open-ink: #3a2a00;
+  --big-ink: #6b5200;
+  --res: #dcebd8;
+  --res-ink: #2c4a28;
+  --ns-ink: #77726a;
+  --ns-line: #d9d4c9;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #141412;
+    --ink: #ebe9e4;
+    --muted: #a39e94;
+    --rule: #33312c;
+    --link: #8db6ee;
+    --panel: #1b1b19;
+    --irr: #b8acf2;
+    --irr-ink: #1a1530;
+    --open: #c4952f;
+    --open-ink: #1f1600;
+    --big-ink: #dcae45;
+    --res: #223520;
+    --res-ink: #b6d8ae;
+    --ns-ink: #8f8a81;
+    --ns-line: #3a3833;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+main { max-width: 62rem; margin: 0 auto; padding: 2.5rem 1rem 2rem; }
+h1 { font-size: 2.1rem; line-height: 1.15; margin: 0 0 1rem; letter-spacing: -0.01em; }
+h2 { font-size: 1.15rem; margin: 2.4rem 0 0.6rem; }
+h3 { font-size: 1rem; margin: 1.2rem 0 0.3rem; }
+p, dl, ul, pre { max-width: 42rem; }
+a { color: var(--link); }
+code, pre { font-family: ui-monospace, "Cascadia Mono", Consolas, Menlo, monospace; font-size: 0.88em; }
+pre {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 0.7rem 0.9rem;
+  overflow-x: auto;
+}
+.statement { font-size: 1.25rem; font-weight: 600; line-height: 1.4; margin: 1.6rem 0 1.2rem; }
+.grid-wrap { overflow-x: auto; margin: 0 -1rem; padding: 0 1rem 0.4rem; }
+table.grid { border-collapse: separate; border-spacing: 3px; font-size: 0.74rem; line-height: 1.3; }
+.grid th { font-weight: 400; color: var(--muted); padding: 0.2rem 0.35rem; }
+.grid th.in { font-weight: 700; color: var(--ink); }
+.grid thead th { text-align: center; }
+.grid tbody th { text-align: right; }
+.grid .axis { font-weight: 400; color: var(--muted); letter-spacing: 0.04em; }
+.grid td {
+  width: 5.6rem; min-width: 5.6rem; height: 3.6rem; vertical-align: top; padding: 0.3rem 0.4rem; border-radius: 5px;
+}
+.grid tbody td:nth-child(2) { width: 4.3rem; min-width: 4.3rem; }
+td.cell { position: relative; }
+td.cell span { display: block; }
+.cell .top {
+  display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; column-gap: 0.3rem;
+}
+.cell .label { font-size: 0.9rem; font-weight: 700; }
+.cell .count { font-size: 0.95em; font-variant-numeric: tabular-nums; }
+.cell a { color: inherit; text-decoration-thickness: 1px; text-underline-offset: 2px; }
+.cell .steps a { font-weight: 700; }
+.cell sup { font-size: 0.75em; line-height: 0; }
+.o { display: inline-block; width: 0.78em; height: 0.78em; border: 1.6px solid currentColor; border-radius: 50%;
+     vertical-align: -0.06em; margin-right: 0.12em; }
+.vh { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden;
+      clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.cell.irreducible { background: var(--irr); color: var(--irr-ink); }
+.cell.open { background: var(--open); color: var(--open-ink); }
+.cell.too-big { background: var(--panel); color: var(--big-ink); box-shadow: inset 0 0 0 2px var(--open); }
+.cell.resolved { background: var(--res); color: var(--res-ink); }
+.cell.not-started { background: var(--panel); color: var(--ns-ink); box-shadow: inset 0 0 0 1px var(--ns-line); }
+.cell.champion { box-shadow: 0 0 0 2px #fff, 0 0 0 3px var(--ink); }
+.cell.too-big.champion { box-shadow: inset 0 0 0 2px var(--open), 0 0 0 2px #fff, 0 0 0 3px var(--ink); }
+.cell.not-started.champion { box-shadow: inset 0 0 0 1px var(--ns-line), 0 0 0 2px #fff, 0 0 0 3px var(--ink); }
+.cell.running { outline: 3px solid var(--link); outline-offset: -3px; }
+.legend { display: flex; flex-wrap: wrap; gap: 0.4rem 1.3rem; margin: 0.9rem 0 0.4rem; font-size: 0.88rem; }
+.legend .key { display: inline-flex; align-items: center; gap: 0.45rem; }
+.legend .sym { display: inline-block; min-width: 1rem; text-align: center; }
+.swatch { display: inline-block; width: 1rem; height: 1rem; border-radius: 3px; }
+.swatch.irreducible { background: var(--irr); }
+.swatch.open { background: var(--open); }
+.swatch.too-big { background: var(--panel); box-shadow: inset 0 0 0 2px var(--open); }
+.swatch.resolved { background: var(--res); }
+.swatch.not-started { background: var(--panel); box-shadow: inset 0 0 0 1px var(--ns-line); }
+.swatch.champion { background: var(--panel); box-shadow: 0 0 0 2px #fff, 0 0 0 3px var(--ink); }
+.swatch.running { background: var(--panel); outline: 3px solid var(--link); outline-offset: -3px; }
+.note { color: var(--muted); font-size: 0.88rem; }
+.reasons { margin: 0; }
+.reasons > div {
+  display: grid;
+  grid-template-columns: 3rem 1fr;
+  gap: 0.2rem 1rem;
+  padding: 0.6rem 0;
+  border-top: 1px solid var(--rule);
+}
+.reasons dt { font-weight: 700; }
+.reasons dd { margin: 0; }
+.claims-head { margin: 0.6rem 0 0.2rem; font-size: 0.85rem; color: var(--muted); }
+.claims { margin: 0.3rem 0 0; padding: 0; list-style: none; }
+.claims li { margin: 0.4rem 0; padding-left: 0.7rem; border-left: 2px solid var(--rule); }
+.claims span, .claims code { display: block; }
+.claims .who { font-size: 0.85rem; color: var(--muted); }
+.claims code { overflow-wrap: anywhere; }
+.credits { padding-left: 1.2rem; }
+footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--rule); color: var(--muted); font-size: 0.85rem; }
+</style>
+</head>
+<body>
+<main>
+<h1>BBi(9), cell by cell</h1>
+<nav class="note" aria-label="BBi tables"><a href="../bbi1/index.html">BBi(1)</a> · <a href="../bbi2/index.html">BBi(2)</a> · <a href="../bbi3/index.html">BBi(3)</a> · <a href="../bbi4/index.html">BBi(4)</a> · <a href="../bbi5/index.html">BBi(5)</a> · <a href="../bbi6/index.html">BBi(6)</a> · <a href="../bbi7/index.html">BBi(7)</a> · <a href="../bbi8/index.html">BBi(8)</a> · <b aria-current="page">BBi(9)</b> · <a href="../index.html">all nine side by side</a></nav>
+<p>Daniel Yuan's BB(2,5) champion holds the BBi(9) record, the longest known run of any Turing machine with nine instructions, at more than 10↑↑4 steps. Nick Drozd proposed working through every nine-instruction machine. This page sorts them by shape, the number of states and symbols they use, so that each cell can be settled on its own.</p>
+<p class="statement">BBi(9) is attained in one of these 30 cells. They fit in a box of 2–7 states by 2–7 symbols.</p>
+<div class="grid-wrap">
+<table class="grid" aria-label="Cells by states and symbols">
+<thead>
+<tr><th></th><th class="axis" colspan="10">symbols</th></tr>
+<tr><th class="axis">states</th><th scope="col">1</th><th scope="col" class="in">2</th><th scope="col" class="in">3</th><th scope="col" class="in">4</th><th scope="col" class="in">5</th><th scope="col" class="in">6</th><th scope="col" class="in">7</th><th scope="col">8</th><th scope="col">9</th><th scope="col">10</th></tr>
+</thead>
+<tbody>
+<tr><th scope="row" class="in">2</th><td class="empty"></td><td class="empty"></td><td class="empty"></td><td class="empty"></td><td class="cell irreducible champion" title="2×5 irreducible, holds the record"><span class="top"><a class="label" href="cells/2x5/index.html">2×5</a><span class="count" title="103,496,460 to 114,430,644 machines">103M+</span></span><span class="vh">irreducible, holds the record</span><span class="steps"><a href="cells/2x5/index.html#champion">&gt;10↑↑4 steps†</a></span><span class="detail">37 BB(2,5) holdouts†</span><span class="marks">▲2 ▼3 <i class="o" role="img" aria-label="○"></i>32†</span></td><td class="cell open" title="2×6 open"><span class="top"><a class="label" href="cells/2x6/index.html">2×6</a><span class="count" title="147,569,124 to 151,607,008 machines">148M+</span></span><span class="vh">open</span><span class="detail">30.2k holdouts</span><span class="steps"><a href="cells/2x6/index.html#champion">9,962,863 steps</a></span></td><td class="cell open" title="2×7 open"><span class="top"><a class="label" href="cells/2x7/index.html">2×7</a><span class="count" title="62,542,440 to 63,031,842 machines">62.5M+</span></span><span class="vh">open</span><span class="detail">2,012 holdouts</span><span class="steps"><a href="cells/2x7/index.html#champion">52,237 steps</a></span></td><td class="cell resolved" title="2×8 resolved"><span class="top"><a class="label" href="cells/2x8/index.html">2×8</a><span class="count" title="10,717,380 to 10,736,616 machines">10.7M+</span></span><span class="vh">resolved</span><span class="steps"><a href="cells/2x8/index.html#champion">189 steps</a></span></td><td class="cell resolved" title="2×9 resolved"><span class="top"><a class="label" href="cells/2x9/index.html">2×9</a><span class="count" title="775,986 to 776,028 machines">776k+</span></span><span class="vh">resolved</span><span class="steps"><a href="cells/2x9/index.html#champion">71 steps</a></span></td><td class="cell resolved" title="2×10 resolved"><span class="top"><a class="label" href="cells/2x10/index.html">2×10</a><span class="count" title="19,506 machines">19.5k</span></span><span class="vh">resolved</span><span class="steps"><a href="cells/2x10/index.html#champion">29 steps</a></span></td></tr>
+<tr><th scope="row" class="in">3</th><td class="empty"></td><td class="empty"></td><td class="cell irreducible" title="3×3 irreducible"><span class="top"><a class="label" href="cells/3x3/index.html">3×3</a><span class="count" title="202,530,384 to 239,369,640 machines">203M+</span></span><span class="vh">irreducible</span><span class="steps"><a href="cells/3x3/index.html#champion">1.19×10<sup>17</sup> steps†</a></span><span class="detail">6 BBi(8) holdouts†</span><span class="marks">▲1 ▼1 <i class="o" role="img" aria-label="○"></i>4†</span></td><td class="cell irreducible" title="3×4 irreducible"><span class="top"><a class="label" href="cells/3x4/index.html">3×4</a><span class="count" title="4,914,665,488 to 5,046,263,960 machines">4.91B+</span></span><span class="vh">irreducible</span><span class="steps"><a href="cells/3x4/index.html#champion">≈10↑↑3 steps†</a></span><span class="detail">9 BBi(8) holdouts†</span><span class="marks">▲2 ▼1 <i class="o" role="img" aria-label="○"></i>6†</span></td><td class="cell irreducible" title="3×5 irreducible"><span class="top"><a class="label" href="cells/3x5/index.html">3×5</a><span class="count" title="12,034,597,040 to 12,124,182,080 machines">12B+</span></span><span class="vh">irreducible</span><span class="steps"><a href="cells/3x5/index.html#champion">&gt;10<sup>1565</sup> steps†</a></span><span class="detail">3 BBi(8) holdouts†</span><span class="marks">▲1 <i class="o" role="img" aria-label="○"></i>2†</span></td><td class="cell not-started" title="3×6 not started"><span class="top"><span class="label">3×6</span><span class="count" title="9,178,995,416 to 9,199,284,904 machines">9.18B+</span></span><span class="vh">not started</span></td><td class="cell open" title="3×7 open"><span class="top"><a class="label" href="cells/3x7/index.html">3×7</a><span class="count" title="2,924,347,776 to 2,926,007,936 machines">2.92B+</span></span><span class="vh">open</span><span class="detail">10.9k holdouts</span><span class="steps"><a href="cells/3x7/index.html#champion">19,208 steps</a></span></td><td class="cell resolved" title="3×8 resolved"><span class="top"><a class="label" href="cells/3x8/index.html">3×8</a><span class="count" title="429,265,000 to 429,304,336 machines">429M+</span></span><span class="vh">resolved</span><span class="steps"><a href="cells/3x8/index.html#champion">166 steps</a></span></td><td class="cell resolved" title="3×9 resolved"><span class="top"><a class="label" href="cells/3x9/index.html">3×9</a><span class="count" title="28,431,112 to 28,431,200 machines">28.4M+</span></span><span class="vh">resolved</span><span class="steps"><a href="cells/3x9/index.html#champion">54 steps</a></span></td><td class="cell resolved" title="3×10 resolved"><span class="top"><a class="label" href="cells/3x10/index.html">3×10</a><span class="count" title="679,688 machines">680k</span></span><span class="vh">resolved</span><span class="steps"><a href="cells/3x10/index.html#champion">23 steps</a></span></td></tr>
+<tr><th scope="row" class="in">4</th><td class="empty"></td><td class="empty"></td><td class="cell not-started" title="4×3 not started"><span class="top"><span class="label">4×3</span><span class="count" title="5,824,335,990 to 5,934,069,410 machines">5.82B+</span></span><span class="vh">not started</span></td><td class="cell not-started" title="4×4 not started"><span class="top"><span class="label">4×4</span><span class="count" title="47,109,826,370 to 47,305,718,200 machines">47.1B+</span></span><span class="vh">not started</span></td><td class="cell not-started" title="4×5 not started"><span class="top"><span class="label">4×5</span><span class="count" title="83,622,343,260 to 83,717,519,140 machines">83.6B+</span></span><span class="vh">not started</span></td><td class="cell not-started" title="4×6 not started"><span class="top"><span class="label">4×6</span><span class="count" title="54,702,603,940 to 54,719,416,840 machines">54.7B+</span></span><span class="vh">not started</span></td><td class="cell open" title="4×7 open"><span class="top"><a class="label" href="cells/4x7/index.html">4×7</a><span class="count" title="15,966,670,150 to 15,967,828,620 machines">16B+</span></span><span class="vh">open</span><span class="detail">13k holdouts</span><span class="steps"><a href="cells/4x7/index.html#champion">2,035 steps</a></span></td><td class="cell resolved" title="4×8 resolved"><span class="top"><a class="label" href="cells/4x8/index.html">4×8</a><span class="count" title="2,218,298,960 to 2,218,327,100 machines">2.22B+</span></span><span class="vh">resolved</span><span class="steps"><a href="cells/4x8/index.html#champion">99 steps</a></span></td><td class="cell resolved" title="4×9 resolved"><span class="top"><a class="label" href="cells/4x9/index.html">4×9</a><span class="count" title="141,591,470 to 141,591,490 machines">142M+</span></span><span class="vh">resolved</span><span class="steps"><a href="cells/4x9/index.html#champion">46 steps</a></span></td><td class="cell resolved" title="4×10 resolved"><span class="top"><a class="label" href="cells/4x10/index.html">4×10</a><span class="count" title="3,296,840 machines">3.3M</span></span><span class="vh">resolved</span><span class="steps"><a href="cells/4x10/index.html#champion">23 steps</a></span></td></tr>
+<tr><th scope="row" class="in">5</th><td class="empty"></td><td class="cell not-started" title="5×2 not started"><span class="top"><span class="label">5×2</span><span class="count" title="189,270,072 to 195,173,712 machines">189M+</span></span><span class="vh">not started</span></td><td class="cell not-started" title="5×3 not started"><span class="top"><span class="label">5×3</span><span class="count" title="16,495,000,380 to 16,546,771,404 machines">16.5B+</span></span><span class="vh">not started</span></td><td class="cell not-started" title="5×4 not started"><span class="top"><span class="label">5×4</span><span class="count" title="94,218,533,376 to 94,282,992,732 machines">94.2B+</span></span><span class="vh">not started</span></td><td class="cell not-started" title="5×5 not started"><span class="top"><span class="label">5×5</span><span class="count" title="145,143,529,092 to 145,169,058,804 machines">145B+</span></span><span class="vh">not started</span></td><td class="cell not-started" title="5×6 not started"><span class="top"><span class="label">5×6</span><span class="count" title="88,029,374,148 to 88,033,491,912 machines">88B+</span></span><span class="vh">not started</span></td><td class="cell open" title="5×7 open"><span class="top"><a class="label" href="cells/5x7/index.html">5×7</a><span class="count" title="24,539,713,944 to 24,540,000,528 machines">24.5B+</span></span><span class="vh">open</span><span class="detail">5,593 holdouts</span><span class="steps"><a href="cells/5x7/index.html#champion">302 steps</a></span></td><td class="cell resolved" title="5×8 resolved"><span class="top"><a class="label" href="cells/5x8/index.html">5×8</a><span class="count" title="3,307,329,420 to 3,307,336,524 machines">3.31B+</span></span><span class="vh">resolved</span><span class="steps"><a href="cells/5x8/index.html#champion">60 steps</a></span></td><td class="cell resolved" title="5×9 resolved"><span class="top"><a class="label" href="cells/5x9/index.html">5×9</a><span class="count" title="206,635,044 machines">207M</span></span><span class="vh">resolved</span><span class="steps"><a href="cells/5x9/index.html#champion">34 steps</a></span></td><td class="cell resolved" title="5×10 resolved"><span class="top"><a class="label" href="cells/5x10/index.html">5×10</a><span class="count" title="4,735,968 machines">4.74M</span></span><span class="vh">resolved</span><span class="steps"><a href="cells/5x10/index.html#champion">23 steps</a></span></td></tr>
+<tr><th scope="row" class="in">6</th><td class="empty"></td><td class="cell open" title="6×2 open"><span class="top"><a class="label" href="cells/6x2/index.html">6×2</a><span class="count" title="332,607,072 to 333,725,252 machines">333M+</span></span><span class="vh">open</span><span class="detail">208 holdouts</span><span class="steps"><a href="cells/6x2/index.html#champion">2,655 steps</a></span></td><td class="cell open" title="6×3 open"><span class="top"><a class="label" href="cells/6x3/index.html">6×3</a><span class="count" title="13,704,055,470 to 13,709,304,826 machines">13.7B+</span></span><span class="vh">open</span><span class="detail">41.3k holdouts</span><span class="steps"><a href="cells/6x3/index.html#champion">46,822 steps</a></span></td><td class="cell not-started" title="6×4 not started"><span class="top"><span class="label">6×4</span><span class="count" title="65,062,227,202 to 65,067,426,648 machines">65.1B+</span></span><span class="vh">not started</span></td><td class="cell not-started" title="6×5 not started"><span class="top"><span class="label">6×5</span><span class="count" title="92,152,627,196 to 92,154,532,162 machines">92.2B+</span></span><span class="vh">not started</span></td><td class="cell not-started" title="6×6 not started"><span class="top"><span class="label">6×6</span><span class="count" title="53,323,207,546 to 53,323,515,098 machines">53.3B+</span></span><span class="vh">not started</span></td><td class="cell open" title="6×7 open"><span class="top"><a class="label" href="cells/6x7/index.html">6×7</a><span class="count" title="14,429,873,612 to 14,429,895,592 machines">14.4B+</span></span><span class="vh">open</span><span class="detail">940 holdouts</span><span class="steps"><a href="cells/6x7/index.html#champion">94 steps</a></span></td><td class="cell resolved" title="6×8 resolved"><span class="top"><a class="label" href="cells/6x8/index.html">6×8</a><span class="count" title="1,905,672,790 to 1,905,673,350 machines">1.91B+</span></span><span class="vh">resolved</span><span class="steps"><a href="cells/6x8/index.html#champion">37 steps</a></span></td><td class="cell resolved" title="6×9 resolved"><span class="top"><a class="label" href="cells/6x9/index.html">6×9</a><span class="count" title="117,324,494 machines">117M</span></span><span class="vh">resolved</span><span class="steps"><a href="cells/6x9/index.html#champion">31 steps</a></span></td><td class="cell resolved" title="6×10 resolved"><span class="top"><a class="label" href="cells/6x10/index.html">6×10</a><span class="count" title="2,659,342 machines">2.66M</span></span><span class="vh">resolved</span><span class="steps"><a href="cells/6x10/index.html#champion">23 steps</a></span></td></tr>
+<tr><th scope="row" class="in">7</th><td class="empty"></td><td class="cell resolved" title="7×2 resolved"><span class="top"><a class="label" href="cells/7x2/index.html">7×2</a><span class="count" title="157,232,000 machines">157M</span></span><span class="vh">resolved</span><span class="steps"><a href="cells/7x2/index.html#champion">144 steps</a></span></td><td class="cell open" title="7×3 open"><span class="top"><a class="label" href="cells/7x3/index.html">7×3</a><span class="count" title="4,373,773,648 machines">4.37B</span></span><span class="vh">open</span><span class="detail">2,482 holdouts</span><span class="steps"><a href="cells/7x3/index.html#champion">203 steps</a></span></td><td class="cell open" title="7×4 open"><span class="top"><a class="label" href="cells/7x4/index.html">7×4</a><span class="count" title="18,418,489,136 machines">18.4B</span></span><span class="vh">open</span><span class="detail">8,953 holdouts</span><span class="steps"><a href="cells/7x4/index.html#champion">218 steps</a></span></td><td class="cell open" title="7×5 open"><span class="top"><a class="label" href="cells/7x5/index.html">7×5</a><span class="count" title="24,646,226,320 machines">24.6B</span></span><span class="vh">open</span><span class="detail">4,734 holdouts</span><span class="steps"><a href="cells/7x5/index.html#champion">129 steps</a></span></td><td class="cell open" title="7×6 open"><span class="top"><a class="label" href="cells/7x6/index.html">7×6</a><span class="count" title="13,800,226,352 machines">13.8B</span></span><span class="vh">open</span><span class="detail">942 holdouts</span><span class="steps"><a href="cells/7x6/index.html#champion">76 steps</a></span></td><td class="cell open" title="7×7 open"><span class="top"><a class="label" href="cells/7x7/index.html">7×7</a><span class="count" title="3,655,732,784 machines">3.66B</span></span><span class="vh">open</span><span class="detail">53 holdouts</span><span class="steps"><a href="cells/7x7/index.html#champion">53 steps</a></span></td><td class="cell resolved" title="7×8 resolved"><span class="top"><a class="label" href="cells/7x8/index.html">7×8</a><span class="count" title="475,652,832 machines">476M</span></span><span class="vh">resolved</span><span class="steps"><a href="cells/7x8/index.html#champion">28 steps</a></span></td><td class="cell resolved" title="7×9 resolved"><span class="top"><a class="label" href="cells/7x9/index.html">7×9</a><span class="count" title="28,964,544 machines">29M</span></span><span class="vh">resolved</span><span class="steps"><a href="cells/7x9/index.html#champion">22 steps</a></span></td><td class="cell resolved" title="7×10 resolved"><span class="top"><a class="label" href="cells/7x10/index.html">7×10</a><span class="count" title="651,040 machines">651k</span></span><span class="vh">resolved</span><span class="steps"><a href="cells/7x10/index.html#champion">18 steps</a></span></td></tr>
+<tr><th scope="row">8</th><td class="empty"></td><td class="cell resolved" title="8×2 resolved"><span class="top"><a class="label" href="cells/8x2/index.html">8×2</a><span class="count" title="26,065,800 machines">26.1M</span></span><span class="vh">resolved</span><span class="steps"><a href="cells/8x2/index.html#champion">63 steps</a></span></td><td class="cell resolved" title="8×3 resolved"><span class="top"><a class="label" href="cells/8x3/index.html">8×3</a><span class="count" title="560,769,642 machines">561M</span></span><span class="vh">resolved</span><span class="steps"><a href="cells/8x3/index.html#champion">98 steps</a></span></td><td class="cell resolved" title="8×4 resolved"><span class="top"><a class="label" href="cells/8x4/index.html">8×4</a><span class="count" title="2,172,854,754 machines">2.17B</span></span><span class="vh">resolved</span><span class="steps"><a href="cells/8x4/index.html#champion">73 steps</a></span></td><td class="cell resolved" title="8×5 resolved"><span class="top"><a class="label" href="cells/8x5/index.html">8×5</a><span class="count" title="2,790,882,450 machines">2.79B</span></span><span class="vh">resolved</span><span class="steps"><a href="cells/8x5/index.html#champion">52 steps</a></span></td><td class="cell resolved" title="8×6 resolved"><span class="top"><a class="label" href="cells/8x6/index.html">8×6</a><span class="count" title="1,525,178,358 machines">1.53B</span></span><span class="vh">resolved</span><span class="steps"><a href="cells/8x6/index.html#champion">42 steps</a></span></td><td class="cell resolved" title="8×7 resolved"><span class="top"><a class="label" href="cells/8x7/index.html">8×7</a><span class="count" title="397,584,684 machines">398M</span></span><span class="vh">resolved</span><span class="steps"><a href="cells/8x7/index.html#champion">33 steps</a></span></td><td class="cell resolved" title="8×8 resolved"><span class="top"><a class="label" href="cells/8x8/index.html">8×8</a><span class="count" title="51,144,246 machines">51.1M</span></span><span class="vh">resolved</span><span class="steps"><a href="cells/8x8/index.html#champion">23 steps</a></span></td><td class="cell resolved" title="8×9 resolved"><span class="top"><a class="label" href="cells/8x9/index.html">8×9</a><span class="count" title="3,088,080 machines">3.09M</span></span><span class="vh">resolved</span><span class="steps"><a href="cells/8x9/index.html#champion">20 steps</a></span></td><td class="cell resolved" title="8×10 resolved"><span class="top"><a class="label" href="cells/8x10/index.html">8×10</a><span class="count" title="68,958 machines">69k</span></span><span class="vh">resolved</span><span class="steps"><a href="cells/8x10/index.html#champion">17 steps</a></span></td></tr>
+<tr><th scope="row">9</th><td class="cell resolved" title="9×1 resolved"><span class="top"><a class="label" href="cells/9x1/index.html">9×1</a><span class="count" title="2,560 machines">2,560</span></span><span class="vh">resolved</span><span class="steps"><a href="cells/9x1/index.html#champion">9 steps</a></span></td><td class="cell resolved" title="9×2 resolved"><span class="top"><a class="label" href="cells/9x2/index.html">9×2</a><span class="count" title="1,308,160 machines">1.31M</span></span><span class="vh">resolved</span><span class="steps"><a href="cells/9x2/index.html#champion">27 steps</a></span></td><td class="cell resolved" title="9×3 resolved"><span class="top"><a class="label" href="cells/9x3/index.html">9×3</a><span class="count" title="23,884,800 machines">23.9M</span></span><span class="vh">resolved</span><span class="steps"><a href="cells/9x3/index.html#champion">27 steps</a></span></td><td class="cell resolved" title="9×4 resolved"><span class="top"><a class="label" href="cells/9x4/index.html">9×4</a><span class="count" title="87,308,800 machines">87.3M</span></span><span class="vh">resolved</span><span class="steps"><a href="cells/9x4/index.html#champion">27 steps</a></span></td><td class="cell resolved" title="9×5 resolved"><span class="top"><a class="label" href="cells/9x5/index.html">9×5</a><span class="count" title="108,864,000 machines">109M</span></span><span class="vh">resolved</span><span class="steps"><a href="cells/9x5/index.html#champion">27 steps</a></span></td><td class="cell resolved" title="9×6 resolved"><span class="top"><a class="label" href="cells/9x6/index.html">9×6</a><span class="count" title="58,437,120 machines">58.4M</span></span><span class="vh">resolved</span><span class="steps"><a href="cells/9x6/index.html#champion">25 steps</a></span></td><td class="cell resolved" title="9×7 resolved"><span class="top"><a class="label" href="cells/9x7/index.html">9×7</a><span class="count" title="15,052,800 machines">15.1M</span></span><span class="vh">resolved</span><span class="steps"><a href="cells/9x7/index.html#champion">21 steps</a></span></td><td class="cell resolved" title="9×8 resolved"><span class="top"><a class="label" href="cells/9x8/index.html">9×8</a><span class="count" title="1,920,000 machines">1.92M</span></span><span class="vh">resolved</span><span class="steps"><a href="cells/9x8/index.html#champion">17 steps</a></span></td><td class="cell resolved" title="9×9 resolved"><span class="top"><a class="label" href="cells/9x9/index.html">9×9</a><span class="count" title="115,200 machines">115k</span></span><span class="vh">resolved</span><span class="steps"><a href="cells/9x9/index.html#champion">16 steps</a></span></td><td class="cell resolved" title="9×10 resolved"><span class="top"><a class="label" href="cells/9x10/index.html">9×10</a><span class="count" title="2,560 machines">2,560</span></span><span class="vh">resolved</span><span class="steps"><a href="cells/9x10/index.html#champion">14 steps</a></span></td></tr>
+</tbody>
+</table>
+</div>
+<div class="legend">
+<span class="key"><span class="swatch irreducible"></span><span><b>irreducible</b>, stays for a reason below</span></span>
+<span class="key"><span class="swatch open"></span><span><b>open</b>, checked with holdouts left</span></span>
+<span class="key"><span class="swatch too-big"></span><span><b>open</b>, holdout list too big to post</span></span>
+<span class="key"><span class="swatch resolved"></span><span><b>resolved</b>, every machine decided and checked</span></span>
+<span class="key"><span class="swatch not-started"></span><span><b>not started</b>, no checked run</span></span>
+<span class="key"><span class="swatch champion"></span><span>holds the record</span></span>
+</div>
+<div class="legend">
+<span class="key"><span class="sym">▲</span><span>probviously halts, or claimed to halt</span></span>
+<span class="key"><span class="sym">▼</span><span>probviously never halts</span></span>
+<span class="key"><span class="sym"><i class="o" role="img" aria-label="○"></i></span><span>no verdict yet</span></span>
+<span class="key"><span class="sym">†</span><span>credited to others or derived from their results, not checked here</span></span>
+</div>
+<p class="note">Each square gives a cell's shape in states × symbols and its number of machines. A checked or irreducible square also gives any holdouts left and the steps of its longest known halter, and its name links to the cell's page. An irreducible square adds the verdicts on its holdouts. The 3×3 to 3×5 squares count the BBi(8) holdouts that would land in them if they halted. A + marks a count that may grow through the eight-instruction machines the census left open. The row and column numbers in bold give the box.</p>
+<section>
+<h2>Cells that stay</h2>
+<p>These irreducible cells stay in the list however the other cells turn out.</p>
+<dl class="reasons">
+<div><dt><a href="cells/2x5/index.html">2×5</a></dt><dd>holds the record, more than 10↑↑4 steps (Daniel Yuan, 2024)†</dd></div>
+<div><dt><a href="cells/3x3/index.html">3×3</a></dt><dd>6 of the 9 open BBi(8) holdouts would feed this cell if they halted†</dd></div>
+<div><dt><a href="cells/3x4/index.html">3×4</a></dt><dd>all 9 open BBi(8) holdouts would feed this cell if they halted†</dd></div>
+<div><dt><a href="cells/3x5/index.html">3×5</a></dt><dd>3 of the 9 open BBi(8) holdouts would feed this cell if they halted†</dd></div>
+</dl>
+</section>
+<section>
+<h2>The census</h2>
+<p>The census counts 926,173,457,576 nine-instruction machines whose eight-instruction parent halts within 100,000 steps. The eight-instruction machines it left open add at most 889,868,852 more. Shorter machines it left open never halt, because each ran 4,000,000 steps, past the proven value of BBi(7).</p>
+</section>
+<section>
+<h2>What counts</h2>
+<p>A halter is run to its halt, a non-halter carries a cycler or translated-cycler certificate (Coq-BB5's Loop decider), an n-gram CPS certificate, a repeated-word-list certificate or a finite-automata-reduction certificate, and any other machine stays a holdout. A cell shows as open or resolved only once a second program, written from <a href="CHECKING.md">CHECKING.md</a> alone, agrees on its count, every halt and every certificate. The results are informal, in the community's sense. A † marks a number credited to others or derived from their results. It is shown as their claim and not checked here.</p>
+</section>
+<section>
+<h2>Reproducing a cell</h2>
+<p>Anyone can check a cell whose page posts its claims file without trusting us. The <a href="checker/bbi9check.py">checker</a> is one Python file written from <a href="CHECKING.md">CHECKING.md</a>, and it reads a cell's files and the <a href="census.tsv">census</a>.</p>
+<pre><code>python bbi9check.py &lt;a cell's directory&gt; --census census.tsv</code></pre>
+<p>Each cell's page names the version of our producer that made its claims, and the checker verifies them without it.</p>
+</section>
+<section>
+<h2>Credits</h2>
+<h3>Machines</h3>
+<ul class="credits">
+<li>Daniel Yuan found <a href="https://wiki.bbchallenge.org/wiki/Instruction-Limited_Busy_Beaver">the BB(2,5) champion</a> (2024), which holds the BBi(9) record.</li>
+<li>Terry and Shawn Ligocki found <a href="https://wiki.bbchallenge.org/wiki/BB(3,3)">the BB(3,3) champion</a> (2007), the base of the 3×3 champion.</li>
+<li>Nick Drozd claimed the 3×4 champion on Discord (2025-08-03).</li>
+<li>Nick Drozd claimed a long run by another 3×4 machine on Discord (2025-09-05).</li>
+<li>Nick Drozd found <a href="https://wiki.bbchallenge.org/wiki/Instruction-Limited_Busy_Beaver">the BBi(8) champion</a> (2025), the base of the 3×5 champion.</li>
+<li>Daniel Yuan found <a href="https://wiki.bbchallenge.org/wiki/Cryptids#Cryptids_at_the_Edge">Hydra and Bonus Cryptid</a> (May 2024).</li>
+<li>Two probvious verdicts on BB(2,5) holdouts are from <a href="https://wiki.bbchallenge.org/wiki/BB(2,5)#Unsolved">the bbchallenge wiki's BB(2,5) page</a> (2026-10-09).</li>
+<li>LegionMammal978 called <a href="https://wiki.bbchallenge.org/wiki/TMBR:_October_2026">a BB(2,5) holdout</a> probviously halting (October 2026).</li>
+<li>Shawn Ligocki found <a href="https://wiki.bbchallenge.org/wiki/Cryptids#Cryptids_at_the_Edge">Bigfoot</a> (November 2023).</li>
+<li>A probvious verdict and a note on BBi(8) holdouts are from <a href="https://wiki.bbchallenge.org/wiki/BB(3,3)">the bbchallenge wiki's BB(3,3) page</a> (2026-09-17).</li>
+<li>The name Wily Coyote is from <a href="https://wiki.bbchallenge.org/wiki/Wily_Coyote">the bbchallenge wiki's Wily Coyote page</a> (2026-09-29).</li>
+<li>hipparcos claimed on Discord that a BBi(8) holdout halts (2026-10-28).</li>
+</ul>
+<h3>Lists</h3>
+<ul class="credits">
+<li>Nick Drozd <a href="https://wiki.bbchallenge.org/wiki/Holdouts_lists">shared the open BBi(8) holdouts</a> (2026-10-25), and Loader3229 uploaded <a href="https://wiki.bbchallenge.org/w/images/e/e7/BBi%288%29_holdouts_9.txt">the list</a> to the wiki.</li>
+<li>Andrew Ducharme listed <a href="https://wiki.bbchallenge.org/wiki/TMBR:_October_2026">the BB(2,5) holdouts</a> (2026-10-09).</li>
+</ul>
+<h3>Method</h3>
+<ul class="credits">
+<li>Nick Drozd proposed the project.</li>
+<li>Allen Brady's Tree Normal Form generates the machines.</li>
+<li><a href="https://github.com/ccz181078/Coq-BB5">Coq-BB5</a> proves the cycler and translated-cycler method in its Loop decider. Its NGramCPS decider is the model for n-gram CPS, and its RepWL decider, in spirit, for repeated word lists.</li>
+<li>The <a href="https://arxiv.org/abs/2504.20563">bbchallenge deciders paper</a> and Justin Blanchard's decider describe finite automata reduction, which Coq-BB5 verifies in Verifier_FAR.</li>
+<li>The bbchallenge wiki's <a href="https://wiki.bbchallenge.org/wiki/Instruction-Limited_Busy_Beaver">BBi tables</a> give the counts the census reproduces.</li>
+</ul>
+</section>
+<footer>Generated 2026-11-02 from checked data.</footer>
+</main>
+</body>
+</html>

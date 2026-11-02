@@ -1,0 +1,200 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="The BBi(1) to BBi(9) tables side by side, each cell coloured by its status, from checked data.">
+<title>BBi(1) to BBi(9), cell by cell</title>
+<style>
+:root {
+  color-scheme: light dark;
+  --bg: #fbfaf6;
+  --ink: #1f1d1a;
+  --muted: #6d685e;
+  --rule: #e2ddd3;
+  --link: #1f5fa8;
+  --panel: #ffffff;
+  --irr: #33295c;
+  --irr-ink: #f3f0ff;
+  --open: #f2c96b;
+  --open-ink: #3a2a00;
+  --big-ink: #6b5200;
+  --res: #dcebd8;
+  --res-ink: #2c4a28;
+  --ns-ink: #77726a;
+  --ns-line: #d9d4c9;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #141412;
+    --ink: #ebe9e4;
+    --muted: #a39e94;
+    --rule: #33312c;
+    --link: #8db6ee;
+    --panel: #1b1b19;
+    --irr: #b8acf2;
+    --irr-ink: #1a1530;
+    --open: #c4952f;
+    --open-ink: #1f1600;
+    --big-ink: #dcae45;
+    --res: #223520;
+    --res-ink: #b6d8ae;
+    --ns-ink: #8f8a81;
+    --ns-line: #3a3833;
+  }
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 16px/1.55 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+main { max-width: 62rem; margin: 0 auto; padding: 2.5rem 1rem 2rem; }
+h1 { font-size: 2.1rem; line-height: 1.15; margin: 0 0 1rem; letter-spacing: -0.01em; }
+h2 { font-size: 1.15rem; margin: 2.4rem 0 0.6rem; }
+h3 { font-size: 1rem; margin: 1.2rem 0 0.3rem; }
+p, dl, ul, pre { max-width: 42rem; }
+a { color: var(--link); }
+code, pre { font-family: ui-monospace, "Cascadia Mono", Consolas, Menlo, monospace; font-size: 0.88em; }
+pre {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 0.7rem 0.9rem;
+  overflow-x: auto;
+}
+.statement { font-size: 1.25rem; font-weight: 600; line-height: 1.4; margin: 1.6rem 0 1.2rem; }
+.grid-wrap { overflow-x: auto; margin: 0 -1rem; padding: 0 1rem 0.4rem; }
+table.grid { border-collapse: separate; border-spacing: 3px; font-size: 0.74rem; line-height: 1.3; }
+.grid th { font-weight: 400; color: var(--muted); padding: 0.2rem 0.35rem; }
+.grid th.in { font-weight: 700; color: var(--ink); }
+.grid thead th { text-align: center; }
+.grid tbody th { text-align: right; }
+.grid .axis { font-weight: 400; color: var(--muted); letter-spacing: 0.04em; }
+.grid td {
+  width: 5.6rem; min-width: 5.6rem; height: 3.6rem; vertical-align: top; padding: 0.3rem 0.4rem; border-radius: 5px;
+}
+.grid tbody td:nth-child(2) { width: 4.3rem; min-width: 4.3rem; }
+td.cell { position: relative; }
+td.cell span { display: block; }
+.cell .top {
+  display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; column-gap: 0.3rem;
+}
+.cell .label { font-size: 0.9rem; font-weight: 700; }
+.cell .count { font-size: 0.95em; font-variant-numeric: tabular-nums; }
+.cell a { color: inherit; text-decoration-thickness: 1px; text-underline-offset: 2px; }
+.cell .steps a { font-weight: 700; }
+.cell sup { font-size: 0.75em; line-height: 0; }
+.o { display: inline-block; width: 0.78em; height: 0.78em; border: 1.6px solid currentColor; border-radius: 50%;
+     vertical-align: -0.06em; margin-right: 0.12em; }
+.vh { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden;
+      clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.cell.irreducible { background: var(--irr); color: var(--irr-ink); }
+.cell.open { background: var(--open); color: var(--open-ink); }
+.cell.too-big { background: var(--panel); color: var(--big-ink); box-shadow: inset 0 0 0 2px var(--open); }
+.cell.resolved { background: var(--res); color: var(--res-ink); }
+.cell.not-started { background: var(--panel); color: var(--ns-ink); box-shadow: inset 0 0 0 1px var(--ns-line); }
+.cell.champion { box-shadow: 0 0 0 2px #fff, 0 0 0 3px var(--ink); }
+.cell.too-big.champion { box-shadow: inset 0 0 0 2px var(--open), 0 0 0 2px #fff, 0 0 0 3px var(--ink); }
+.cell.not-started.champion { box-shadow: inset 0 0 0 1px var(--ns-line), 0 0 0 2px #fff, 0 0 0 3px var(--ink); }
+.cell.running { outline: 3px solid var(--link); outline-offset: -3px; }
+.legend { display: flex; flex-wrap: wrap; gap: 0.4rem 1.3rem; margin: 0.9rem 0 0.4rem; font-size: 0.88rem; }
+.legend .key { display: inline-flex; align-items: center; gap: 0.45rem; }
+.legend .sym { display: inline-block; min-width: 1rem; text-align: center; }
+.swatch { display: inline-block; width: 1rem; height: 1rem; border-radius: 3px; }
+.swatch.irreducible { background: var(--irr); }
+.swatch.open { background: var(--open); }
+.swatch.too-big { background: var(--panel); box-shadow: inset 0 0 0 2px var(--open); }
+.swatch.resolved { background: var(--res); }
+.swatch.not-started { background: var(--panel); box-shadow: inset 0 0 0 1px var(--ns-line); }
+.swatch.champion { background: var(--panel); box-shadow: 0 0 0 2px #fff, 0 0 0 3px var(--ink); }
+.swatch.running { background: var(--panel); outline: 3px solid var(--link); outline-offset: -3px; }
+.note { color: var(--muted); font-size: 0.88rem; }
+.reasons { margin: 0; }
+.reasons > div {
+  display: grid;
+  grid-template-columns: 3rem 1fr;
+  gap: 0.2rem 1rem;
+  padding: 0.6rem 0;
+  border-top: 1px solid var(--rule);
+}
+.reasons dt { font-weight: 700; }
+.reasons dd { margin: 0; }
+.claims-head { margin: 0.6rem 0 0.2rem; font-size: 0.85rem; color: var(--muted); }
+.claims { margin: 0.3rem 0 0; padding: 0; list-style: none; }
+.claims li { margin: 0.4rem 0; padding-left: 0.7rem; border-left: 2px solid var(--rule); }
+.claims span, .claims code { display: block; }
+.claims .who { font-size: 0.85rem; color: var(--muted); }
+.claims code { overflow-wrap: anywhere; }
+.credits { padding-left: 1.2rem; }
+footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--rule); color: var(--muted); font-size: 0.85rem; }
+main { max-width: 72rem; }
+table.overview { border-collapse: collapse; font-size: 0.86rem; line-height: 1.35; font-variant-numeric: tabular-nums; }
+.overview > * > tr > th, .overview > * > tr > td {
+  padding: 0.5rem 0.45rem; border-top: 1px solid var(--rule); text-align: right; vertical-align: middle;
+}
+.overview > thead > tr > th { border-top: 0; color: var(--muted); font-weight: 400; vertical-align: bottom; }
+.overview > tbody > tr > th { font-weight: 700; white-space: nowrap; }
+.overview > * > tr > .t { text-align: left; }
+.overview > tbody > tr > td.t { min-width: 6.5rem; }
+.overview > tbody > tr > td.n { min-width: 7rem; }
+.overview sup { font-size: 0.75em; line-height: 0; }
+table.mini { border-collapse: separate; border-spacing: 2px; }
+.mini td { width: 0.6rem; height: 0.6rem; padding: 0; border-radius: 2px; }
+.m.irreducible { background: var(--irr); }
+.m.open { background: var(--open); box-shadow: inset 0 0 0 2px var(--big-ink); }
+.m.resolved { background: var(--res); box-shadow: inset 0 0 0 2px var(--res-ink); }
+.m.not-started { background: var(--panel); box-shadow: inset 0 0 0 1px var(--ns-line); }
+.swatch.open { box-shadow: inset 0 0 0 2px var(--big-ink); }
+.swatch.resolved { box-shadow: inset 0 0 0 2px var(--res-ink); }
+p.wip { max-width: 42rem; padding: 0.5rem 0.8rem; background: var(--panel); border-left: 3px solid var(--big-ink); }
+</style>
+</head>
+<body>
+<main>
+<h1>BBi(1) to BBi(9), cell by cell</h1>
+<p class="wip">A work in progress, updated as cells are run and checked. Every open cell's page posts its holdouts for anyone's deciders.</p>
+<p>Each table sorts the machines with a given number of instructions by shape. Our own program runs a cell and an independent check confirms the result. Each row's grid colours its cells by status, from not started to resolved.</p>
+<div class="grid-wrap">
+<table class="overview">
+<thead>
+<tr><th scope="col" class="t">table</th><th scope="col">machines</th><th scope="col">cells</th><th scope="col">resolved</th><th scope="col">open</th><th scope="col">irreducible</th><th scope="col">not started</th><th scope="col" class="t">box, states&nbsp;×&nbsp;symbols</th><th scope="col" class="t">longest checked run</th><th scope="col" class="t">longest known run</th><th scope="col" class="t">grid</th></tr>
+</thead>
+<tbody>
+<tr id="bbi1"><th scope="row" class="t"><a href="bbi1/index.html">BBi(1)</a></th><td class="n">4</td><td>2</td><td>2</td><td>0</td><td>0</td><td>0</td><td class="t">1 × 1–2</td><td class="t">1 step, 1×1 and 1×2</td><td class="t">1 step†</td><td class="t"><table class="mini" aria-label="BBi(1) cells by states and symbols"><tr><td class="m resolved" title="1×1 resolved"></td><td class="m resolved" title="1×2 resolved"></td></tr></table></td></tr>
+<tr id="bbi2"><th scope="row" class="t"><a href="bbi2/index.html">BBi(2)</a></th><td class="n">30</td><td>3</td><td>3</td><td>0</td><td>0</td><td>0</td><td class="t">2 × 2</td><td class="t">3 steps, 2×2</td><td class="t">3 steps†</td><td class="t"><table class="mini" aria-label="BBi(2) cells by states and symbols"><tr><td class="m resolved" title="2×1 resolved"></td><td class="m resolved" title="2×2 resolved"></td><td class="m resolved" title="2×3 resolved"></td></tr></table></td></tr>
+<tr id="bbi3"><th scope="row" class="t"><a href="bbi3/index.html">BBi(3)</a></th><td class="n">378</td><td>7</td><td>7</td><td>0</td><td>0</td><td>0</td><td class="t">2 × 2–4</td><td class="t">5 steps, 2×2, 2×3 and 2×4</td><td class="t">5 steps†</td><td class="t"><table class="mini" aria-label="BBi(3) cells by states and symbols"><tr><td></td><td class="m resolved" title="2×2 resolved"></td><td class="m resolved" title="2×3 resolved"></td><td class="m resolved" title="2×4 resolved"></td></tr><tr><td class="m resolved" title="3×1 resolved"></td><td class="m resolved" title="3×2 resolved"></td><td class="m resolved" title="3×3 resolved"></td><td class="m resolved" title="3×4 resolved"></td></tr></table></td></tr>
+<tr id="bbi4"><th scope="row" class="t"><a href="bbi4/index.html">BBi(4)</a></th><td class="n">7,640</td><td>13</td><td>13</td><td>0</td><td>0</td><td>0</td><td class="t">3 × 2</td><td class="t">16 steps, 3×2</td><td class="t">16 steps†</td><td class="t"><table class="mini" aria-label="BBi(4) cells by states and symbols"><tr><td></td><td class="m resolved" title="2×2 resolved"></td><td class="m resolved" title="2×3 resolved"></td><td class="m resolved" title="2×4 resolved"></td><td class="m resolved" title="2×5 resolved"></td></tr><tr><td></td><td class="m resolved" title="3×2 resolved"></td><td class="m resolved" title="3×3 resolved"></td><td class="m resolved" title="3×4 resolved"></td><td class="m resolved" title="3×5 resolved"></td></tr><tr><td class="m resolved" title="4×1 resolved"></td><td class="m resolved" title="4×2 resolved"></td><td class="m resolved" title="4×3 resolved"></td><td class="m resolved" title="4×4 resolved"></td><td class="m resolved" title="4×5 resolved"></td></tr></table></td></tr>
+<tr id="bbi5"><th scope="row" class="t"><a href="bbi5/index.html">BBi(5)</a></th><td class="n">205,580 to 205,880</td><td>20</td><td>20</td><td>0</td><td>0</td><td>0</td><td class="t">2 × 3</td><td class="t">37 steps, 2×3</td><td class="t">37 steps†</td><td class="t"><table class="mini" aria-label="BBi(5) cells by states and symbols"><tr><td></td><td></td><td class="m resolved" title="2×3 resolved"></td><td class="m resolved" title="2×4 resolved"></td><td class="m resolved" title="2×5 resolved"></td><td class="m resolved" title="2×6 resolved"></td></tr><tr><td></td><td class="m resolved" title="3×2 resolved"></td><td class="m resolved" title="3×3 resolved"></td><td class="m resolved" title="3×4 resolved"></td><td class="m resolved" title="3×5 resolved"></td><td class="m resolved" title="3×6 resolved"></td></tr><tr><td></td><td class="m resolved" title="4×2 resolved"></td><td class="m resolved" title="4×3 resolved"></td><td class="m resolved" title="4×4 resolved"></td><td class="m resolved" title="4×5 resolved"></td><td class="m resolved" title="4×6 resolved"></td></tr><tr><td class="m resolved" title="5×1 resolved"></td><td class="m resolved" title="5×2 resolved"></td><td class="m resolved" title="5×3 resolved"></td><td class="m resolved" title="5×4 resolved"></td><td class="m resolved" title="5×5 resolved"></td><td class="m resolved" title="5×6 resolved"></td></tr></table></td></tr>
+<tr id="bbi6"><th scope="row" class="t"><a href="bbi6/index.html">BBi(6)</a></th><td class="n">at least 7,149,820</td><td>30</td><td>30</td><td>0</td><td>0</td><td>0</td><td class="t">2 × 4</td><td class="t">123 steps, 2×4</td><td class="t">123 steps†</td><td class="t"><table class="mini" aria-label="BBi(6) cells by states and symbols"><tr><td></td><td></td><td class="m resolved" title="2×3 resolved"></td><td class="m resolved" title="2×4 resolved"></td><td class="m resolved" title="2×5 resolved"></td><td class="m resolved" title="2×6 resolved"></td><td class="m resolved" title="2×7 resolved"></td></tr><tr><td></td><td class="m resolved" title="3×2 resolved"></td><td class="m resolved" title="3×3 resolved"></td><td class="m resolved" title="3×4 resolved"></td><td class="m resolved" title="3×5 resolved"></td><td class="m resolved" title="3×6 resolved"></td><td class="m resolved" title="3×7 resolved"></td></tr><tr><td></td><td class="m resolved" title="4×2 resolved"></td><td class="m resolved" title="4×3 resolved"></td><td class="m resolved" title="4×4 resolved"></td><td class="m resolved" title="4×5 resolved"></td><td class="m resolved" title="4×6 resolved"></td><td class="m resolved" title="4×7 resolved"></td></tr><tr><td></td><td class="m resolved" title="5×2 resolved"></td><td class="m resolved" title="5×3 resolved"></td><td class="m resolved" title="5×4 resolved"></td><td class="m resolved" title="5×5 resolved"></td><td class="m resolved" title="5×6 resolved"></td><td class="m resolved" title="5×7 resolved"></td></tr><tr><td class="m resolved" title="6×1 resolved"></td><td class="m resolved" title="6×2 resolved"></td><td class="m resolved" title="6×3 resolved"></td><td class="m resolved" title="6×4 resolved"></td><td class="m resolved" title="6×5 resolved"></td><td class="m resolved" title="6×6 resolved"></td><td class="m resolved" title="6×7 resolved"></td></tr></table></td></tr>
+<tr id="bbi7"><th scope="row" class="t"><a href="bbi7/index.html">BBi(7)</a></th><td class="n">at least 305,333,128</td><td>40</td><td>29</td><td>9</td><td>0</td><td>2</td><td class="t">2–5 × 3–5</td><td class="t">3,932,963 steps, 2×4</td><td class="t">3,932,963 steps†</td><td class="t"><table class="mini" aria-label="BBi(7) cells by states and symbols"><tr><td></td><td></td><td></td><td class="m open" title="2×4 open"></td><td class="m open" title="2×5 open"></td><td class="m resolved" title="2×6 resolved"></td><td class="m resolved" title="2×7 resolved"></td><td class="m resolved" title="2×8 resolved"></td></tr><tr><td></td><td></td><td class="m not-started" title="3×3 not started"></td><td class="m not-started" title="3×4 not started"></td><td class="m open" title="3×5 open"></td><td class="m resolved" title="3×6 resolved"></td><td class="m resolved" title="3×7 resolved"></td><td class="m resolved" title="3×8 resolved"></td></tr><tr><td></td><td class="m resolved" title="4×2 resolved"></td><td class="m open" title="4×3 open"></td><td class="m open" title="4×4 open"></td><td class="m open" title="4×5 open"></td><td class="m resolved" title="4×6 resolved"></td><td class="m resolved" title="4×7 resolved"></td><td class="m resolved" title="4×8 resolved"></td></tr><tr><td></td><td class="m resolved" title="5×2 resolved"></td><td class="m open" title="5×3 open"></td><td class="m open" title="5×4 open"></td><td class="m open" title="5×5 open"></td><td class="m resolved" title="5×6 resolved"></td><td class="m resolved" title="5×7 resolved"></td><td class="m resolved" title="5×8 resolved"></td></tr><tr><td></td><td class="m resolved" title="6×2 resolved"></td><td class="m resolved" title="6×3 resolved"></td><td class="m resolved" title="6×4 resolved"></td><td class="m resolved" title="6×5 resolved"></td><td class="m resolved" title="6×6 resolved"></td><td class="m resolved" title="6×7 resolved"></td><td class="m resolved" title="6×8 resolved"></td></tr><tr><td class="m resolved" title="7×1 resolved"></td><td class="m resolved" title="7×2 resolved"></td><td class="m resolved" title="7×3 resolved"></td><td class="m resolved" title="7×4 resolved"></td><td class="m resolved" title="7×5 resolved"></td><td class="m resolved" title="7×6 resolved"></td><td class="m resolved" title="7×7 resolved"></td><td class="m resolved" title="7×8 resolved"></td></tr></table></td></tr>
+<tr id="bbi8"><th scope="row" class="t"><a href="bbi8/index.html">BBi(8)</a></th><td class="n">at least 15,561,793,526</td><td>54</td><td>34</td><td>15</td><td>0</td><td>5</td><td class="t">2–6 × 2–6</td><td class="t">3,935,026 steps, 2×5</td><td class="t">more than 6.889 × 10<sup>1,565</sup> steps†</td><td class="t"><table class="mini" aria-label="BBi(8) cells by states and symbols"><tr><td></td><td></td><td></td><td class="m not-started" title="2×4 not started"></td><td class="m open" title="2×5 open"></td><td class="m open" title="2×6 open"></td><td class="m resolved" title="2×7 resolved"></td><td class="m resolved" title="2×8 resolved"></td><td class="m resolved" title="2×9 resolved"></td></tr><tr><td></td><td></td><td class="m not-started" title="3×3 not started"></td><td class="m not-started" title="3×4 not started"></td><td class="m open" title="3×5 open"></td><td class="m open" title="3×6 open"></td><td class="m resolved" title="3×7 resolved"></td><td class="m resolved" title="3×8 resolved"></td><td class="m resolved" title="3×9 resolved"></td></tr><tr><td></td><td class="m resolved" title="4×2 resolved"></td><td class="m open" title="4×3 open"></td><td class="m not-started" title="4×4 not started"></td><td class="m not-started" title="4×5 not started"></td><td class="m open" title="4×6 open"></td><td class="m resolved" title="4×7 resolved"></td><td class="m resolved" title="4×8 resolved"></td><td class="m resolved" title="4×9 resolved"></td></tr><tr><td></td><td class="m open" title="5×2 open"></td><td class="m open" title="5×3 open"></td><td class="m open" title="5×4 open"></td><td class="m open" title="5×5 open"></td><td class="m open" title="5×6 open"></td><td class="m resolved" title="5×7 resolved"></td><td class="m resolved" title="5×8 resolved"></td><td class="m resolved" title="5×9 resolved"></td></tr><tr><td></td><td class="m resolved" title="6×2 resolved"></td><td class="m open" title="6×3 open"></td><td class="m open" title="6×4 open"></td><td class="m open" title="6×5 open"></td><td class="m open" title="6×6 open"></td><td class="m resolved" title="6×7 resolved"></td><td class="m resolved" title="6×8 resolved"></td><td class="m resolved" title="6×9 resolved"></td></tr><tr><td></td><td class="m resolved" title="7×2 resolved"></td><td class="m resolved" title="7×3 resolved"></td><td class="m resolved" title="7×4 resolved"></td><td class="m resolved" title="7×5 resolved"></td><td class="m resolved" title="7×6 resolved"></td><td class="m resolved" title="7×7 resolved"></td><td class="m resolved" title="7×8 resolved"></td><td class="m resolved" title="7×9 resolved"></td></tr><tr><td class="m resolved" title="8×1 resolved"></td><td class="m resolved" title="8×2 resolved"></td><td class="m resolved" title="8×3 resolved"></td><td class="m resolved" title="8×4 resolved"></td><td class="m resolved" title="8×5 resolved"></td><td class="m resolved" title="8×6 resolved"></td><td class="m resolved" title="8×7 resolved"></td><td class="m resolved" title="8×8 resolved"></td><td class="m resolved" title="8×9 resolved"></td></tr></table></td></tr>
+<tr id="bbi9"><th scope="row" class="t"><a href="bbi9/index.html">BBi(9)</a></th><td class="n">926,173,457,576 to 927,063,326,428</td><td>68</td><td>38</td><td>13</td><td>4</td><td>13</td><td class="t">2–7 × 2–7</td><td class="t">9,962,863 steps, 2×6</td><td class="t">more than 10↑↑4 steps†</td><td class="t"><table class="mini" aria-label="BBi(9) cells by states and symbols"><tr><td></td><td></td><td></td><td></td><td class="m irreducible" title="2×5 irreducible"></td><td class="m open" title="2×6 open"></td><td class="m open" title="2×7 open"></td><td class="m resolved" title="2×8 resolved"></td><td class="m resolved" title="2×9 resolved"></td><td class="m resolved" title="2×10 resolved"></td></tr><tr><td></td><td></td><td class="m irreducible" title="3×3 irreducible"></td><td class="m irreducible" title="3×4 irreducible"></td><td class="m irreducible" title="3×5 irreducible"></td><td class="m not-started" title="3×6 not started"></td><td class="m open" title="3×7 open"></td><td class="m resolved" title="3×8 resolved"></td><td class="m resolved" title="3×9 resolved"></td><td class="m resolved" title="3×10 resolved"></td></tr><tr><td></td><td></td><td class="m not-started" title="4×3 not started"></td><td class="m not-started" title="4×4 not started"></td><td class="m not-started" title="4×5 not started"></td><td class="m not-started" title="4×6 not started"></td><td class="m open" title="4×7 open"></td><td class="m resolved" title="4×8 resolved"></td><td class="m resolved" title="4×9 resolved"></td><td class="m resolved" title="4×10 resolved"></td></tr><tr><td></td><td class="m not-started" title="5×2 not started"></td><td class="m not-started" title="5×3 not started"></td><td class="m not-started" title="5×4 not started"></td><td class="m not-started" title="5×5 not started"></td><td class="m not-started" title="5×6 not started"></td><td class="m open" title="5×7 open"></td><td class="m resolved" title="5×8 resolved"></td><td class="m resolved" title="5×9 resolved"></td><td class="m resolved" title="5×10 resolved"></td></tr><tr><td></td><td class="m open" title="6×2 open"></td><td class="m open" title="6×3 open"></td><td class="m not-started" title="6×4 not started"></td><td class="m not-started" title="6×5 not started"></td><td class="m not-started" title="6×6 not started"></td><td class="m open" title="6×7 open"></td><td class="m resolved" title="6×8 resolved"></td><td class="m resolved" title="6×9 resolved"></td><td class="m resolved" title="6×10 resolved"></td></tr><tr><td></td><td class="m resolved" title="7×2 resolved"></td><td class="m open" title="7×3 open"></td><td class="m open" title="7×4 open"></td><td class="m open" title="7×5 open"></td><td class="m open" title="7×6 open"></td><td class="m open" title="7×7 open"></td><td class="m resolved" title="7×8 resolved"></td><td class="m resolved" title="7×9 resolved"></td><td class="m resolved" title="7×10 resolved"></td></tr><tr><td></td><td class="m resolved" title="8×2 resolved"></td><td class="m resolved" title="8×3 resolved"></td><td class="m resolved" title="8×4 resolved"></td><td class="m resolved" title="8×5 resolved"></td><td class="m resolved" title="8×6 resolved"></td><td class="m resolved" title="8×7 resolved"></td><td class="m resolved" title="8×8 resolved"></td><td class="m resolved" title="8×9 resolved"></td><td class="m resolved" title="8×10 resolved"></td></tr><tr><td class="m resolved" title="9×1 resolved"></td><td class="m resolved" title="9×2 resolved"></td><td class="m resolved" title="9×3 resolved"></td><td class="m resolved" title="9×4 resolved"></td><td class="m resolved" title="9×5 resolved"></td><td class="m resolved" title="9×6 resolved"></td><td class="m resolved" title="9×7 resolved"></td><td class="m resolved" title="9×8 resolved"></td><td class="m resolved" title="9×9 resolved"></td><td class="m resolved" title="9×10 resolved"></td></tr></table></td></tr>
+</tbody>
+</table>
+</div>
+<div class="legend"><span class="key"><span class="swatch irreducible"></span><span>irreducible</span></span><span class="key"><span class="swatch open"></span><span>open</span></span><span class="key"><span class="swatch resolved"></span><span>resolved</span></span><span class="key"><span class="swatch not-started"></span><span>not started</span></span></div>
+<p class="note">The box bounds the cells where BBi(n) may be attained. Each grid sets out a table's cells with states down and symbols across.</p>
+<p class="note">The bbchallenge wiki's <a href="https://wiki.bbchallenge.org/wiki/Instruction-Limited_Busy_Beaver#Champions">champions table</a> gives the longest known runs of BBi(1) to BBi(8). BBi(9)'s is Daniel Yuan's record, credited on <a href="bbi9/index.html">the BBi(9) page</a>.</p>
+<section>
+<h2>Recent changes</h2>
+<ul>
+<li>2026-11-02 <a href="bbi9/cells/2x6/index.html">BBi(9) 2×6</a> down to 28,294 holdouts and 1,860 parents, from 53,377 and 5,156.</li>
+<li>2026-11-02 <a href="bbi9/cells/5x7/index.html">BBi(9) 5×7</a> down to 4,661 holdouts and 932 parents, from 6,684 and 3,011.</li>
+<li>2026-11-02 <a href="bbi9/cells/4x7/index.html">BBi(9) 4×7</a> down to 11,171 holdouts and 1,820 parents, from 17,227 and 5,798.</li>
+<li>2026-11-02 <a href="bbi9/cells/6x7/index.html">BBi(9) 6×7</a> down to 745 holdouts and 195 parents, from 1,036 and 704.</li>
+<li>2026-11-02 <a href="bbi9/cells/6x3/index.html">BBi(9) 6×3</a> down to 39,579 holdouts and 1,686 parents, from 687,632 and 77,142.</li>
+<li>2026-11-02 <a href="bbi9/cells/3x7/index.html">BBi(9) 3×7</a> down to 9,544 holdouts and 1,377 parents, from 18,442 and 4,433.</li>
+<li>2026-11-02 <a href="bbi9/cells/6x2/index.html">BBi(9) 6×2</a> down to 199 holdouts and 9 parents, from 91,925 and 11,167.</li>
+<li>2026-11-02 <a href="bbi9/cells/2x7/index.html">BBi(9) 2×7</a> down to 1,731 holdouts and 281 parents, from 3,522 and 782.</li>
+<li>2026-11-02 <a href="bbi9/cells/7x5/index.html">BBi(9) 7×5</a> down to 4,115 holdouts and 619 parents, from 11,215 and 4,805.</li>
+<li>2026-11-02 <a href="bbi9/cells/7x4/index.html">BBi(9) 7×4</a> down to 8,307 holdouts and 646 parents, from 37,336 and 10,474.</li>
+<li>2026-11-02 <a href="bbi9/cells/7x6/index.html">BBi(9) 7×6</a> down to 789 holdouts and 153 parents, from 1,337 and 914.</li>
+<li>2026-11-02 <a href="bbi9/cells/7x3/index.html">BBi(9) 7×3</a> down to 2,321 holdouts and 161 parents, from 45,287 and 9,220.</li>
+</ul>
+</section>
+<footer>Generated 2026-11-02 from checked data. A † marks a value credited to others, not checked here.</footer>
+</main>
+</body>
+</html>

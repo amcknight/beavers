@@ -1,0 +1,39 @@
+{
+  "format": "bbi9-cell/1",
+  "cell": [3, 6],
+  "depth": 6,
+  "producer": "bbi9 0.1.0",
+  "caps": [10000, 100000, 1000000, 10000000],
+  "tc_windows": [10000, 100000, 100000, 100000],
+  "threads": 16,
+  "seconds": 0.116,
+  "corridor": [
+    {"depth": 0, "machines": 1, "HALT": 1, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 0, "UNKNOWN": 0, "max_halt_steps": 0, "halt_steps": 0},
+    {"depth": 1, "machines": 4, "HALT": 2, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 2, "UNKNOWN": 0, "max_halt_steps": 1, "halt_steps": 2},
+    {"depth": 2, "machines": 24, "HALT": 15, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 9, "UNKNOWN": 0, "max_halt_steps": 3, "halt_steps": 31},
+    {"depth": 3, "machines": 190, "HALT": 151, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 39, "UNKNOWN": 0, "max_halt_steps": 5, "halt_steps": 501},
+    {"depth": 4, "machines": 1492, "HALT": 1243, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 249, "UNKNOWN": 0, "max_halt_steps": 11, "halt_steps": 5639},
+    {"depth": 5, "machines": 11174, "HALT": 9910, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 1264, "UNKNOWN": 0, "max_halt_steps": 19, "halt_steps": 58109},
+    {"depth": 6, "machines": 71296, "HALT": 64646, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 6650, "UNKNOWN": 0, "max_halt_steps": 18, "halt_steps": 458624}
+  ],
+  "cell_machines": 71296,
+  "late_cell_machines": 0,
+  "holdouts": 0,
+  "parent_holdouts": 0,
+  "top_halters": [
+    {"machine": "0RB---3LB---------_1LA2RB---4RC------_---5RA------------", "steps": 18},
+    {"machine": "1RB------4LC5RB---_0LC---3RA---------_---2LA------------", "steps": 18},
+    {"machine": "1RB0LB------------_2LA---3RA4LC------_---5LB------------", "steps": 18},
+    {"machine": "1RB---------------_2LC---3RB---5RB---_---2LA---4LC------", "steps": 17},
+    {"machine": "1RB2LA---4LC------_0LA---3RA---------_---5LB------------", "steps": 17},
+    {"machine": "1RB---------------_0LC---------5RA---_---2RB3RB4LA------", "steps": 16},
+    {"machine": "1RB---------------_0LC------5RC------_4RA2RB3LB---------", "steps": 15},
+    {"machine": "1RB---------------_0LC---5RC---------_3RB2LB---4RA------", "steps": 15},
+    {"machine": "1RB---------5LB---_2LB3LA---0RC------_------4RA---------", "steps": 15},
+    {"machine": "1RB---------5LB---_2LC------0RC------_---3LA4RA---------", "steps": 15}
+  ],
+  "halter_digest": "ad693ad909146a9b",
+  "claims": 8213,
+  "claims_digest": "a39f5259583286f1",
+  "claims_split": 5
+}

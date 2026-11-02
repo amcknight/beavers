@@ -1,0 +1,36 @@
+{
+  "format": "bbi9-cell/1",
+  "cell": [3, 2],
+  "depth": 3,
+  "producer": "bbi9 0.1.0",
+  "caps": [10000, 100000, 1000000, 10000000],
+  "tc_windows": [10000, 100000, 100000, 100000],
+  "threads": 16,
+  "seconds": 0.003,
+  "corridor": [
+    {"depth": 0, "machines": 1, "HALT": 1, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 0, "UNKNOWN": 0, "max_halt_steps": 0, "halt_steps": 0},
+    {"depth": 1, "machines": 4, "HALT": 2, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 2, "UNKNOWN": 0, "max_halt_steps": 1, "halt_steps": 2},
+    {"depth": 2, "machines": 24, "HALT": 13, "NONHALT_CYCLER": 1, "NONHALT_TRANSLATED": 10, "UNKNOWN": 0, "max_halt_steps": 3, "halt_steps": 27},
+    {"depth": 3, "machines": 112, "HALT": 74, "NONHALT_CYCLER": 2, "NONHALT_TRANSLATED": 36, "UNKNOWN": 0, "max_halt_steps": 4, "halt_steps": 240}
+  ],
+  "cell_machines": 112,
+  "late_cell_machines": 0,
+  "holdouts": 0,
+  "parent_holdouts": 0,
+  "top_halters": [
+    {"machine": "0RB---_0LC---_1LA---", "steps": 4},
+    {"machine": "0RB---_0LC---_1RB---", "steps": 4},
+    {"machine": "0RB---_0RC---_1LA---", "steps": 4},
+    {"machine": "0RB---_0RC---_1LB---", "steps": 4},
+    {"machine": "0RB---_1LC---_1LA---", "steps": 4},
+    {"machine": "1RB---_0LC---_---0LB", "steps": 4},
+    {"machine": "1RB---_0LC---_---0RB", "steps": 4},
+    {"machine": "1RB---_0LC---_---1LA", "steps": 4},
+    {"machine": "1RB---_0LC---_---1LB", "steps": 4},
+    {"machine": "1RB---_0RC---_0LC---", "steps": 4}
+  ],
+  "halter_digest": "105462f580a1d9a4",
+  "claims": 51,
+  "claims_digest": "caa3c12b7347f39e",
+  "claims_split": 3
+}

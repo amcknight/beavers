@@ -1,0 +1,20 @@
+{
+  "format": "bbi9-amend-check/1",
+  "checker": "bbi9check 1.5",
+  "cell": [
+    7,
+    2
+  ],
+  "depth": 9,
+  "pass": true,
+  "failures": [],
+  "holdouts": 0,
+  "parent_holdouts": 0,
+  "amended": 14767,
+  "amend_digest": "0e0c2f3afa441b9c",
+  "census": 157232000,
+  "census_match": true,
+  "seconds": 3.847,
+  "summary_sha256": "c2364570f039913f19bd773adc9612755664a6ea34d5825fc44aa25e66615bb7",
+  "amend_sha256": "5a94d54501359ac4dc705b851e1fa4e206705959466fac1a304ed31434fffffd"
+}

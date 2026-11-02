@@ -1,0 +1,38 @@
+{
+  "format": "bbi9-cell/1",
+  "cell": [2, 6],
+  "depth": 5,
+  "producer": "bbi9 0.1.0",
+  "caps": [10000, 100000, 1000000, 10000000],
+  "tc_windows": [10000, 100000, 100000, 100000],
+  "threads": 16,
+  "seconds": 0.002,
+  "corridor": [
+    {"depth": 0, "machines": 1, "HALT": 1, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 0, "UNKNOWN": 0, "max_halt_steps": 0, "halt_steps": 0},
+    {"depth": 1, "machines": 2, "HALT": 1, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 1, "UNKNOWN": 0, "max_halt_steps": 1, "halt_steps": 1},
+    {"depth": 2, "machines": 6, "HALT": 4, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 2, "UNKNOWN": 0, "max_halt_steps": 2, "halt_steps": 8},
+    {"depth": 3, "machines": 12, "HALT": 11, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 1, "UNKNOWN": 0, "max_halt_steps": 5, "halt_steps": 37},
+    {"depth": 4, "machines": 42, "HALT": 35, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 7, "UNKNOWN": 0, "max_halt_steps": 6, "halt_steps": 164},
+    {"depth": 5, "machines": 126, "HALT": 116, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 10, "UNKNOWN": 0, "max_halt_steps": 11, "halt_steps": 715}
+  ],
+  "cell_machines": 126,
+  "late_cell_machines": 0,
+  "holdouts": 0,
+  "parent_holdouts": 0,
+  "top_halters": [
+    {"machine": "1RB3LB---5RB------_2LA---4RA---------", "steps": 11},
+    {"machine": "1RB---------------_2LB3LA5RA4RB------", "steps": 9},
+    {"machine": "1RB---5RA---------_2LB3LA---4RA------", "steps": 9},
+    {"machine": "1RB3LA------------_2LA---5RA4RB------", "steps": 9},
+    {"machine": "1RB3LA5RA---------_2LA------4RA------", "steps": 9},
+    {"machine": "1RB3LB------------_2LA---4RB5RB------", "steps": 9},
+    {"machine": "1RB3RB---5LB------_2LA---4LA---------", "steps": 9},
+    {"machine": "1RB3LA------------_2LA5LB---4LB------", "steps": 8},
+    {"machine": "1RB3LB------------_2LA5LA4LB---------", "steps": 8},
+    {"machine": "1RB3RB------------_2LA---4LB5LB------", "steps": 8}
+  ],
+  "halter_digest": "5a306bf58ec25c1f",
+  "claims": 21,
+  "claims_digest": "8b15cc5b5d3e2e00",
+  "claims_split": 5
+}

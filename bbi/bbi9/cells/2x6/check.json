@@ -1,0 +1,63 @@
+{
+  "format": "bbi9-check/1",
+  "checker": "bbi9check 1.2",
+  "cell": [
+    2,
+    6
+  ],
+  "depth": 9,
+  "pass": true,
+  "failures": [],
+  "cell_machines": 147569226,
+  "census": 147569124,
+  "late_cell_machines": 102,
+  "census_match": null,
+  "holdouts": 179959,
+  "parent_holdouts": 23723,
+  "top_halters": [
+    {
+      "machine": "1RB0LB---4LB---1LB_2LA4LA3RB5RB0RB---",
+      "steps": 9962863
+    },
+    {
+      "machine": "0RB---3LA5RB------_1LA2RB3RB4LB1LB0LB",
+      "steps": 9751334
+    },
+    {
+      "machine": "1RB2LA3LA4RA1RA0RA_0LA---3RB5LA------",
+      "steps": 9751333
+    },
+    {
+      "machine": "1RB3LA---------5LA_2LA4RB4LA0RB5RB4LB",
+      "steps": 9631600
+    },
+    {
+      "machine": "1RB3LA5LA5LA0LA2RA_2LA------4RA---5RB",
+      "steps": 3941906
+    },
+    {
+      "machine": "1RB3LA5LA5LA0LA3RA_2LA------4RA---5RB",
+      "steps": 3941906
+    },
+    {
+      "machine": "1RB3RA4LA5LA2RA2LA_2LA---------4RB0LA",
+      "steps": 3941515
+    },
+    {
+      "machine": "1RB2LA1RA1RA------_1LB1LA3RB4LB5RB---",
+      "steps": 3937075
+    },
+    {
+      "machine": "1RB5RA---5RA5LB1LA_2LB3RB4LA------5LA",
+      "steps": 3937001
+    },
+    {
+      "machine": "1RB2LA1RA1RA------_1LB1LA3RB4LB5LA---",
+      "steps": 3935028
+    }
+  ],
+  "halter_digest": "69a340b28ac39c86",
+  "claims_digest": "52beeb5eae2adee3",
+  "seconds": 9725.066,
+  "summary_sha256": "3bfd2f678e9109e7bafb43dbed8a484b552d8b5a55619b075acfa7854ea6651c"
+}

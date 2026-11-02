@@ -1,0 +1,41 @@
+{
+  "format": "bbi9-cell/1",
+  "cell": [8, 2],
+  "depth": 9,
+  "producer": "bbi9 0.1.0",
+  "caps": [10000, 100000, 1000000, 10000000],
+  "tc_windows": [10000, 100000, 100000, 100000],
+  "threads": 16,
+  "seconds": 5.954,
+  "corridor": [
+    {"depth": 0, "machines": 1, "HALT": 1, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 0, "UNKNOWN": 0, "max_halt_steps": 0},
+    {"depth": 1, "machines": 4, "HALT": 2, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 2, "UNKNOWN": 0, "max_halt_steps": 1},
+    {"depth": 2, "machines": 24, "HALT": 13, "NONHALT_CYCLER": 1, "NONHALT_TRANSLATED": 10, "UNKNOWN": 0, "max_halt_steps": 3},
+    {"depth": 3, "machines": 188, "HALT": 109, "NONHALT_CYCLER": 9, "NONHALT_TRANSLATED": 70, "UNKNOWN": 0, "max_halt_steps": 5},
+    {"depth": 4, "machines": 1696, "HALT": 997, "NONHALT_CYCLER": 98, "NONHALT_TRANSLATED": 601, "UNKNOWN": 0, "max_halt_steps": 16},
+    {"depth": 5, "machines": 14152, "HALT": 8712, "NONHALT_CYCLER": 726, "NONHALT_TRANSLATED": 4714, "UNKNOWN": 0, "max_halt_steps": 19},
+    {"depth": 6, "machines": 105776, "HALT": 68621, "NONHALT_CYCLER": 4960, "NONHALT_TRANSLATED": 32195, "UNKNOWN": 0, "max_halt_steps": 31},
+    {"depth": 7, "machines": 721128, "HALT": 488953, "NONHALT_CYCLER": 29787, "NONHALT_TRANSLATED": 202388, "UNKNOWN": 0, "max_halt_steps": 34},
+    {"depth": 8, "machines": 4570944, "HALT": 3218370, "NONHALT_CYCLER": 171768, "NONHALT_TRANSLATED": 1180806, "UNKNOWN": 0, "max_halt_steps": 50},
+    {"depth": 9, "machines": 26065800, "HALT": 18874271, "NONHALT_CYCLER": 892464, "NONHALT_TRANSLATED": 6299065, "UNKNOWN": 0, "max_halt_steps": 63}
+  ],
+  "cell_machines": 26065800,
+  "late_cell_machines": 0,
+  "holdouts": 0,
+  "parent_holdouts": 0,
+  "top_halters": [
+    {"machine": "1RB---_0RC---_1RD---_1RE---_1RF---_1RG---_1LG0RH_---0RG", "steps": 63},
+    {"machine": "1RB---_1RC---_1RD---_1RE---_1RF---_1RG---_1LH0RF_---0LG", "steps": 61},
+    {"machine": "1RB---_0RC---_1RD---_1RE---_0RF---_0RG---_1LG0RH_---0LE", "steps": 59},
+    {"machine": "1RB---_1RC---_1RD---_1LE0LF_---1LD_---0LG_1RH---_0RC---", "steps": 55},
+    {"machine": "1RB---_1RC---_1RD---_1LE0LF_---1LD_---1LG_1RH---_---0RC", "steps": 55},
+    {"machine": "1RB---_0LC---_1RC0RD_0RE---_0RF---_1LG---_0LH---_0LB---", "steps": 53},
+    {"machine": "1RB---_0LC---_1RC0RD_0RE---_1RF---_1LG---_---0LH_0LB---", "steps": 53},
+    {"machine": "1RB---_0LC---_1RC0RD_1RE---_0RF---_1LG---_0LH---_---0LB", "steps": 53},
+    {"machine": "1RB---_0LC---_1RC0RD_1RE---_1RF---_1LG---_---0LH_---0LB", "steps": 53},
+    {"machine": "0RB---_0LC---_0LD---_1RE---_0RF---_0RG---_0RH---_1LH0LB", "steps": 51}
+  ],
+  "halter_digest": "0cef9ed31b2bb61b",
+  "claims": 8819664,
+  "claims_digest": "f360e3ba62207caa"
+}

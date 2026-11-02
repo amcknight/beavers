@@ -1,0 +1,40 @@
+{
+  "format": "bbi9-cell/1",
+  "cell": [7, 3],
+  "depth": 7,
+  "producer": "bbi9 0.1.0",
+  "caps": [10000, 100000, 1000000, 10000000],
+  "tc_windows": [10000, 100000, 100000, 100000],
+  "threads": 16,
+  "seconds": 0.167,
+  "corridor": [
+    {"depth": 0, "machines": 1, "HALT": 1, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 0, "UNKNOWN": 0, "max_halt_steps": 0, "halt_steps": 0},
+    {"depth": 1, "machines": 4, "HALT": 2, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 2, "UNKNOWN": 0, "max_halt_steps": 1, "halt_steps": 2},
+    {"depth": 2, "machines": 30, "HALT": 17, "NONHALT_CYCLER": 1, "NONHALT_TRANSLATED": 12, "UNKNOWN": 0, "max_halt_steps": 3, "halt_steps": 35},
+    {"depth": 3, "machines": 224, "HALT": 152, "NONHALT_CYCLER": 4, "NONHALT_TRANSLATED": 68, "UNKNOWN": 0, "max_halt_steps": 4, "halt_steps": 489},
+    {"depth": 4, "machines": 1640, "HALT": 1210, "NONHALT_CYCLER": 29, "NONHALT_TRANSLATED": 401, "UNKNOWN": 0, "max_halt_steps": 7, "halt_steps": 5113},
+    {"depth": 5, "machines": 11712, "HALT": 9119, "NONHALT_CYCLER": 160, "NONHALT_TRANSLATED": 2433, "UNKNOWN": 0, "max_halt_steps": 9, "halt_steps": 48286},
+    {"depth": 6, "machines": 81536, "HALT": 65993, "NONHALT_CYCLER": 1034, "NONHALT_TRANSLATED": 14509, "UNKNOWN": 0, "max_halt_steps": 13, "halt_steps": 416625},
+    {"depth": 7, "machines": 494592, "HALT": 416399, "NONHALT_CYCLER": 4516, "NONHALT_TRANSLATED": 73677, "UNKNOWN": 0, "max_halt_steps": 17, "halt_steps": 3057346}
+  ],
+  "cell_machines": 494592,
+  "late_cell_machines": 0,
+  "holdouts": 0,
+  "parent_holdouts": 0,
+  "top_halters": [
+    {"machine": "1RB------_1RC------_1RD------_1RE------_0LF------_---0RG---_2LE------", "steps": 17},
+    {"machine": "1RB------_1RC------_1RD------_1RE------_1LF------_---0RG---_---2LE---", "steps": 17},
+    {"machine": "1RB------_1RC------_1RD------_1RE------_2LF------_---0RG---_------0LE", "steps": 17},
+    {"machine": "1RB------_1RC------_1RD------_1RE------_2LF------_---0RG---_------1LE", "steps": 17},
+    {"machine": "1RB------_1RC------_1RD------_1RE------_2LF------_---0RG---_------2LE", "steps": 17},
+    {"machine": "1RB------_0RC------_0RD------_0RE------_0RF------_2LG------_0LE------", "steps": 16},
+    {"machine": "1RB------_0RC------_0RD------_0RE------_1RF------_2LG------_---0LE---", "steps": 16},
+    {"machine": "1RB------_0RC------_0RD------_0RE------_2RF------_0LG------_------0LE", "steps": 16},
+    {"machine": "1RB------_0RC------_0RD------_0RE------_2RF------_1LG------_------0LE", "steps": 16},
+    {"machine": "1RB------_0RC------_0RD------_0RE------_2RF------_2LG------_------0LE", "steps": 16}
+  ],
+  "halter_digest": "91ae22473000b50d",
+  "claims": 96846,
+  "claims_digest": "fdc7805abffc69bc",
+  "claims_split": 5
+}

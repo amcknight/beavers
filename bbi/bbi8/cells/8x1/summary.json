@@ -1,0 +1,41 @@
+{
+  "format": "bbi9-cell/1",
+  "cell": [8, 1],
+  "depth": 8,
+  "producer": "bbi9 0.1.0",
+  "caps": [10000, 100000, 1000000, 10000000],
+  "tc_windows": [10000, 100000, 100000, 100000],
+  "threads": 16,
+  "seconds": 0.007,
+  "corridor": [
+    {"depth": 0, "machines": 1, "HALT": 1, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 0, "UNKNOWN": 0, "max_halt_steps": 0, "halt_steps": 0},
+    {"depth": 1, "machines": 2, "HALT": 1, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 1, "UNKNOWN": 0, "max_halt_steps": 1, "halt_steps": 1},
+    {"depth": 2, "machines": 6, "HALT": 2, "NONHALT_CYCLER": 1, "NONHALT_TRANSLATED": 3, "UNKNOWN": 0, "max_halt_steps": 2, "halt_steps": 4},
+    {"depth": 3, "machines": 16, "HALT": 4, "NONHALT_CYCLER": 2, "NONHALT_TRANSLATED": 10, "UNKNOWN": 0, "max_halt_steps": 3, "halt_steps": 12},
+    {"depth": 4, "machines": 40, "HALT": 8, "NONHALT_CYCLER": 7, "NONHALT_TRANSLATED": 25, "UNKNOWN": 0, "max_halt_steps": 4, "halt_steps": 32},
+    {"depth": 5, "machines": 96, "HALT": 16, "NONHALT_CYCLER": 14, "NONHALT_TRANSLATED": 66, "UNKNOWN": 0, "max_halt_steps": 5, "halt_steps": 80},
+    {"depth": 6, "machines": 224, "HALT": 32, "NONHALT_CYCLER": 38, "NONHALT_TRANSLATED": 154, "UNKNOWN": 0, "max_halt_steps": 6, "halt_steps": 192},
+    {"depth": 7, "machines": 512, "HALT": 64, "NONHALT_CYCLER": 76, "NONHALT_TRANSLATED": 372, "UNKNOWN": 0, "max_halt_steps": 7, "halt_steps": 448},
+    {"depth": 8, "machines": 1152, "HALT": 128, "NONHALT_CYCLER": 187, "NONHALT_TRANSLATED": 837, "UNKNOWN": 0, "max_halt_steps": 8, "halt_steps": 1024}
+  ],
+  "cell_machines": 1152,
+  "late_cell_machines": 0,
+  "holdouts": 0,
+  "parent_holdouts": 0,
+  "top_halters": [
+    {"machine": "0RB_0LC_0LD_0LE_0LF_0LG_0LH_0LI", "steps": 8},
+    {"machine": "0RB_0LC_0LD_0LE_0LF_0LG_0LH_0RI", "steps": 8},
+    {"machine": "0RB_0LC_0LD_0LE_0LF_0LG_0RH_0LI", "steps": 8},
+    {"machine": "0RB_0LC_0LD_0LE_0LF_0LG_0RH_0RI", "steps": 8},
+    {"machine": "0RB_0LC_0LD_0LE_0LF_0RG_0LH_0LI", "steps": 8},
+    {"machine": "0RB_0LC_0LD_0LE_0LF_0RG_0LH_0RI", "steps": 8},
+    {"machine": "0RB_0LC_0LD_0LE_0LF_0RG_0RH_0LI", "steps": 8},
+    {"machine": "0RB_0LC_0LD_0LE_0LF_0RG_0RH_0RI", "steps": 8},
+    {"machine": "0RB_0LC_0LD_0LE_0RF_0LG_0LH_0LI", "steps": 8},
+    {"machine": "0RB_0LC_0LD_0LE_0RF_0LG_0LH_0RI", "steps": 8}
+  ],
+  "halter_digest": "0e24f558a772be07",
+  "claims": 1793,
+  "claims_digest": "b45b7e23c42848e5",
+  "claims_split": 5
+}

@@ -1,0 +1,63 @@
+{
+  "format": "bbi9-check/1",
+  "checker": "bbi9check 1.1",
+  "cell": [
+    6,
+    3
+  ],
+  "depth": 7,
+  "pass": true,
+  "failures": [],
+  "cell_machines": 6018502,
+  "census": 6018502,
+  "late_cell_machines": 0,
+  "census_match": true,
+  "holdouts": 0,
+  "parent_holdouts": 0,
+  "top_halters": [
+    {
+      "machine": "1RB------_2RC------_2RD------_2RE------_2RF------_2LF---0RF",
+      "steps": 50
+    },
+    {
+      "machine": "1RB------_2RC------_2RD------_2RE------_0RF------_2LF---0RF",
+      "steps": 40
+    },
+    {
+      "machine": "1RB------_2RC------_2RD------_0RE------_2RF------_2LF---0RF",
+      "steps": 38
+    },
+    {
+      "machine": "1RB------_2RC------_0RD------_2RE------_2RF------_2LF---0RF",
+      "steps": 36
+    },
+    {
+      "machine": "1RB------_0LC------_1RC0RD---_2RE------_1LF------_------0LB",
+      "steps": 34
+    },
+    {
+      "machine": "1RB------_0RC------_2RD------_2RE------_2RF------_2LF---0RF",
+      "steps": 34
+    },
+    {
+      "machine": "0RB------_1LC------_2LD------_2LE------_2LF------_2RF---0LF",
+      "steps": 33
+    },
+    {
+      "machine": "0RB------_1RC------_2RD------_2RE------_2RF------_2LF---0RF",
+      "steps": 33
+    },
+    {
+      "machine": "1RB------_1LC------_---2LD---_2LE------_2LF------_2RF---0LF",
+      "steps": 33
+    },
+    {
+      "machine": "1RB------_1RC------_2RD------_2RE------_2RF------_2LF---0RF",
+      "steps": 33
+    }
+  ],
+  "halter_digest": "e5461b8e3e7b511b",
+  "claims_digest": "cd37362f78aec734",
+  "seconds": 3.212,
+  "summary_sha256": "93736ba58e93c23486fba224f88cf628d974622fef2314b9430c7cead8f1d282"
+}

@@ -1,0 +1,25 @@
+{
+  "format": "bbi9-cell/1",
+  "cell": [1, 1],
+  "depth": 1,
+  "producer": "bbi9 0.1.0",
+  "caps": [10000, 100000, 1000000, 10000000],
+  "tc_windows": [10000, 100000, 100000, 100000],
+  "threads": 16,
+  "seconds": 0.000,
+  "corridor": [
+    {"depth": 0, "machines": 1, "HALT": 1, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 0, "UNKNOWN": 0, "max_halt_steps": 0, "halt_steps": 0},
+    {"depth": 1, "machines": 2, "HALT": 1, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 1, "UNKNOWN": 0, "max_halt_steps": 1, "halt_steps": 1}
+  ],
+  "cell_machines": 2,
+  "late_cell_machines": 0,
+  "holdouts": 0,
+  "parent_holdouts": 0,
+  "top_halters": [
+    {"machine": "0RB", "steps": 1}
+  ],
+  "halter_digest": "b51b47683164cd9e",
+  "claims": 1,
+  "claims_digest": "2c5371185238a315",
+  "claims_split": 1
+}

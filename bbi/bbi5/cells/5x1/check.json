@@ -1,0 +1,63 @@
+{
+  "format": "bbi9-check/1",
+  "checker": "bbi9check 1.1",
+  "cell": [
+    5,
+    1
+  ],
+  "depth": 5,
+  "pass": true,
+  "failures": [],
+  "cell_machines": 96,
+  "census": 96,
+  "late_cell_machines": 0,
+  "census_match": true,
+  "holdouts": 0,
+  "parent_holdouts": 0,
+  "top_halters": [
+    {
+      "machine": "0RB_0LC_0LD_0LE_0LF",
+      "steps": 5
+    },
+    {
+      "machine": "0RB_0LC_0LD_0LE_0RF",
+      "steps": 5
+    },
+    {
+      "machine": "0RB_0LC_0LD_0RE_0LF",
+      "steps": 5
+    },
+    {
+      "machine": "0RB_0LC_0LD_0RE_0RF",
+      "steps": 5
+    },
+    {
+      "machine": "0RB_0LC_0RD_0LE_0LF",
+      "steps": 5
+    },
+    {
+      "machine": "0RB_0LC_0RD_0LE_0RF",
+      "steps": 5
+    },
+    {
+      "machine": "0RB_0LC_0RD_0RE_0LF",
+      "steps": 5
+    },
+    {
+      "machine": "0RB_0LC_0RD_0RE_0RF",
+      "steps": 5
+    },
+    {
+      "machine": "0RB_0RC_0LD_0LE_0LF",
+      "steps": 5
+    },
+    {
+      "machine": "0RB_0RC_0LD_0LE_0RF",
+      "steps": 5
+    }
+  ],
+  "halter_digest": "31db6d2e5c43e69a",
+  "claims_digest": "58d701c39b6c9abf",
+  "seconds": 0.155,
+  "summary_sha256": "6e432f574b089366420e3926dcfcc4effbb9b99b3eedca1faaf028d33fbfb236"
+}

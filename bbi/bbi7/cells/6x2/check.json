@@ -1,0 +1,63 @@
+{
+  "format": "bbi9-check/1",
+  "checker": "bbi9check 1.1",
+  "cell": [
+    6,
+    2
+  ],
+  "depth": 7,
+  "pass": true,
+  "failures": [],
+  "cell_machines": 655592,
+  "census": 655592,
+  "late_cell_machines": 0,
+  "census_match": true,
+  "holdouts": 0,
+  "parent_holdouts": 0,
+  "top_halters": [
+    {
+      "machine": "1RB---_0LC---_1RC0RD_0RE---_1LF---_0LB---",
+      "steps": 34
+    },
+    {
+      "machine": "1RB---_0LC---_1RC0RD_1RE---_1LF---_---0LB",
+      "steps": 34
+    },
+    {
+      "machine": "1RB---_1RC---_1RD---_1RE---_1LF0RD_---0LE",
+      "steps": 33
+    },
+    {
+      "machine": "0RB---_0LC---_1RD---_0RE---_0RF---_1LF0LB",
+      "steps": 32
+    },
+    {
+      "machine": "0RB---_0RC---_1LD---_0LE---_0LF---_1RF0RB",
+      "steps": 32
+    },
+    {
+      "machine": "0RB---_1LC---_1RD---_---0RE_0RF---_1LF0LB",
+      "steps": 32
+    },
+    {
+      "machine": "0RB---_1RC---_1LD---_---0LE_0LF---_1RF0RB",
+      "steps": 32
+    },
+    {
+      "machine": "1RB---_0RC---_1LD---_0LE---_---0LF_1RF1RB",
+      "steps": 32
+    },
+    {
+      "machine": "1RB---_1RC---_1LD---_---0LE_---0LF_1RF1RB",
+      "steps": 32
+    },
+    {
+      "machine": "0RB---_1LC---_0LD---_0LE---_1RE0RF_0RB---",
+      "steps": 31
+    }
+  ],
+  "halter_digest": "d95f3453f4e6d47f",
+  "claims_digest": "960e1123dfda0e82",
+  "seconds": 0.698,
+  "summary_sha256": "fee7823669795f7c0cee0e2cb881f6f432f0dc04e38c507dc5ba078a9a405c2c"
+}

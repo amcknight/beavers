@@ -1,0 +1,38 @@
+{
+  "format": "bbi9-cell/1",
+  "cell": [2, 5],
+  "depth": 5,
+  "producer": "bbi9 0.1.0",
+  "caps": [10000, 100000, 1000000, 10000000],
+  "tc_windows": [10000, 100000, 100000, 100000],
+  "threads": 16,
+  "seconds": 0.013,
+  "corridor": [
+    {"depth": 0, "machines": 1, "HALT": 1, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 0, "UNKNOWN": 0, "max_halt_steps": 0, "halt_steps": 0},
+    {"depth": 1, "machines": 4, "HALT": 2, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 2, "UNKNOWN": 0, "max_halt_steps": 1, "halt_steps": 2},
+    {"depth": 2, "machines": 24, "HALT": 15, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 9, "UNKNOWN": 0, "max_halt_steps": 3, "halt_steps": 31},
+    {"depth": 3, "machines": 78, "HALT": 64, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 14, "UNKNOWN": 0, "max_halt_steps": 5, "halt_steps": 223},
+    {"depth": 4, "machines": 396, "HALT": 316, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 80, "UNKNOWN": 0, "max_halt_steps": 11, "halt_steps": 1574},
+    {"depth": 5, "machines": 1608, "HALT": 1400, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 208, "UNKNOWN": 0, "max_halt_steps": 19, "halt_steps": 9207}
+  ],
+  "cell_machines": 1608,
+  "late_cell_machines": 0,
+  "holdouts": 0,
+  "parent_holdouts": 0,
+  "top_halters": [
+    {"machine": "1RB0LB---------_2LA---3RA4LA---", "steps": 19},
+    {"machine": "1RB2LB---4LA---_2LA---3RB------", "steps": 17},
+    {"machine": "0RB------4LB---_1LA2LA3RB------", "steps": 13},
+    {"machine": "0RB---3LB------_1LA2RB---4RB---", "steps": 13},
+    {"machine": "1RB0LB---------_2LA---3RA4RB---", "steps": 13},
+    {"machine": "1RB------------_0LB2RB3LA4RA---", "steps": 12},
+    {"machine": "1RB------------_2LB2LA3RB4LB---", "steps": 12},
+    {"machine": "1RB------------_2LB3RB0RB4RB---", "steps": 12},
+    {"machine": "1RB------4LB---_0LB2LA3RA------", "steps": 12},
+    {"machine": "1RB0LB---------_2LA---3RA4LB---", "steps": 12}
+  ],
+  "halter_digest": "928aae9bd828cd40",
+  "claims": 313,
+  "claims_digest": "173636e140bbd548",
+  "claims_split": 5
+}

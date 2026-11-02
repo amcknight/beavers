@@ -1,0 +1,63 @@
+{
+  "format": "bbi9-check/1",
+  "checker": "bbi9check 1.3",
+  "cell": [
+    3,
+    2
+  ],
+  "depth": 6,
+  "pass": true,
+  "failures": [],
+  "cell_machines": 21120,
+  "census": 21120,
+  "late_cell_machines": 0,
+  "census_match": null,
+  "holdouts": 0,
+  "parent_holdouts": 4,
+  "top_halters": [
+    {
+      "machine": "1RB0LD_1LB0RC_1LC1LA",
+      "steps": 21
+    },
+    {
+      "machine": "1RB0RD_1LB0RC_1LC1LA",
+      "steps": 21
+    },
+    {
+      "machine": "1RB1LD_1LB0RC_1LC1LA",
+      "steps": 21
+    },
+    {
+      "machine": "1RB1RD_1LB0RC_1LC1LA",
+      "steps": 21
+    },
+    {
+      "machine": "1RB0LD_0LC0RC_1LC1LA",
+      "steps": 20
+    },
+    {
+      "machine": "1RB0RD_0LC0RC_1LC1LA",
+      "steps": 20
+    },
+    {
+      "machine": "1RB1LA_0RC0LD_1LC0LA",
+      "steps": 20
+    },
+    {
+      "machine": "1RB1LA_0RC0RD_1LC0LA",
+      "steps": 20
+    },
+    {
+      "machine": "1RB1LA_0RC1LD_1LC0LA",
+      "steps": 20
+    },
+    {
+      "machine": "1RB1LA_0RC1RD_1LC0LA",
+      "steps": 20
+    }
+  ],
+  "halter_digest": "b612034031bf2151",
+  "claims_digest": "ab84ae71a25bba42",
+  "seconds": 0.26,
+  "summary_sha256": "b453d952621fb74ac368f7ed9a3d546144b02996d803064ee45af5bcde59dc0a"
+}

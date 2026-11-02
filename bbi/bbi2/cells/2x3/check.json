@@ -1,0 +1,39 @@
+{
+  "format": "bbi9-check/1",
+  "checker": "bbi9check 1.1",
+  "cell": [
+    2,
+    3
+  ],
+  "depth": 2,
+  "pass": true,
+  "failures": [],
+  "cell_machines": 6,
+  "census": 6,
+  "late_cell_machines": 0,
+  "census_match": true,
+  "holdouts": 0,
+  "parent_holdouts": 0,
+  "top_halters": [
+    {
+      "machine": "1RB------_2LA------",
+      "steps": 2
+    },
+    {
+      "machine": "1RB------_2LB------",
+      "steps": 2
+    },
+    {
+      "machine": "1RB------_2LC------",
+      "steps": 2
+    },
+    {
+      "machine": "1RB------_2RC------",
+      "steps": 2
+    }
+  ],
+  "halter_digest": "2bc41155d110350d",
+  "claims_digest": "6fb9ad70f189e0e3",
+  "seconds": 0.152,
+  "summary_sha256": "a445fae4b4758b0d77952f1a56cf981822839892eaf7d8feada68931cb573e1b"
+}

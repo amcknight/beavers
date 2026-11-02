@@ -1,0 +1,39 @@
+{
+  "format": "bbi9-check/1",
+  "checker": "bbi9check 1.1",
+  "cell": [
+    3,
+    1
+  ],
+  "depth": 3,
+  "pass": true,
+  "failures": [],
+  "cell_machines": 16,
+  "census": 16,
+  "late_cell_machines": 0,
+  "census_match": true,
+  "holdouts": 0,
+  "parent_holdouts": 0,
+  "top_halters": [
+    {
+      "machine": "0RB_0LC_0LD",
+      "steps": 3
+    },
+    {
+      "machine": "0RB_0LC_0RD",
+      "steps": 3
+    },
+    {
+      "machine": "0RB_0RC_0LD",
+      "steps": 3
+    },
+    {
+      "machine": "0RB_0RC_0RD",
+      "steps": 3
+    }
+  ],
+  "halter_digest": "bfc39e5fd6082126",
+  "claims_digest": "48393867c471ad30",
+  "seconds": 0.152,
+  "summary_sha256": "ad457df6fc5b4169a5a3c5421b4645e7d5f7cbbe778dcdee63a7345376973f4e"
+}

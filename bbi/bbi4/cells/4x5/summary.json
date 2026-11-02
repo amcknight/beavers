@@ -1,0 +1,37 @@
+{
+  "format": "bbi9-cell/1",
+  "cell": [4, 5],
+  "depth": 4,
+  "producer": "bbi9 0.1.0",
+  "caps": [10000, 100000, 1000000, 10000000],
+  "tc_windows": [10000, 100000, 100000, 100000],
+  "threads": 16,
+  "seconds": 0.001,
+  "corridor": [
+    {"depth": 0, "machines": 1, "HALT": 1, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 0, "UNKNOWN": 0, "max_halt_steps": 0, "halt_steps": 0},
+    {"depth": 1, "machines": 2, "HALT": 1, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 1, "UNKNOWN": 0, "max_halt_steps": 1, "halt_steps": 1},
+    {"depth": 2, "machines": 6, "HALT": 4, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 2, "UNKNOWN": 0, "max_halt_steps": 2, "halt_steps": 8},
+    {"depth": 3, "machines": 16, "HALT": 13, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 3, "UNKNOWN": 0, "max_halt_steps": 4, "halt_steps": 41},
+    {"depth": 4, "machines": 40, "HALT": 34, "NONHALT_CYCLER": 0, "NONHALT_TRANSLATED": 6, "UNKNOWN": 0, "max_halt_steps": 5, "halt_steps": 139}
+  ],
+  "cell_machines": 40,
+  "late_cell_machines": 0,
+  "holdouts": 0,
+  "parent_holdouts": 0,
+  "top_halters": [
+    {"machine": "1RB------------_2LC------------_---3LD---------_4LA------------", "steps": 5},
+    {"machine": "1RB------------_2LC------------_---3LD---------_4LB------------", "steps": 5},
+    {"machine": "1RB------------_2LC------------_---3RD---------_------4RB------", "steps": 5},
+    {"machine": "1RB------------_2LC------------_---3LD---------_4LC------------", "steps": 4},
+    {"machine": "1RB------------_2LC------------_---3LD---------_4LE------------", "steps": 4},
+    {"machine": "1RB------------_2LC------------_---3LD---------_4RA------------", "steps": 4},
+    {"machine": "1RB------------_2LC------------_---3LD---------_4RB------------", "steps": 4},
+    {"machine": "1RB------------_2LC------------_---3LD---------_4RC------------", "steps": 4},
+    {"machine": "1RB------------_2LC------------_---3LD---------_4RD------------", "steps": 4},
+    {"machine": "1RB------------_2LC------------_---3LD---------_4RE------------", "steps": 4}
+  ],
+  "halter_digest": "c719623cc46a38b2",
+  "claims": 12,
+  "claims_digest": "09842c02f734a8e2",
+  "claims_split": 4
+}

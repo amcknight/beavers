@@ -1,0 +1,31 @@
+{
+  "format": "bbi9-check/1",
+  "checker": "bbi9check 1.1",
+  "cell": [
+    2,
+    1
+  ],
+  "depth": 2,
+  "pass": true,
+  "failures": [],
+  "cell_machines": 6,
+  "census": 6,
+  "late_cell_machines": 0,
+  "census_match": true,
+  "holdouts": 0,
+  "parent_holdouts": 0,
+  "top_halters": [
+    {
+      "machine": "0RB_0LC",
+      "steps": 2
+    },
+    {
+      "machine": "0RB_0RC",
+      "steps": 2
+    }
+  ],
+  "halter_digest": "4bcdb0665139476c",
+  "claims_digest": "ff0d72d9301499cb",
+  "seconds": 0.153,
+  "summary_sha256": "9da89c111acdc223b7ff0176da5934ecb7a615b3d7586ced014d622f405ba8de"
+}
