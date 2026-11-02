@@ -1,0 +1,77 @@
+{
+  "format": "bbi9-import/1",
+  "importer": "bbi9 imports 1.0",
+  "cell": [
+    3,
+    4
+  ],
+  "depth": 8,
+  "base_summary_sha256": "3bfe04a0ed437afdee2cf51f8c1edd8c6878820021ff9e5aad10236361d5ea74",
+  "base_amend_sha256": null,
+  "lists": [
+    {
+      "id": "bbi8-2026-10-25",
+      "sha256": "aabde837dd73b5ef74f77bfd4f39737fe4d8755e5aead05d7e84141ad595b2c0",
+      "entry_sha256": "76cc693aaa31c97861963e6ee6af631cefd03a49f0f70d593a3bb028c43d6c0c",
+      "credit": "Nick Drozd, 2026-10-25",
+      "label": "BBi(8)",
+      "speaks": true
+    },
+    {
+      "id": "bb3x4-2026-05-11",
+      "sha256": "a06e234f51f9c58a7f5e906d8332643762a4af6164346950e2c70fa6ecf852cf",
+      "entry_sha256": "78c8e900df76953e3b84a84356352b8b4f47f46f56b89406d5273f452c55f4cd",
+      "credit": "XnoobSpeakable, 2026-05-11",
+      "label": "BB(3,4)",
+      "speaks": true
+    }
+  ],
+  "decided": {
+    "bbi8-2026-10-25": {
+      "holdouts": 13693,
+      "parent_holdouts": 0
+    },
+    "bb3x4-2026-05-11": {
+      "holdouts": 33,
+      "parent_holdouts": 191
+    }
+  },
+  "maker_holdouts": {
+    "holdouts": 0,
+    "parent_holdouts": 0
+  },
+  "maker_holdouts_by_list": {
+    "bbi8-2026-10-25": {
+      "holdouts": 0,
+      "parent_holdouts": 0
+    },
+    "bb3x4-2026-05-11": {
+      "holdouts": 0,
+      "parent_holdouts": 0
+    }
+  },
+  "strangers": {
+    "bbi8-2026-10-25": 0,
+    "bb3x4-2026-05-11": 0
+  },
+  "holdouts": 39,
+  "parent_holdouts": 6,
+  "imported": 13917,
+  "import_digest": "3ca0c5456850841c",
+  "no_map": 35,
+  "kinds_by_list": {
+    "bbi8-2026-10-25": [
+      0,
+      3,
+      0,
+      0
+    ],
+    "bb3x4-2026-05-11": [
+      0,
+      142,
+      0,
+      0
+    ]
+  },
+  "seconds": 87.825
+}
