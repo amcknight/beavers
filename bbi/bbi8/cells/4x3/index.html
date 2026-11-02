@@ -2865,19 +2865,22 @@ table.runs { border-collapse: collapse; font-size: 0.85rem; margin: 0.4rem 0; }
 </div>
 </section>
 <section>
-<h2>Other holdout lists</h2>
-<p><a href="https://wiki.bbchallenge.org/w/images/e/e7/BBi%288%29_holdouts_9.txt">Nick Drozd</a>'s BBi(8) holdout list (2026-10-25) leaves none of this cell's machines open.</p>
-<p><a href="https://drive.google.com/file/d/1xHukBgJnm1zctZkOMR0UzdQyzr4Fx5pC/view">Andrew Ducharme</a>'s BB(4,3) holdout list (2026-05-09) leaves 69 of this cell's machines open, counted the list's way, and 6 shorter ones that could grow into it.</p>
-<p>These are other people's lists. They do not change this cell's status or counts.</p>
-</section>
-<section>
 <h2>The 10 longest runs</h2>
 <table class="runs"><thead><tr><th class="n" scope="col">steps</th><th scope="col">machine</th></tr></thead><tbody><tr><td class="n">3,934,998</td><td><code class="m">1RB------_<wbr>1RC2LB1RB_<wbr>2LD1LB2RC_<wbr>---1LC---</code></td></tr><tr><td class="n">3,934,997</td><td><code class="m">1RB2LA1RA_<wbr>0LC1LA2RB_<wbr>---1RD---_<wbr>1LB------</code></td></tr><tr><td class="n">3,934,997</td><td><code class="m">1RB2LA1RA_<wbr>1LC1LA2RB_<wbr>---1RD---_<wbr>---1LB---</code></td></tr><tr><td class="n">3,934,997</td><td><code class="m">1RB2LA1RA_<wbr>2LC1LA2RB_<wbr>---1RD---_<wbr>------1LB</code></td></tr><tr><td class="n">3,932,993</td><td><code class="m">1RB------_<wbr>1RC2LB1RB_<wbr>1LD---1RD_<wbr>---1LB2RD</code></td></tr><tr><td class="n">3,932,964</td><td><code class="m">0RB------_<wbr>1LC2RB1LB_<wbr>1RD1RB2LC_<wbr>---1RB---</code></td></tr><tr><td class="n">3,932,964</td><td><code class="m">0RB------_<wbr>1RC2LB1RB_<wbr>1LD1LB2RC_<wbr>---1LB---</code></td></tr><tr><td class="n">3,932,963</td><td><code class="m">1RB------_<wbr>1LC1LD2RB_<wbr>---1LD---_<wbr>1RB2LD1RD</code></td></tr><tr><td class="n">3,932,962</td><td><code class="m">1RB------_<wbr>1RC2LB1RB_<wbr>1LD1LB2RC_<wbr>---1LB---</code></td></tr><tr><td class="n">3,932,961</td><td><code class="m">1RB------_<wbr>1RC2LB1RB_<wbr>1LD---2RD_<wbr>---1LB2RD</code></td></tr></tbody></table>
 </section>
 <section>
 <h2>Files</h2>
-<ul class="files"><li><a href="summary.json">summary.json</a>, the producer's counts and digests</li><li><a href="check.json">check.json</a>, the checker's report</li><li><a href="BBi8_4x3_holdouts_unofficial.txt">BBi8_4x3_holdouts_unofficial.txt</a>, 5,165 holdouts</li><li><a href="BBi8_4x3_parent_holdouts_unofficial.txt">BBi8_4x3_parent_holdouts_unofficial.txt</a>, 87 parents</li></ul>
+<ul class="files"><li><a href="summary.json">summary.json</a>, the producer's counts and digests</li><li><a href="check.json">check.json</a>, the checker's report</li><li><a href="BBi8_4x3_holdouts_unofficial.txt">BBi8_4x3_holdouts_unofficial.txt</a>, 5,165 holdouts</li><li><a href="BBi8_4x3_parent_holdouts_unofficial.txt">BBi8_4x3_parent_holdouts_unofficial.txt</a>, 87 parents</li><li><a href="import.json">import.json</a>, the import's counts and digest</li><li><a href="import.tsv.gz">import.tsv.gz</a>, 5,221 lines, one for each holdout a list decides</li><li><a href="import_check.json">import_check.json</a>, the checker's report on the import</li><li><a href="BBi8_4x3_holdouts_after_lists_unofficial.txt">BBi8_4x3_holdouts_after_lists_unofficial.txt</a>, 25 holdouts no list decides</li><li><a href="BBi8_4x3_parent_holdouts_after_lists_unofficial.txt">BBi8_4x3_parent_holdouts_after_lists_unofficial.txt</a>, 6 parent holdouts no list decides</li></ul>
 <p>Parents are machines of seven instructions or fewer that our run could not settle. If one of them halts, its eight-instruction descendants can land in this cell, so the cell cannot close until they are settled.</p>
+</section>
+<section>
+<h2>Decided with other people's lists</h2>
+<p><a href="https://wiki.bbchallenge.org/w/images/e/e7/BBi%288%29_holdouts_9.txt">Nick Drozd</a>'s BBi(8) holdout list of 2026-10-25 decides 5,047 of this cell's holdouts and no parent holdouts, leaving 205.</p>
+<p><a href="https://drive.google.com/file/d/1xHukBgJnm1zctZkOMR0UzdQyzr4Fx5pC/view">Andrew Ducharme</a>'s BB(4,3) holdout list of 2026-05-09 decides 93 of this cell's holdouts and 81 parent holdouts, leaving 31.</p>
+<p>What no list decides is in <a href="BBi8_4x3_holdouts_after_lists_unofficial.txt">BBi8_4x3_holdouts_after_lists_unofficial.txt</a> and <a href="BBi8_4x3_parent_holdouts_after_lists_unofficial.txt">BBi8_4x3_parent_holdouts_after_lists_unofficial.txt</a>.</p>
+<p>A machine these lists decide may halt or never halt. Their makers know which. Our own lists above are unchanged.</p>
+<p>This rests on each list being its maker's whole list, as its entry in the registry states.</p>
+<p>The check read Nick Drozd's file by its SHA-256, <code>aabde837dd73b5ef74f77bfd4f39737fe4d8755e5aead05d7e84141ad595b2c0</code> and Andrew Ducharme's file by its SHA-256, <code>1d6f8f21750a2fec3bec462e817c0c3a3fc230c4aa793aa667fc3a26cf0a980d</code>, and the registry, <code>experiments/bbi/lists.yaml</code>.</p>
 </section>
 <section>
 <h2>Reproducing this cell</h2>
@@ -2885,6 +2888,9 @@ table.runs { border-collapse: collapse; font-size: 0.85rem; margin: 0.4rem 0; }
 <pre><code>python bbi9check.py &lt;this cell's directory&gt; --census census.tsv</code></pre>
 <p>The claims were made by our producer, version 0.5.0, as this cell's summary records, and the checker verifies them without it.</p>
 <p><code>summary.json</code> records the halter digest <code>746402821b6386a6</code> and the claims digest <code>e4d60631df4eb92a</code>, for comparing a rerun with the same producer, bbi9 0.5.0.</p>
+<p>From the top of the repository, the import reads other people's lists and writes into another directory. Once its files are moved into the cell, the checker checks the import.</p>
+<pre><code>python -m experiments.bbi.bbi9.imports --bbi 8 4x3 --out experiments/bbi/bbi8/rerun/4x3
+python experiments/bbi/bbi9/checker/bbi9check.py experiments/bbi/bbi8/cells/4x3 --import --census experiments/bbi/bbi9/census.tsv --lists experiments/bbi/lists.yaml</code></pre>
 </section>
 <footer>Part of <a href="../../index.html">BBi(8), cell by cell</a>.</footer>
 </main>
