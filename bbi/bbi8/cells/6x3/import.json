@@ -1,0 +1,54 @@
+{
+  "format": "bbi9-import/1",
+  "importer": "bbi9 imports 1.0",
+  "cell": [
+    6,
+    3
+  ],
+  "depth": 8,
+  "base_summary_sha256": "8a8a5d51706c3c44bd10a92d67319529cc596eae9226b13fe851acd6bdbe5835",
+  "base_amend_sha256": "086b8ee461a2075fcc4253269ad9f33692aded6dffccb4d72879b08ea25f8d2e",
+  "lists": [
+    {
+      "id": "bbi8-2026-10-25",
+      "sha256": "aabde837dd73b5ef74f77bfd4f39737fe4d8755e5aead05d7e84141ad595b2c0",
+      "entry_sha256": "76cc693aaa31c97861963e6ee6af631cefd03a49f0f70d593a3bb028c43d6c0c",
+      "credit": "Nick Drozd, 2026-10-25",
+      "label": "BBi(8)",
+      "speaks": true
+    }
+  ],
+  "decided": {
+    "bbi8-2026-10-25": {
+      "holdouts": 145,
+      "parent_holdouts": 0
+    }
+  },
+  "maker_holdouts": {
+    "holdouts": 0,
+    "parent_holdouts": 0
+  },
+  "maker_holdouts_by_list": {
+    "bbi8-2026-10-25": {
+      "holdouts": 0,
+      "parent_holdouts": 0
+    }
+  },
+  "strangers": {
+    "bbi8-2026-10-25": 0
+  },
+  "holdouts": 11,
+  "parent_holdouts": 5,
+  "imported": 145,
+  "import_digest": "a2d097acf7279cfa",
+  "no_map": 0,
+  "kinds_by_list": {
+    "bbi8-2026-10-25": [
+      0,
+      0,
+      0,
+      0
+    ]
+  },
+  "seconds": 0.011
+}

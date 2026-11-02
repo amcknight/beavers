@@ -1151,11 +1151,6 @@ table.runs { border-collapse: collapse; font-size: 0.85rem; margin: 0.4rem 0; }
 </div>
 </section>
 <section>
-<h2>Other holdout lists</h2>
-<p><a href="https://wiki.bbchallenge.org/w/images/e/e7/BBi%288%29_holdouts_9.txt">Nick Drozd</a>'s BBi(8) holdout list (2026-10-25) leaves none of this cell's machines open.</p>
-<p>These are other people's lists. They do not change this cell's status or counts.</p>
-</section>
-<section>
 <h2>The 10 longest runs</h2>
 <table class="runs"><thead><tr><th class="n" scope="col">steps</th><th scope="col">machine</th></tr></thead><tbody><tr><td class="n">123</td><td><code class="m">1RB------_<wbr>0RC------_<wbr>0RD------_<wbr>0RE------_<wbr>1LF------_<wbr>2RF2RE0LF</code></td></tr><tr><td class="n">96</td><td><code class="m">1RB------_<wbr>1RC------_<wbr>1RD------_<wbr>2RE2RD0RF_<wbr>1LD------_<wbr>---1LE---</code></td></tr><tr><td class="n">96</td><td><code class="m">1RB------_<wbr>2LB0RB1LC_<wbr>1LD------_<wbr>1LE------_<wbr>1LF------_<wbr>1LA------</code></td></tr><tr><td class="n">96</td><td><code class="m">1RB------_<wbr>2RC------_<wbr>2RD------_<wbr>2RE------_<wbr>0RF---0RE_<wbr>2LE---2LF</code></td></tr><tr><td class="n">90</td><td><code class="m">1RB------_<wbr>0RC------_<wbr>0RD------_<wbr>2RE------_<wbr>1LF------_<wbr>2RF2RE0LF</code></td></tr><tr><td class="n">90</td><td><code class="m">1RB------_<wbr>1RC------_<wbr>1RD------_<wbr>1RE------_<wbr>1RF2RE1LE_<wbr>2LE------</code></td></tr><tr><td class="n">88</td><td><code class="m">1RB------_<wbr>0RC------_<wbr>2RD------_<wbr>0RE------_<wbr>1LF------_<wbr>2RF2RE0LF</code></td></tr><tr><td class="n">88</td><td><code class="m">1RB------_<wbr>1RC------_<wbr>1RD------_<wbr>1RE2RD1LD_<wbr>2RF------_<wbr>2LD------</code></td></tr><tr><td class="n">87</td><td><code class="m">1RB------_<wbr>1RC------_<wbr>0LD---0RC_<wbr>0LF0RE---_<wbr>2LC------_<wbr>1RA------</code></td></tr><tr><td class="n">87</td><td><code class="m">1RB------_<wbr>1RC------_<wbr>1RD------_<wbr>1RE------_<wbr>2LF------_<wbr>2RF0LF1RA</code></td></tr></tbody></table>
 </section>
@@ -1166,8 +1161,16 @@ table.runs { border-collapse: collapse; font-size: 0.85rem; margin: 0.4rem 0; }
 </section>
 <section>
 <h2>Files</h2>
-<ul class="files"><li><a href="summary.json">summary.json</a>, the producer's counts and digests</li><li><a href="check.json">check.json</a>, the checker's report on the full run</li><li><a href="BBi8_6x3_holdouts_unofficial.txt">BBi8_6x3_holdouts_unofficial.txt</a>, 156 holdouts</li><li><a href="BBi8_6x3_parent_holdouts_unofficial.txt">BBi8_6x3_parent_holdouts_unofficial.txt</a>, 5 parents</li><li><a href="amend.json">amend.json</a>, the amendment's counts and digest</li><li><a href="amend.tsv.gz">amend.tsv.gz</a>, 6,865 claims, one for each holdout the amendment showed never halts</li><li><a href="amend_check.json">amend_check.json</a>, the checker's report on the amendment</li></ul>
+<ul class="files"><li><a href="summary.json">summary.json</a>, the producer's counts and digests</li><li><a href="check.json">check.json</a>, the checker's report on the full run</li><li><a href="BBi8_6x3_holdouts_unofficial.txt">BBi8_6x3_holdouts_unofficial.txt</a>, 156 holdouts</li><li><a href="BBi8_6x3_parent_holdouts_unofficial.txt">BBi8_6x3_parent_holdouts_unofficial.txt</a>, 5 parents</li><li><a href="amend.json">amend.json</a>, the amendment's counts and digest</li><li><a href="amend.tsv.gz">amend.tsv.gz</a>, 6,865 claims, one for each holdout the amendment showed never halts</li><li><a href="amend_check.json">amend_check.json</a>, the checker's report on the amendment</li><li><a href="import.json">import.json</a>, the import's counts and digest</li><li><a href="import.tsv.gz">import.tsv.gz</a>, 145 lines, one for each holdout a list decides</li><li><a href="import_check.json">import_check.json</a>, the checker's report on the import</li><li><a href="BBi8_6x3_holdouts_after_lists_unofficial.txt">BBi8_6x3_holdouts_after_lists_unofficial.txt</a>, 11 holdouts no list decides</li><li><a href="BBi8_6x3_parent_holdouts_after_lists_unofficial.txt">BBi8_6x3_parent_holdouts_after_lists_unofficial.txt</a>, 5 parent holdouts no list decides</li></ul>
 <p>Parents are machines of seven instructions or fewer that our run could not settle. If one of them halts, its eight-instruction descendants can land in this cell, so the cell cannot close until they are settled.</p>
+</section>
+<section>
+<h2>Decided with other people's lists</h2>
+<p><a href="https://wiki.bbchallenge.org/w/images/e/e7/BBi%288%29_holdouts_9.txt">Nick Drozd</a>'s BBi(8) holdout list of 2026-10-25 decides 145 of this cell's holdouts and no parent holdouts, leaving 16.</p>
+<p>What no list decides is in <a href="BBi8_6x3_holdouts_after_lists_unofficial.txt">BBi8_6x3_holdouts_after_lists_unofficial.txt</a> and <a href="BBi8_6x3_parent_holdouts_after_lists_unofficial.txt">BBi8_6x3_parent_holdouts_after_lists_unofficial.txt</a>.</p>
+<p>A machine these lists decide may halt or never halt. Their makers know which. Our own lists above are unchanged.</p>
+<p>This rests on each list being its maker's whole list, as its entry in the registry states.</p>
+<p>The check read Nick Drozd's file by its SHA-256, <code>aabde837dd73b5ef74f77bfd4f39737fe4d8755e5aead05d7e84141ad595b2c0</code>, and the registry, <code>experiments/bbi/lists.yaml</code>.</p>
 </section>
 <section>
 <h2>Reproducing this cell</h2>
@@ -1176,6 +1179,9 @@ table.runs { border-collapse: collapse; font-size: 0.85rem; margin: 0.4rem 0; }
 <p>The claims were made by our producer, version 0.3.0, as this cell's summary records, and the checker verifies them without it.</p>
 <p><code>summary.json</code> records the halter digest <code>6d8b4a7af3750681</code> and the claims digest <code>0c372e392c89eccd</code>, for comparing a rerun with the same producer, bbi9 0.3.0.</p>
 <p><code>amend.json</code> records the amend digest <code>c05bc5c9a58a906c</code>, for comparing an amendment with the same producer, bbi9 0.5.0.</p>
+<p>From the top of the repository, the import reads other people's lists and writes into another directory. Once its files are moved into the cell, the checker checks the import.</p>
+<pre><code>python -m experiments.bbi.bbi9.imports --bbi 8 6x3 --out experiments/bbi/bbi8/rerun/6x3
+python experiments/bbi/bbi9/checker/bbi9check.py experiments/bbi/bbi8/cells/6x3 --import --census experiments/bbi/bbi9/census.tsv --lists experiments/bbi/lists.yaml</code></pre>
 </section>
 <footer>Part of <a href="../../index.html">BBi(8), cell by cell</a>.</footer>
 </main>
