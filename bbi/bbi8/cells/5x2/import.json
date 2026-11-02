@@ -1,0 +1,77 @@
+{
+  "format": "bbi9-import/1",
+  "importer": "bbi9 imports 1.0",
+  "cell": [
+    5,
+    2
+  ],
+  "depth": 8,
+  "base_summary_sha256": "216d8f2394c09ab6cc3021ba33d18a8767652e0913b16d93b0fa04208538c2c0",
+  "base_amend_sha256": "a4b69dce0c43dbb0fcf0beee2fc86a64589205e4f3195f31f9c646c2e35244b0",
+  "lists": [
+    {
+      "id": "bbi8-2026-10-25",
+      "sha256": "aabde837dd73b5ef74f77bfd4f39737fe4d8755e5aead05d7e84141ad595b2c0",
+      "entry_sha256": "76cc693aaa31c97861963e6ee6af631cefd03a49f0f70d593a3bb028c43d6c0c",
+      "credit": "Nick Drozd, 2026-10-25",
+      "label": "BBi(8)",
+      "speaks": true
+    },
+    {
+      "id": "bb6-2026-10-24",
+      "sha256": "52c825d1e6194e07951cdcd8a8deec38943b6eb27dcf71cba66655a99e581c42",
+      "entry_sha256": "40592e920f03702c265514753d12f89dbb7a8f90593fae40766e9000c44b2535",
+      "credit": "mxdys, 2026-10-24",
+      "label": "BB(6)",
+      "speaks": true
+    }
+  ],
+  "decided": {
+    "bbi8-2026-10-25": {
+      "holdouts": 9,
+      "parent_holdouts": 0
+    },
+    "bb6-2026-10-24": {
+      "holdouts": 0,
+      "parent_holdouts": 0
+    }
+  },
+  "maker_holdouts": {
+    "holdouts": 0,
+    "parent_holdouts": 0
+  },
+  "maker_holdouts_by_list": {
+    "bbi8-2026-10-25": {
+      "holdouts": 0,
+      "parent_holdouts": 0
+    },
+    "bb6-2026-10-24": {
+      "holdouts": 0,
+      "parent_holdouts": 0
+    }
+  },
+  "strangers": {
+    "bbi8-2026-10-25": 0,
+    "bb6-2026-10-24": 0
+  },
+  "holdouts": 0,
+  "parent_holdouts": 0,
+  "imported": 9,
+  "import_digest": "d0b7b8d8017cceb3",
+  "no_map": 0,
+  "kinds_by_list": {
+    "bbi8-2026-10-25": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "bb6-2026-10-24": [
+      0,
+      0,
+      0,
+      0
+    ]
+  },
+  "seconds": 0.011
+}
