@@ -1,0 +1,54 @@
+{
+  "format": "bbi9-import/1",
+  "importer": "bbi9 imports 1.0",
+  "cell": [
+    4,
+    3
+  ],
+  "depth": 7,
+  "base_summary_sha256": "712185d0a71481840c5586ec9b1d2c3e624bd639a30465dc857ef41d51a8a3ba",
+  "base_amend_sha256": "ce57823bafeb74d681526e39c841ee3c0ee3c4cf56a5fe316a03b40de697c808",
+  "lists": [
+    {
+      "id": "bb4x3-2026-05-09",
+      "sha256": "1d6f8f21750a2fec3bec462e817c0c3a3fc230c4aa793aa667fc3a26cf0a980d",
+      "entry_sha256": "979a2bb72779aac842e57570c84da7b06a9e872038facba5c1e09ced6e93bf5c",
+      "credit": "Andrew Ducharme, 2026-05-09",
+      "label": "BB(4,3)",
+      "speaks": true
+    }
+  ],
+  "decided": {
+    "bb4x3-2026-05-09": {
+      "holdouts": 39,
+      "parent_holdouts": 0
+    }
+  },
+  "maker_holdouts": {
+    "holdouts": 0,
+    "parent_holdouts": 0
+  },
+  "maker_holdouts_by_list": {
+    "bb4x3-2026-05-09": {
+      "holdouts": 0,
+      "parent_holdouts": 0
+    }
+  },
+  "strangers": {
+    "bb4x3-2026-05-09": 0
+  },
+  "holdouts": 1,
+  "parent_holdouts": 0,
+  "imported": 39,
+  "import_digest": "4a5afd8acc989251",
+  "no_map": 0,
+  "kinds_by_list": {
+    "bb4x3-2026-05-09": [
+      0,
+      1,
+      0,
+      0
+    ]
+  },
+  "seconds": 12.682
+}

@@ -3406,11 +3406,6 @@ table.runs { border-collapse: collapse; font-size: 0.85rem; margin: 0.4rem 0; }
 </div>
 </section>
 <section>
-<h2>Other holdout lists</h2>
-<p><a href="https://drive.google.com/file/d/1xHukBgJnm1zctZkOMR0UzdQyzr4Fx5pC/view">Andrew Ducharme</a>'s BB(4,3) holdout list (2026-05-09) leaves 1 of this cell's machines open, counted the list's way.</p>
-<p>These are other people's lists. They do not change this cell's status or counts.</p>
-</section>
-<section>
 <h2>The 10 longest runs</h2>
 <table class="runs"><thead><tr><th class="n" scope="col">steps</th><th scope="col">machine</th></tr></thead><tbody><tr><td class="n">1,929</td><td><code class="m">1RB------_<wbr>2RC1RB---_<wbr>2LD------_<wbr>2RB2RD1LD</code></td></tr><tr><td class="n">309</td><td><code class="m">1RB------_<wbr>2RC---2RD_<wbr>2LC1RD0RC_<wbr>------0RB</code></td></tr><tr><td class="n">269</td><td><code class="m">1RB------_<wbr>2LB1RC0RB_<wbr>------2RD_<wbr>2RB---0RC</code></td></tr><tr><td class="n">218</td><td><code class="m">1RB0LA1RA_<wbr>1LC2RD---_<wbr>---1LA---_<wbr>---2RA---</code></td></tr><tr><td class="n">211</td><td><code class="m">1RB------_<wbr>2RC---2RD_<wbr>2LC2LA0RC_<wbr>------0RB</code></td></tr><tr><td class="n">197</td><td><code class="m">1RB------_<wbr>2RC---0RD_<wbr>2LC2LA0RC_<wbr>------2RB</code></td></tr><tr><td class="n">193</td><td><code class="m">1RB1RD---_<wbr>2LC------_<wbr>2RA2RC1LC_<wbr>---2RA---</code></td></tr><tr><td class="n">190</td><td><code class="m">1RB0LA0RA_<wbr>1LC1RD---_<wbr>---1LA---_<wbr>---2RA---</code></td></tr><tr><td class="n">183</td><td><code class="m">1RB2RD---_<wbr>2LC------_<wbr>2RA2RC1LC_<wbr>---1RA---</code></td></tr><tr><td class="n">177</td><td><code class="m">1RB---2RD_<wbr>2LC------_<wbr>1RA2LC1RC_<wbr>------1RA</code></td></tr></tbody></table>
 </section>
@@ -3421,7 +3416,15 @@ table.runs { border-collapse: collapse; font-size: 0.85rem; margin: 0.4rem 0; }
 </section>
 <section>
 <h2>Files</h2>
-<ul class="files"><li><a href="summary.json">summary.json</a>, the producer's counts and digests</li><li><a href="check.json">check.json</a>, the checker's report on the full run</li><li><a href="BBi7_4x3_holdouts_unofficial.txt">BBi7_4x3_holdouts_unofficial.txt</a>, 40 holdouts</li><li><a href="BBi7_4x3_parent_holdouts_unofficial.txt">BBi7_4x3_parent_holdouts_unofficial.txt</a>, 0 parents</li><li><a href="amend.json">amend.json</a>, the amendment's counts and digest</li><li><a href="amend.tsv.gz">amend.tsv.gz</a>, 3,699 claims, one for each holdout the amendment showed never halts</li><li><a href="amend_check.json">amend_check.json</a>, the checker's report on the amendment</li></ul>
+<ul class="files"><li><a href="summary.json">summary.json</a>, the producer's counts and digests</li><li><a href="check.json">check.json</a>, the checker's report on the full run</li><li><a href="BBi7_4x3_holdouts_unofficial.txt">BBi7_4x3_holdouts_unofficial.txt</a>, 40 holdouts</li><li><a href="BBi7_4x3_parent_holdouts_unofficial.txt">BBi7_4x3_parent_holdouts_unofficial.txt</a>, 0 parents</li><li><a href="amend.json">amend.json</a>, the amendment's counts and digest</li><li><a href="amend.tsv.gz">amend.tsv.gz</a>, 3,699 claims, one for each holdout the amendment showed never halts</li><li><a href="amend_check.json">amend_check.json</a>, the checker's report on the amendment</li><li><a href="import.json">import.json</a>, the import's counts and digest</li><li><a href="import.tsv.gz">import.tsv.gz</a>, 39 lines, one for each holdout a list decides</li><li><a href="import_check.json">import_check.json</a>, the checker's report on the import</li><li><a href="BBi7_4x3_holdouts_after_lists_unofficial.txt">BBi7_4x3_holdouts_after_lists_unofficial.txt</a>, 1 holdout no list decides</li><li><a href="BBi7_4x3_parent_holdouts_after_lists_unofficial.txt">BBi7_4x3_parent_holdouts_after_lists_unofficial.txt</a>, 0 parent holdouts no list decides</li></ul>
+</section>
+<section>
+<h2>Decided with other people's lists</h2>
+<p><a href="https://drive.google.com/file/d/1xHukBgJnm1zctZkOMR0UzdQyzr4Fx5pC/view">Andrew Ducharme</a>'s BB(4,3) holdout list of 2026-05-09 decides 39 of this cell's holdouts, leaving 1.</p>
+<p>What no list decides is in <a href="BBi7_4x3_holdouts_after_lists_unofficial.txt">BBi7_4x3_holdouts_after_lists_unofficial.txt</a> and <a href="BBi7_4x3_parent_holdouts_after_lists_unofficial.txt">BBi7_4x3_parent_holdouts_after_lists_unofficial.txt</a>.</p>
+<p>A machine these lists decide may halt or never halt. Their makers know which. Our own lists above are unchanged.</p>
+<p>This rests on each list being its maker's whole list, as its entry in the registry states.</p>
+<p>The check read Andrew Ducharme's file by its SHA-256, <code>1d6f8f21750a2fec3bec462e817c0c3a3fc230c4aa793aa667fc3a26cf0a980d</code>, and the registry, <code>experiments/bbi/lists.yaml</code>.</p>
 </section>
 <section>
 <h2>Reproducing this cell</h2>
@@ -3430,6 +3433,9 @@ table.runs { border-collapse: collapse; font-size: 0.85rem; margin: 0.4rem 0; }
 <p>The claims were made by our producer, version 0.3.0, as this cell's summary records, and the checker verifies them without it.</p>
 <p><code>summary.json</code> records the halter digest <code>cd1b150427e5f08a</code> and the claims digest <code>c33cc95d47787643</code>, for comparing a rerun with the same producer, bbi9 0.3.0.</p>
 <p><code>amend.json</code> records the amend digest <code>ac57bfc12777d3f4</code>, for comparing an amendment with the same producer, bbi9 0.5.0.</p>
+<p>From the top of the repository, the import reads other people's lists and writes into another directory. Once its files are moved into the cell, the checker checks the import.</p>
+<pre><code>python -m experiments.bbi.bbi9.imports --bbi 7 4x3 --out experiments/bbi/bbi7/rerun/4x3
+python experiments/bbi/bbi9/checker/bbi9check.py experiments/bbi/bbi7/cells/4x3 --import --census experiments/bbi/bbi9/census.tsv --lists experiments/bbi/lists.yaml</code></pre>
 </section>
 <footer>Part of <a href="../../index.html">BBi(7), cell by cell</a>.</footer>
 </main>
