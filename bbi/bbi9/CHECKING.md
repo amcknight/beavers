@@ -1,6 +1,6 @@
-# Checking a BBi(9) cell
+# Checking a BBi cell
 
-This is everything needed to write a checker for one cell of the BBi(9) tracker without reading the program that
+This is everything needed to write a checker for one cell of the BBi(n) tracker without reading the program that
 produced the cell. A checker rebuilds the cell's search tree, runs every halter to its halt, verifies every
 non-halting certificate and compares its totals with the producer's. It never searches for a certificate itself.
 Computing the sets that a NONHALT_CPS or NONHALT_RWL certificate names (section 6) is not a search, since the
@@ -50,12 +50,14 @@ This is plain Tree Normal Form after Allen Brady, as the wiki's Instruction-Limi
   and the tree has no repeats.
 - The canonical walk of a corridor visits a machine before its children, and a halter's children in increasing w,
   then L before R, then increasing t.
-- The limits of 9 never remove a child inside a corridor (section 4).
+- The limits of 9 never remove a child inside a corridor (section 4). That holds because a cell has at most nine
+  states. A machine whose ten states all own an instruction could target an eleventh state K and keep shape (10, k),
+  so a 10×k cell at depth 10 or more would lose children to the limit. Such cells are outside this contract.
 
 ## 4. Cells and corridors
 
-- The cell (S, K) at depth D holds the machines of depth D and shape (S, K). BBi(9) uses D = 9. A checker accepts
-  any D from 1 to 9, because the fixtures use smaller depths.
+- The cell (S, K) at depth D holds the machines of depth D and shape (S, K). BBi(n) uses D = n. A checker accepts
+  any D from 1 to 19, with S from 1 to 9 and K from 1 to 10. The fixtures use smaller depths.
 - A machine at depth d ≤ D with shape (s, k) is in the corridor of (S, K, D) when s ≤ S, k ≤ K, S − s ≤ D − d and
   K − k ≤ D − d.
 - From parent to child, s and k never fall and each rises by at most 1. So every ancestor of a cell machine is in
@@ -65,11 +67,11 @@ This is plain Tree Normal Form after Allen Brady, as the wiki's Instruction-Limi
 
 ## 5. What the producer writes
 
-One directory per cell. For D = 9 it is named `SxK`, for example `cells/9x1`. It holds four files, and a fifth,
-`claims.idx`, when the claims are grouped (below). A cell may also hold an amendment, which reruns its holdouts. Its
-files are `amend.json`, `amend.tsv` or `amend.tsv.gz` and, once checked, `amend_check.json`, and section 12
-describes them. A cell may also hold an import (section 13), which marks the holdouts that other people's holdout
-lists decide.
+One directory per cell. For D = 9 it is `bbi9/cells/SxK`, for example `bbi9/cells/9x1`, and for any other D it is
+`bbiD/cells/SxK`, for example `bbi10/cells/2x5`. It holds four files, and a fifth, `claims.idx`, when the claims are
+grouped (below). A cell may also hold an amendment, which reruns its holdouts. Its files are `amend.json`,
+`amend.tsv` or `amend.tsv.gz` and, once checked, `amend_check.json`, and section 12 describes them. A cell may also
+hold an import (section 13), which marks the holdouts that other people's holdout lists decide.
 
 A cell's claims and digests reproduce with the producer that the RUNS.md row of its full run names, in the
 `producer` column. An amendment's lines reproduce with the producer its own row names (section 12). A later producer may certify more machines, or certify them differently, and then a rerun gives other claims and other
@@ -448,13 +450,17 @@ state. For example, for `0RA` with side L and the table `01` (n = 2), R has the 
 
 `census.tsv` is TAB-separated with a header line and the columns `depth states symbols nodes halt late nonhalt
 unknown max_steps pred pred_unknown pred_unknown_fresh`. The census count of (S, K, D) is `nodes` in the row
-(D, S, K) when D ≤ 8, and `pred` in the row (9, S, K) when D = 9. A missing row means 0.
+(D, S, K) when D ≤ 8, and `pred` in the row (9, S, K) when D = 9. A missing row means 0. For D from 10 to 19 there
+is no census count. The census rule is skipped and `census_match` is null. The check then rests on section 9 step 4
+alone, the checker's own walk of the corridor against the producer's counts and digests, which is what it rests on at
+every depth. The census is a third count that the two walks must also match where it exists.
 
 The census counted a machine only if every ancestor halted within that ancestor's census cap. The cap is 4,000,000
-steps for an ancestor at depths 0 to 7, and 100,000 steps for an ancestor at depth 8. A cell machine is **late**
-when some ancestor halted after more steps than its cap. Late machines are missing from the census. The census
-file's own `late` column counts something else, the halters that took more than 10,000 steps and were still
-counted. A checker does not use it.
+steps for an ancestor at depths 0 to 7, and 100,000 steps for an ancestor at depth 8 or deeper. A cell machine is
+**late** when some ancestor halted after more steps than its cap. Late machines are missing from the census. Late
+machines are counted and compared at every D. At D ≥ 10 they are missing from no census, and the count only has to
+agree. The census file's own `late` column counts something else, the halters that took more than 10,000 steps and
+were still counted. A checker does not use it.
 
 The census rule is this. When there are no parent holdouts, `cell_machines` minus `late_cell_machines` equals the
 census count. With parent holdouts the comparison is skipped, because an undecided parent may hide machines the
@@ -530,11 +536,12 @@ A correct cell passes both ways with the same results. The checker's `--plain` u
 `check.json` has the keys `format` (`"bbi9-check/1"`), `checker` (name and version), `cell`, `depth`, `pass`,
 `failures` (the first 50 messages), `cell_machines`, `census`, `late_cell_machines`, `census_match` (true, false,
 or null when skipped), `holdouts`, `parent_holdouts`, `holdout_lists`, `top_halters`, `halter_digest`,
-`claims_digest`, `seconds` and `summary_sha256`, the SHA-256 hex of the bytes of `summary.json`. `holdout_lists` is
-`"checked"` when step 4 compared the holdout lists and `"amendment"` when it skipped them (section 12). A check.json
-written before this key existed has no `holdout_lists`, and its check compared the lists. The tracker trusts a check
-only while `summary_sha256` matches the current `summary.json`, and a check whose `holdout_lists` is `"amendment"`
-only with a passing amendment check as well.
+`claims_digest`, `seconds` and `summary_sha256`, the SHA-256 hex of the bytes of `summary.json`. `census` is the
+census count of section 8, and null at D ≥ 10, where there is none. `holdout_lists` is `"checked"` when step 4
+compared the holdout lists and `"amendment"` when it skipped them (section 12). A check.json written before this key
+existed has no `holdout_lists`, and its check compared the lists. The tracker trusts a check only while
+`summary_sha256` matches the current `summary.json`, and a check whose `holdout_lists` is `"amendment"` only with a
+passing amendment check as well.
 
 The command line is `python bbi9check.py CELL_DIR --census CENSUS_TSV [--jobs N] [--plain]`, for Python 3.11 or
 later with the standard library only. `--jobs` spreads the walk and the certificate checks over N processes, and it
@@ -730,6 +737,18 @@ at D = 4 then have 40, 42, 2,256 and 132 machines. With B = (0, 1, 3, 5, 16, 37)
 These bounds are the most steps any halter at each depth runs in the whole tree, so the counts are exact.
 
 **Census counts.** The cells (9, 1), (9, 10) and (2, 10) at D = 9 have census counts 2,560, 2,560 and 19,506.
+
+**The 2×10 control at D = 10.** The cell (2, 10) at D = 10 is the smallest cell of BBi(10) within reach. Its corridor
+has 1, 4, 24, 78, 396, 1,734, 8,292, 37,584, 176,574, 795,492 and 3,575,136 machines at depths 0 to 10, so
+`cell_machines` is 3,575,136. None of them is late, and producer 0.5.0 leaves 0 holdouts and 0 parent holdouts. Its
+best halter is `1RB0LB------------------------_2LA---3RA4LA5RA6LA7RA8LA9RA---`, which halts after 89 steps, and its
+`halter_digest` is `2f8306c19cece9d5`. A correct checker passes it with `census: null` and `census_match: null`. Its
+corridor counts at depths 0 to 8 equal the census nodes summed over the corridor shapes, and at depth 9 the pred sum.
+The sums are exact because no machine of the cell is late at the real caps. With the caps 4,000,000 steps for an
+ancestor at depths 0 to 7 and 60 steps from depth 8, 12 cell machines are late, each through an ancestor at depth 9,
+since no halter at depth 8 runs more than 55 steps. With the caps 3 and 20 all 3,575,136 are late. Past depth 9 the
+known-machines registry's reaches are the independent lower bound on a cell's best halter, checked by the tracker and
+not by the checker.
 
 **Digests.** h(`a`) = `ca978112ca1bbdca`. The digest of no lines is `0000000000000000`. The digest of the lines `a`
 and `b` is `08bb6928ca551714` in either order.
@@ -980,16 +999,17 @@ after step 2 fails, is skipped.
    line of `amend.tsv` names, sorted in byte order, each followed by a newline, and the parent holdout list
    `BBi{D}_{S}x{K}_parent_holdouts_unofficial.txt` is the same for the depths below D. A missing list fails. When no
    text is left, the list is an empty file.
-7. Apply the census rule (section 8) with the parent holdouts that the amendment leaves. When none are left, read the
-   census count of (S, K, D) from the census file, and fail unless summary.json's `cell_machines` less its
-   `late_cell_machines` equals it. When some are left, the comparison is skipped.
+7. Apply the census rule (section 8) with the parent holdouts that the amendment leaves. When none are left and
+   D ≤ 9, read the census count of (S, K, D) from the census file, and fail unless summary.json's `cell_machines` less
+   its `late_cell_machines` equals it. When some are left, the comparison is skipped. At D ≥ 10 it is skipped the
+   same way, since there is no census count (section 8).
 
 Then write `amend_check.json` into the cell directory, print one line starting with `PASS` or `FAIL`, and exit with
 0 on a pass, 1 on a fail and 2 on bad usage. `amend_check.json` has the keys `format` (`"bbi9-amend-check/1"`),
 `checker` (name and version), `cell` and `depth` (summary.json's), `pass`, `failures` (the first 50 messages),
 `holdouts`, `parent_holdouts`, `amended`, `amend_digest`, `census` (the census count, read whether or not the
-comparison is made), `census_match` (true, false, or null when skipped), `seconds`, `summary_sha256` and
-`amend_sha256`, the SHA-256 hex of the bytes of `summary.json` and of `amend.json`. `holdouts`,
+comparison is made, and null at D ≥ 10), `census_match` (true, false, or null when skipped), `seconds`,
+`summary_sha256` and `amend_sha256`, the SHA-256 hex of the bytes of `summary.json` and of `amend.json`. `holdouts`,
 `parent_holdouts`, `amended` and `amend_digest` are the checker's own values. On a fail, a value the checker could
 not compute is null. The amendment check never writes check.json, and the full check never writes
 `amend_check.json`.
@@ -1060,6 +1080,7 @@ others.
 
   A domain is a mapping with exactly the keys of one form, `states` and `symbols`, or `bbi`, or `bbi` and `cell`. S,
   K and N are whole numbers, S and K from 1 to 10 and N from 1 to 9, and a YAML true or false is not a whole number.
+  Lists for N from 10 up are not registered yet.
   The cell is a string SxK, with S and K from 1 to 10 written in decimal without a leading zero, such as `3x3` or
   `10x2`. The first two forms are domain lists, and the third is a cell list. In this section N is always the N of a
   `{bbi: N}` domain, and the map's step bound is written B_d.

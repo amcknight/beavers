@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Independent checker for one cell of the BBi(9) tracker.
+"""Independent checker for one cell of the BBi tracker, at any depth D from 1 to 19.
 
 Written from CHECKING.md alone, with the standard library only. It rebuilds the cell's corridor walk, runs every
 halter to its halt, verifies every certificate in the claims file and compares its own totals with summary.json
@@ -49,7 +49,7 @@ from operator import methodcaller
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import IO, Any, Callable, Iterable, Iterator, Optional, Sequence
 
-CHECKER = "bbi9check 1.5"
+CHECKER = "bbi9check 1.6"
 FORMAT_1 = "bbi9-cell/1"
 FORMAT_2 = "bbi9-cell/2"  # section 5: format 1 with the NONHALT_CPS certificate added
 FORMAT_3 = "bbi9-cell/3"  # section 5: format 2 with the NONHALT_RWL certificate added
@@ -71,10 +71,13 @@ FAR_MAX_N = 10  # section 6: 1 <= n <= 10
 FAR_MAX_E = 102_010  # section 6: 1 <= e <= 102,010
 SINCE = {CPS: 2, RWL: 3, FAR: 4}  # section 5: the first format with each of these certificates
 CAP_SHALLOW = 4_000_000  # section 8: census cap for an ancestor at depths 0 to 7
-CAP_DEPTH8 = 100_000  # section 8: census cap for an ancestor at depth 8
+CAP_DEPTH8 = 100_000  # section 8: census cap for an ancestor at depth 8 or deeper
 LIMIT = 9  # section 3: w and t never exceed 9
 MAX_STATES = 10  # states A to J
 MAX_SYMBOLS = 10  # symbols 0 to 9
+MAX_DEPTH = 19  # section 4: D from 1 to 19
+MAX_CELL_STATES = 9  # sections 3 and 4: S from 1 to 9, since targets stop at J
+CENSUS_DEPTH = 9  # section 8: the census counts depths 0 to 9 and has no count past them
 SPLIT_DEPTH = 4  # with --jobs, the walk hands the subtrees below this depth to the pool
 GROUPS_PER_JOB = 16
 CHUNK_LINES = 20_000  # claims lines per pool task
@@ -786,6 +789,12 @@ def _node_text(node: Node, big_k: int) -> str:
     return "_".join([row[:3 * k] for row in rows[:s]])
 
 
+def late_cap(d: int) -> int:
+    """The census cap of an ancestor at depth d (section 8), CAP_SHALLOW at depths 0 to 7 and CAP_DEPTH8 at depth 8 or
+    deeper. A child is late when its parent is late or halted after more steps than this."""
+    return CAP_SHALLOW if d <= 7 else CAP_DEPTH8
+
+
 def _walk(cor: Corridor, nodes: Sequence[Node], split: int | None = None, emit: Callable[[Node], None] | None = None,
           lines: _Lines | None = None, claims: ClaimTally | None = None) -> WalkTally:
     """Walk the corridor from the given nodes, each in canonical order (section 3).
@@ -852,7 +861,7 @@ def _walk(cor: Corridor, nodes: Sequence[Node], split: int | None = None, emit: 
         child_s = s + 1 if q == s else s
         if child_s > big_s or big_s - child_s > room:
             continue
-        child_late = is_late or n > (CAP_DEPTH8 if d == 8 else CAP_SHALLOW)
+        child_late = is_late or n > late_cap(d)
         base = max(top_state, q)
         idx = st + r
         row = rows[q]
@@ -1342,8 +1351,11 @@ def _check_indexed(cell_dir: Path, cor: Corridor, split: int, index: dict[str, l
 # The census (section 8)
 
 
-def census_count(census: Path, states: int, symbols: int, depth: int) -> int:
-    """nodes in the row (D, S, K) when D <= 8, pred in the row (9, S, K) when D = 9, and 0 for a missing row."""
+def census_count(census: Path, states: int, symbols: int, depth: int) -> int | None:
+    """nodes in the row (D, S, K) when D <= 8, pred in the row (9, S, K) when D = 9, and 0 for a missing row. For D
+    from 10 on there is no census count, and the result is None without the file being read."""
+    if depth > CENSUS_DEPTH:
+        return None
     with open(census, encoding="utf-8") as f:
         header = f.readline().rstrip("\r\n").split("\t")
         try:
@@ -1397,7 +1409,7 @@ def _read_summary(cell_dir: Path, result: dict[str, Any], failures: list[str]) -
         return None
     big_s, big_k = cell
     result["cell"], result["depth"] = [big_s, big_k], depth
-    if not (1 <= depth <= 9 and 1 <= big_s <= MAX_STATES and 1 <= big_k <= MAX_SYMBOLS):
+    if not (1 <= depth <= MAX_DEPTH and 1 <= big_s <= MAX_CELL_STATES and 1 <= big_k <= MAX_SYMBOLS):
         failures.append(f"cell {big_s}x{big_k} at depth {depth} is outside what this checker accepts")
         return None
     corridor = summary.get("corridor")
@@ -1851,7 +1863,7 @@ def _summary_problem(summary: dict[str, Any]) -> str | None:
         return f"summary.json does not have format {SUMMARY_NAMED}"
     cell, depth = summary.get("cell"), summary.get("depth")
     if not (isinstance(cell, list) and len(cell) == 2 and all(_uint_value(x) for x in cell) and _uint_value(depth)
-            and 1 <= depth <= 9 and 1 <= cell[0] <= MAX_STATES and 1 <= cell[1] <= MAX_SYMBOLS):
+            and 1 <= depth <= MAX_DEPTH and 1 <= cell[0] <= MAX_CELL_STATES and 1 <= cell[1] <= MAX_SYMBOLS):
         return "summary.json has no valid cell [S, K] and depth D"
     corridor = summary.get("corridor")
     if not isinstance(corridor, list) or len(corridor) != depth + 1:
@@ -3306,7 +3318,7 @@ def _say(line: str, stream: IO[str] | None = None) -> None:
 
 
 def main(argv: Sequence[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="bbi9check.py", description="Check one BBi(9) cell (CHECKING.md).")
+    parser = argparse.ArgumentParser(prog="bbi9check.py", description="Check one BBi cell (CHECKING.md).")
     parser.add_argument("cell_dir", type=Path, metavar="CELL_DIR")
     parser.add_argument("--census", type=Path, required=True, metavar="CENSUS_TSV")
     parser.add_argument("--jobs", type=_jobs, default=1, metavar="N")
@@ -3350,18 +3362,20 @@ def main(argv: Sequence[str] | None = None) -> int:
     else:
         r, count = _check(args.cell_dir, args.census, args.jobs, args.plain)
     cell = f"{r['cell'][0]}x{r['cell'][1]} depth {r['depth']}" if r["cell"] else str(args.cell_dir)
-    census = {True: "matches", None: "skipped"}.get(r["census_match"], "differs")
+    match = {True: "matches", None: "skipped"}.get(r["census_match"], "differs")
+    # past depth 9 there is no census count (section 8)
+    census = "no census past depth 9" if r["census"] is None else f"census {r['census']} {match}"
     if args.amend:
         if r["pass"]:
             _say(f"PASS {cell} amendment: {r['amended']} amended, {r['holdouts']} holdouts, {r['parent_holdouts']} "
-                 f"parent holdouts, census {r['census']} {census}, {r['seconds']} s")
+                 f"parent holdouts, {census}, {r['seconds']} s")
             return 0
         _say(f"FAIL {cell} amendment: {count} failures, the first is: {r['failures'][0]}")
         return 1
     lists = ", holdout lists left to the amendment check" if r["holdout_lists"] == "amendment" else ""
     if r["pass"]:
         _say(f"PASS {cell}: {r['cell_machines']} machines ({r['late_cell_machines']} late), {r['holdouts']} holdouts, "
-             f"{r['parent_holdouts']} parent holdouts, census {r['census']} {census}{lists}, {r['seconds']} s")
+             f"{r['parent_holdouts']} parent holdouts, {census}{lists}, {r['seconds']} s")
         return 0
     _say(f"FAIL {cell}{lists}: {count} failures, the first is: {r['failures'][0]}")
     return 1
