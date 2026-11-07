@@ -2385,19 +2385,22 @@ table.runs { border-collapse: collapse; font-size: 0.85rem; margin: 0.4rem 0; }
 </div>
 </section>
 <section>
-<h2>Other holdout lists</h2>
-<p><a href="https://drive.google.com/file/d/1xHukBgJnm1zctZkOMR0UzdQyzr4Fx5pC/view">Andrew Ducharme</a>'s BB(4,3) holdout list (2026-05-09) leaves 3,896 of this cell's machines open, counted the list's way, and 204 shorter ones that could grow into it.</p>
-<p>These are other people's lists. They do not change this cell's status or counts.</p>
-</section>
-<section>
 <h2>The 10 longest runs</h2>
 <table class="runs"><thead><tr><th class="n" scope="col">steps</th><th scope="col">machine</th></tr></thead><tbody><tr><td class="n">9,893,142</td><td><code class="m">1RB---2LC_<wbr>1RC---2RB_<wbr>2LD---1RC_<wbr>0RB0RA2LA</code></td></tr><tr><td class="n">9,892,854</td><td><code class="m">1RB0RB---_<wbr>1RC2RB1LB_<wbr>2LD1RA2LB_<wbr>---0LC---</code></td></tr><tr><td class="n">9,841,438</td><td><code class="m">1RB2LC1LD_<wbr>2LC2LB1RB_<wbr>2LD1LA---_<wbr>2RB------</code></td></tr><tr><td class="n">9,841,426</td><td><code class="m">1RB2LC1RA_<wbr>2LC2LB1RB_<wbr>0LD1LA---_<wbr>2RA------</code></td></tr><tr><td class="n">9,841,426</td><td><code class="m">1RB2LC1RA_<wbr>2LC2LB1RB_<wbr>2LD1LA---_<wbr>2RB------</code></td></tr><tr><td class="n">9,841,426</td><td><code class="m">1RB2LC2LA_<wbr>2LC2LB1RB_<wbr>0LD1LA---_<wbr>2RA------</code></td></tr><tr><td class="n">9,841,426</td><td><code class="m">1RB2LC2LA_<wbr>2LC2LB1RB_<wbr>2LD1LA---_<wbr>2RB------</code></td></tr><tr><td class="n">9,779,718</td><td><code class="m">1RB------_<wbr>1RC2LB1RB_<wbr>1LD2RD2LC_<wbr>---1LB1RC</code></td></tr><tr><td class="n">9,779,718</td><td><code class="m">1RB2RB---_<wbr>1RC2LB1RB_<wbr>1LD2RD0LA_<wbr>---1LB---</code></td></tr><tr><td class="n">9,778,084</td><td><code class="m">1RB2LB1RA_<wbr>2LC2LA0LA_<wbr>2RA0RD---_<wbr>------1LB</code></td></tr></tbody></table>
 </section>
 <section>
 <h2>Files</h2>
-<ul class="files"><li><a href="summary.json">summary.json</a>, the producer's counts and digests</li><li><a href="check.json">check.json</a>, the checker's report</li><li><a href="BBi9_4x3_parent_holdouts_unofficial.txt">BBi9_4x3_parent_holdouts_unofficial.txt</a>, 8,052 parents</li></ul>
+<ul class="files"><li><a href="summary.json">summary.json</a>, the producer's counts and digests</li><li><a href="check.json">check.json</a>, the checker's report</li><li><a href="BBi9_4x3_parent_holdouts_unofficial.txt">BBi9_4x3_parent_holdouts_unofficial.txt</a>, 8,052 parents</li><li><a href="import.json">import.json</a>, the import's counts and digest</li><li><a href="import.tsv.gz">import.tsv.gz</a>, 319,876 lines, one for each holdout a list decides</li><li><a href="import_check.json">import_check.json</a>, the checker's report on the import</li><li><a href="BBi9_4x3_holdouts_after_lists_unofficial.txt">BBi9_4x3_holdouts_after_lists_unofficial.txt</a>, 5,756 holdouts no list decides</li><li><a href="BBi9_4x3_parent_holdouts_after_lists_unofficial.txt">BBi9_4x3_parent_holdouts_after_lists_unofficial.txt</a>, 222 parent holdouts no list decides</li></ul>
 <p>The holdout list has 317,802 machines and is over 5 MB, so it is kept local and not posted.</p>
 <p>Parents are machines of eight instructions or fewer that our run could not settle. If one of them halts, its nine-instruction descendants can land in this cell, so the cell cannot close until they are settled.</p>
+</section>
+<section>
+<h2>Decided with other people's lists</h2>
+<p><a href="https://drive.google.com/file/d/1xHukBgJnm1zctZkOMR0UzdQyzr4Fx5pC/view">Andrew Ducharme</a>'s BB(4,3) holdout list of 2026-05-09 decides 312,046 of this cell's holdouts and 7,830 parent holdouts, leaving 5,978.</p>
+<p>What no list decides is in <a href="BBi9_4x3_holdouts_after_lists_unofficial.txt">BBi9_4x3_holdouts_after_lists_unofficial.txt</a> and <a href="BBi9_4x3_parent_holdouts_after_lists_unofficial.txt">BBi9_4x3_parent_holdouts_after_lists_unofficial.txt</a>.</p>
+<p>A machine these lists decide may halt or never halt. Their makers know which. Our own lists above are unchanged.</p>
+<p>This rests on each list being its maker's whole list, as its entry in the registry states.</p>
+<p>The check read Andrew Ducharme's file by its SHA-256, <code>1d6f8f21750a2fec3bec462e817c0c3a3fc230c4aa793aa667fc3a26cf0a980d</code>, and the registry, <code>experiments/bbi/lists.yaml</code>.</p>
 </section>
 <section>
 <h2>Reproducing this cell</h2>
@@ -2405,6 +2408,9 @@ table.runs { border-collapse: collapse; font-size: 0.85rem; margin: 0.4rem 0; }
 <pre><code>python bbi9check.py &lt;this cell's directory&gt; --census census.tsv</code></pre>
 <p>The claims were made by our producer, version 0.5.0, as this cell's summary records, and the checker verifies them without it.</p>
 <p><code>summary.json</code> records the halter digest <code>8375cadd26c2d195</code> and the claims digest <code>4ed1cf714b5aa470</code>, for comparing a rerun with the same producer, bbi9 0.5.0.</p>
+<p>From the top of the repository, the import reads other people's lists and writes into another directory. Once its files are moved into the cell, the checker checks the import.</p>
+<pre><code>python -m experiments.bbi.bbi9.imports --bbi 9 4x3 --out experiments/bbi/bbi9/rerun/4x3
+python experiments/bbi/bbi9/checker/bbi9check.py experiments/bbi/bbi9/cells/4x3 --import --census experiments/bbi/bbi9/census.tsv --lists experiments/bbi/lists.yaml</code></pre>
 </section>
 <footer>Part of <a href="../../index.html">BBi(9), cell by cell</a>.</footer>
 </main>
