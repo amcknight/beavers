@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Why Machine 7 Never Halts</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;600&family=Space+Grotesk:wght@500;700&display=swap">
+<style>
+/* Layout: one reading column. Three short steps, each with one live picture, then an optional "why" drawer. */
+:root {
+  --bg: #f4f6f8; --panel: #ffffff; --fg: #17212c; --muted: #5b6876; --line: #d5dce3;
+  --accent: #0c6f72; --accent-soft: #d9eeee; --rung: #a35a00; --rung-soft: #fbe9cf;
+  --halt: #b3261e; --halt-soft: #fbe3e1; --zero: #7a8794;
+  --display: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
+  --body: "Inter", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "Cascadia Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #10161c; --panel: #18212a; --fg: #e7ecf1; --muted: #9aa8b5; --line: #2c3945;
+  --accent: #58c7c9; --accent-soft: #143a3c; --rung: #f1b45c; --rung-soft: #3d2c12;
+  --halt: #ff8f85; --halt-soft: #43201d; --zero: #8292a1; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #10161c; --panel: #18212a; --fg: #e7ecf1; --muted: #9aa8b5; --line: #2c3945;
+  --accent: #58c7c9; --accent-soft: #143a3c; --rung: #f1b45c; --rung-soft: #3d2c12;
+  --halt: #ff8f85; --halt-soft: #43201d; --zero: #8292a1; color-scheme: dark }
+body { background: var(--bg); color: var(--fg); font-family: var(--body); font-size: 16px; line-height: 1.55;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 28px 56px; }
+main { max-width: 720px; margin: 0 auto; display: flex; flex-direction: column; gap: 34px; }
+h1 { font-family: var(--display); font-weight: 700; font-size: clamp(1.7rem, 5vw, 2.3rem); line-height: 1.12; margin: 0;
+  text-wrap: balance; }
+h2 { font-family: var(--display); font-weight: 700; font-size: 1.3rem; margin: 0; text-wrap: balance; }
+p { margin: 0; max-width: 64ch; }
+section, header { display: flex; flex-direction: column; gap: 12px; }
+.kicker { font-family: var(--mono); font-size: 0.78rem; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.machine { font-family: var(--mono); font-size: 0.84rem; overflow-wrap: anywhere; color: var(--muted); }
+.formula { font-family: var(--mono); font-size: 1rem; padding: 10px 14px; border-left: 3px solid var(--accent);
+  background: var(--accent-soft); overflow-x: auto; white-space: nowrap; }
+.short { border: 1px solid var(--line); border-radius: 6px; padding: 14px 16px; background: var(--panel); }
+.short ol { margin: 0; padding-left: 1.3em; display: flex; flex-direction: column; gap: 6px; }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 16px;
+  display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.row { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; }
+button { font: 600 0.9rem var(--body); color: var(--fg); background: var(--bg); border: 1px solid var(--line);
+  border-radius: 5px; padding: 7px 13px; cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); }
+button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+input[type=range] { accent-color: var(--accent); flex: 1 1 160px; min-width: 0; }
+label { font-size: 0.86rem; color: var(--muted); display: flex; gap: 8px; align-items: center; flex: 1 1 220px; min-width: 0; }
+.num { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.tapewrap, .tablewrap { overflow-x: auto; }
+.tape { display: inline-grid; grid-auto-flow: column; grid-template-rows: auto auto auto; gap: 3px 3px; font-family: var(--mono); }
+.cell { width: 30px; height: 34px; display: grid; place-items: center; border: 1px solid var(--line); border-radius: 3px;
+  font-weight: 600; font-size: 1rem; background: var(--bg); }
+.cell.one { background: var(--accent-soft); border-color: var(--accent); }
+.cell.blank { color: var(--zero); border-style: dashed; background: transparent; }
+.cell.head { border-color: var(--fg); border-style: solid; }
+.cell.new { box-shadow: 0 0 0 2px var(--rung); }
+.sub { width: 30px; text-align: center; font-size: 0.78rem; color: var(--muted); }
+.sub.digit { color: var(--fg); font-weight: 600; }
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 8px 16px; font-size: 0.92rem; }
+.facts div { min-width: 0; }
+.facts b { font-family: var(--mono); font-weight: 600; }
+.ok { color: var(--accent); font-weight: 600; }
+.z { color: var(--rung); font-weight: 600; border-bottom: 2px solid var(--rung); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 0.86rem; padding: 4px 8px; border-radius: 4px;
+  border: 1px solid var(--line); background: var(--bg); display: flex; flex-direction: column; align-items: flex-end; line-height: 1.25; }
+.chip small { font-size: 0.7rem; color: var(--muted); }
+.chip.rung { background: var(--rung-soft); border-color: var(--rung); }
+.chip.skip { background: var(--halt-soft); border: 1px dashed var(--halt); color: var(--halt); }
+.chip.skip small { color: var(--halt); }
+.chip.start { border-color: var(--accent); }
+table { border-collapse: collapse; font-size: 0.92rem; width: 100%; min-width: 440px; }
+th { text-align: right; font-weight: 600; font-size: 0.8rem; color: var(--muted); padding: 4px 10px; border-bottom: 1px solid var(--line);
+  vertical-align: bottom; }
+td { text-align: right; padding: 5px 10px; border-bottom: 1px solid var(--line); font-family: var(--mono);
+  font-variant-numeric: tabular-nums; white-space: nowrap; }
+td.halt { color: var(--halt); }
+td small { color: var(--muted); font-size: 0.74rem; display: block; }
+th:first-child, td:first-child { text-align: left; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 0.84rem; color: var(--muted); }
+.legend span { display: inline-flex; gap: 6px; align-items: center; }
+.sw { width: 14px; height: 14px; border-radius: 3px; border: 1px solid var(--line); background: var(--bg); }
+.sw.rung { background: var(--rung-soft); border-color: var(--rung); }
+.sw.skip { background: var(--halt-soft); border: 1px dashed var(--halt); }
+.note { font-size: 0.9rem; color: var(--muted); }
+.result { font-family: var(--mono); font-size: 0.92rem; overflow-wrap: anywhere; }
+details { border: 1px solid var(--line); border-radius: 6px; background: var(--panel); padding: 12px 16px; }
+details[open] { display: flex; flex-direction: column; gap: 12px; }
+summary { cursor: pointer; font-family: var(--display); font-weight: 700; font-size: 1.05rem; }
+details > * + * { margin-top: 12px; }
+footer { font-size: 0.86rem; color: var(--muted); border-top: 1px solid var(--line); padding-top: 14px; display: flex;
+  flex-direction: column; gap: 6px; }
+@media (prefers-reduced-motion: no-preference) { .cell { transition: background-color .15s, border-color .15s; } }
+body { margin: 0; }
+footer a { color: var(--accent); }
+</style>
+</head>
+<body>
+
+<main>
+<header>
+  <span class="kicker">BBi(8) holdouts #7 and #8 · 3 states, 4 symbols</span>
+  <h1>Why machines 7 and 8 never halt</h1>
+  <p class="machine">#7 &nbsp;1RB1LC2LA---_2RC---------_0LA2RC3LC1RC<br>#8 &nbsp;1RB---2LC3LA_2LC---------_0LA2RC3RC1LC</p>
+  <p>Two of the last undecided machines with 8 instructions, from Nick Drozd's list. Machine 8 is machine 7 with its
+  symbols relabelled, apart from two transitions.</p>
+  <div class="short"><ol>
+    <li>The tape holds a number y. Each bounce changes y by one rule, and y only grows.</li>
+    <li>The machine halts only if y is a 1 followed by zeros in binary.</li>
+    <li>The rule makes trailing zeros too slowly. A halting y that ends in m zeros would be exactly 2<sup>m</sup>,
+    but every y that ends in m zeros is at least (2m − 1) × 2<sup>m</sup>.</li>
+  </ol></div>
+  <p class="note">Every number below is computed live. The tape comes from running the machine.</p>
+</header>
+
+<section>
+  <span class="kicker">Step 1</span>
+  <h2>The tape is a number</h2>
+  <p>Machine 7 sweeps over a word of 1s and 2s. At each bounce off the right end, read the word in binary with
+  <b>2 as one</b> and <b>1 as zero</b>, then add 1. That is y. Machine 8 uses 3 as one and 2 as zero. Between
+  bounces, y follows one rule.</p>
+  <div class="formula">new y = y − 1 + 4 × 2<sup>z</sup> &nbsp; where z is the number of zeros at the end of y in binary</div>
+  <div class="panel">
+    <div class="row">
+      <button id="m7" type="button" aria-pressed="true">Machine 7</button>
+      <button id="m8" type="button" aria-pressed="false">Machine 8</button>
+      <span class="note" id="machnote">2 is the digit one, 1 is the digit zero.</span>
+    </div>
+    <div class="row">
+      <button id="prev" type="button">← Back</button>
+      <button id="next" type="button">Next bounce →</button>
+      <label for="pick">Bounce <span class="num" id="pickv"></span><input id="pick" type="range" min="0" max="61" value="1"></label>
+    </div>
+    <div class="tapewrap"><div class="tape" id="tape"></div></div>
+    <p class="note">Bit numbers above, digits below.</p>
+    <div class="facts" id="facts"></div>
+    <p class="note" id="tapenote"></p>
+  </div>
+</section>
+
+<section>
+  <span class="kicker">Step 2</span>
+  <h2>Halting needs a round number</h2>
+  <p>The machine halts only on a word of all ones. Adding 1 gives a <b>1 followed by zeros</b>, like 100 or 10000.
+  That is a power of 2, and 2<sup>m</sup> ends in exactly m zeros. So to halt, a y that ends in m zeros must be
+  2<sup>m</sup> itself, the smallest number ending in m zeros.</p>
+  <p class="note">Word lengths are even, so the halting values are 4, 16, 64, … Step 3 rules out every power of 2.</p>
+</section>
+
+<section>
+  <span class="kicker">Step 3</span>
+  <h2>The rule makes zeros too slowly</h2>
+  <p>Start from 2 and look at every y that ends in m zeros. The smallest one is (2m − 1) × 2<sup>m</sup>, which is
+  2m − 1 times the halting value 2<sup>m</sup>. So no y that ends in m zeros is 2<sup>m</sup>. That holds for every
+  m, so y is never a power of 2.</p>
+  <div class="panel">
+    <div class="tablewrap"><table>
+      <thead><tr><th>zeros at the end</th><th>halting value 2<sup>m</sup></th><th>smallest y ending in m zeros</th><th>how far off</th></tr></thead>
+      <tbody id="late"></tbody>
+    </table></div>
+    <div class="row">
+      <button id="lessrows" type="button">Fewer rows</button>
+      <button id="morerows" type="button">More rows</button>
+      <span class="result" id="lateres"></span>
+    </div>
+  </div>
+  <p>The first values of y, trailing zeros marked. The halting values it steps over are red.</p>
+  <div class="panel">
+    <div class="legend">
+      <span><i class="sw"></i> a value of y</span>
+      <span><i class="sw rung"></i> a new record for trailing zeros</span>
+      <span><i class="sw skip"></i> a halting value, stepped over</span>
+    </div>
+    <div class="chips" id="ladder"></div>
+  </div>
+  <p>y only grows, so the smallest y ending in m zeros is also the first one. The machine never halts.</p>
+</section>
+
+<details>
+  <summary>Why step 3 never breaks</summary>
+  <p>The rule looks the same at every scale. From any multiple Q × 2<sup>m</sup>, the next multiple of 2<sup>m</sup>
+  is always (h(Q) + 2m) × 2<sup>m</sup>, where h is the rule. Try it.</p>
+  <div class="panel">
+    <div class="row">
+      <label for="q">Q = <span class="num" id="qv"></span><input id="q" type="range" min="1" max="40" value="5"></label>
+      <label for="m">m = <span class="num" id="mv"></span><input id="m" type="range" min="0" max="8" value="3"></label>
+    </div>
+    <div class="chips" id="selfchips"></div>
+    <p class="result" id="selfres"></p>
+  </div>
+  <p>Two facts drive this. On an odd number the rule adds 3. On 2Q it gives twice the rule on Q, plus 1. So one step
+  at scale m + 1 is two steps at scale m, and the formula follows by induction.</p>
+  <p>Take Q = 2m − 1, which is odd. From (2m − 1) × 2<sup>m</sup> the next multiple of 2<sup>m</sup> is
+  (2m + 1) × 2<sup>m+1</sup>, the next row of the table. Nothing in between ends in m zeros, so each row forces the
+  next.</p>
+</details>
+
+<footer>
+  <span>Step 3 is about the rule alone, so it covers both machines. Machine 8 differs only in step 1, in two
+  transitions.</span>
+  <span>Machine-checked in Rocq with no axioms, 2026-11-14. Machines from Nick Drozd's BBi(8) holdout list,
+  2026-10-25.</span>
+  <span><a href="https://github.com/amcknight/beavers/blob/main/bbi8/PROOF.md">Written proof</a> · <a href="https://github.com/amcknight/beavers/tree/main/bbi8">Coq proof and files</a></span>
+</footer>
+</main>
+
+<script>
+(function () {
+  "use strict";
+  // ---------- arithmetic ----------
+  function nu(y) { let n = 0; while (y % 2 === 0) { y /= 2; n++; } return n; }
+  function h(y) { return y - 1 + Math.pow(2, nu(y) + 2); }
+  function binHtml(y) {
+    const s = y.toString(2), z = nu(y);
+    return z ? s.slice(0, s.length - z) + '<span class="z">' + s.slice(s.length - z) + "</span>" : s;
+  }
+  function fmt(n) { return n.toLocaleString("en-US"); }
+  // ---------- the machines themselves ----------
+  const MACHINES = {
+    7: { one: 2, zero: 1, T: { A: { 0: [1, 1, "B"], 1: [1, -1, "C"], 2: [2, -1, "A"] }, B: { 0: [2, 1, "C"] },
+                               C: { 0: [0, -1, "A"], 1: [2, 1, "C"], 2: [3, -1, "C"], 3: [1, 1, "C"] } } },
+    8: { one: 3, zero: 2, T: { A: { 0: [1, 1, "B"], 2: [2, -1, "C"], 3: [3, -1, "A"] }, B: { 0: [2, -1, "C"] },
+                               C: { 0: [0, -1, "A"], 1: [2, 1, "C"], 2: [3, 1, "C"], 3: [1, -1, "C"] } } } };
+  let MACH = MACHINES[7];
+  function runMachine(M, count) {
+    const tape = new Map(); let pos = -2, st = "A", steps = 0; const out = [];
+    while (out.length < count) {
+      const sym = tape.get(pos) || 0, ins = M.T[st][sym];
+      if (!ins) { out.push({ halted: true, steps: steps }); break; }
+      tape.set(pos, ins[0]); pos += ins[1]; st = ins[2]; steps++;
+      if (st === "C" && pos === 0) {
+        let L = 0; while ((tape.get(-1 - L) || 0) !== 0) L++;
+        const syms = []; let V = 0;
+        for (let i = 0; i < L; i++) { const s = tape.get(-1 - i); syms.push(s); if (s === M.one) V += Math.pow(2, i); }
+        out.push({ steps: steps, L: L, syms: syms, y: V + 1 });
+      }
+    }
+    return out;
+  }
+  let B = runMachine(MACH, 62);
+  const $ = function (id) { return document.getElementById(id); };
+
+  // ---------- step 1 ----------
+  function drawTape(i) {
+    const b = B[i], prev = i > 0 ? B[i - 1] : null, grew = prev && b.L > prev.L;
+    let cells = "";
+    for (let k = b.L - 1; k >= 0; k--) {
+      const s = b.syms[k], isNew = grew && k >= prev.L;
+      cells += '<div class="sub">' + k + '</div>' +
+        '<div class="cell ' + (s === MACH.one ? "one" : "") + (isNew ? " new" : "") + '">' + s + '</div>' +
+        '<div class="sub digit">' + (s === MACH.one ? 1 : 0) + '</div>';
+    }
+    cells += '<div class="sub">head</div><div class="cell blank head">0</div><div class="sub">&nbsp;</div>';
+    $("tape").innerHTML = cells;
+    const y = b.y, n = nu(y), hy = h(y), nxt = B[i + 1];
+    let facts = '<div><b>y = ' + y + '</b></div>' +
+      '<div>binary <b>' + binHtml(y) + '</b>, so <b>z = ' + n + '</b></div>' +
+      '<div>rule: <b>' + y + ' − 1 + 4 × ' + Math.pow(2, n) + ' = ' + hy + '</b></div>';
+    if (nxt) facts += '<div>machine: <b>' + nxt.y + '</b> after <b>' + (nxt.steps - b.steps) + '</b> steps ' +
+      (nxt.y === hy ? '<span class="ok">✓</span>' : '✗') + '</div>';
+    $("facts").innerHTML = facts;
+    $("tapenote").textContent = grew
+      ? "The sum no longer fit, so the word grew by two cells (outlined)."
+      : (i === 0 ? "The first bounce, " + b.steps + " steps after the blank start." : "");
+    $("pickv").textContent = i; $("pick").value = i;
+  }
+  let cur = 1;
+  function setCur(i) { cur = Math.max(0, Math.min(B.length - 2, i)); drawTape(cur); }
+  $("prev").addEventListener("click", function () { setCur(cur - 1); });
+  $("next").addEventListener("click", function () { setCur(cur + 1); });
+  $("pick").max = B.length - 2;
+  $("pick").addEventListener("input", function (e) { setCur(+e.target.value); });
+  function setMachine(k) {
+    MACH = MACHINES[k]; B = runMachine(MACH, 62);
+    $("m7").setAttribute("aria-pressed", String(k === 7)); $("m8").setAttribute("aria-pressed", String(k === 8));
+    $("machnote").textContent = MACH.one + " is the digit one, " + MACH.zero + " is the digit zero." +
+      (k === 8 ? " Same numbers as machine 7 at every bounce." : "");
+    setCur(cur);
+  }
+  $("m7").addEventListener("click", function () { setMachine(7); });
+  $("m8").addEventListener("click", function () { setMachine(8); });
+
+  // ---------- step 3: the table ----------
+  let rows = 7;
+  function drawLate() {
+    let y = 2, m = 2, html = "", allOk = true, steps = 0;
+    while (m <= rows + 1) {
+      if (nu(y) >= m) {
+        const P = Math.pow(2, m), want = (2 * m - 1) * P, ok = y === want;
+        if (!ok) allOk = false;
+        html += "<tr><td>m = " + m + "</td><td class=\"halt\">" + fmt(P) + "</td><td>" + fmt(y) +
+          "<small>= " + (2 * m - 1) + " × " + fmt(P) + (ok ? "" : " ✗") + "</small></td><td>" + (y / P) + "× too big</td></tr>";
+        m++;
+      } else { y = h(y); steps++; }
+    }
+    $("late").innerHTML = html;
+    $("lateres").innerHTML = fmt(steps) + " bounces checked. " +
+      (allOk ? '<span class="ok">✓ every row is (2m − 1) × 2<sup>m</sup></span>' : "✗ a row differs");
+  }
+  $("morerows").addEventListener("click", function () { rows = Math.min(20, rows + 3); drawLate(); });
+  $("lessrows").addEventListener("click", function () { rows = Math.max(4, rows - 3); drawLate(); });
+
+  // ---------- step 3: the first values ----------
+  function chip(y, cls) {
+    return '<span class="chip ' + cls + '">' + y + '<small>' + binHtml(y) + '</small></span>';
+  }
+  function drawLadder() {
+    let y = 2, html = "", p4 = 4, record = 1;
+    for (;;) {
+      while (p4 < y) { html += chip(p4, "skip"); p4 *= 4; }
+      const z = nu(y), isRecord = z > record;
+      if (isRecord) record = z;
+      html += chip(y, isRecord ? "rung" : (y === 2 ? "start" : ""));
+      if (y >= 112) break;
+      y = h(y);
+    }
+    $("ladder").innerHTML = html;
+  }
+
+  // ---------- the drawer ----------
+  function drawSelf() {
+    const Q = +$("q").value, m = +$("m").value, P = Math.pow(2, m);
+    $("qv").textContent = Q; $("mv").textContent = m;
+    let y = Q * P, html = chip(y, "start"), count = 0;
+    for (;;) { y = h(y); count++; if (y % P === 0 || count > 4000) break; html += chip(y, ""); }
+    html += chip(y, "rung");
+    $("selfchips").innerHTML = html;
+    const want = (h(Q) + 2 * m) * P;
+    $("selfres").innerHTML = "Formula: (h(" + Q + ") + 2 × " + m + ") × " + P + " = (" + h(Q) + " + " + (2 * m) +
+      ") × " + P + " = " + want + ". Reached: " + y + " after " + count + " steps. " +
+      (want === y ? '<span class="ok">✓ equal</span>' : "✗ different");
+  }
+  $("q").addEventListener("input", drawSelf); $("m").addEventListener("input", drawSelf);
+
+  setCur(1); drawLate(); drawLadder(); drawSelf();
+})();
+</script>
+</body>
+</html>
