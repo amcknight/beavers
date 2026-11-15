@@ -426,4 +426,4 @@ Theorem 2.4(i), the "if" half of Theorem 2.6 and Section 5 are not formalised.
 | Corollary 3.4 | `no_pow2`, `no_pow4` |
 | Theorems 4.1 and 4.2 | `TM7.nonhalt`, `TM8.nonhalt` (`BBi8_3x4.v`) |
 
-The invariant is `Inv L V := Nat.Even L /\ 2 <= L /\ V < 2 ^ L /\ reach 2 (V + 1)`, which carries the range bound.
+The invariant is `Inv L V := 2 <= L /\ V < 2 ^ L /\ reach 2 (V + 1)`, which carries the range bound.
