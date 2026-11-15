@@ -1,0 +1,65 @@
+{
+  "format": "bbi9-check/1",
+  "checker": "bbi9check 1.6",
+  "cell": [
+    9,
+    3
+  ],
+  "depth": 10,
+  "pass": true,
+  "failures": [],
+  "cell_machines": 4911044000,
+  "census": null,
+  "late_cell_machines": 0,
+  "census_match": null,
+  "holdouts": 0,
+  "parent_holdouts": 0,
+  "holdout_lists": "checked",
+  "top_halters": [
+    {
+      "machine": "1RB------_2RC------_2RD------_2RE------_2RF------_2RG------_2RH------_2RI------_2LI---0RI",
+      "steps": 128
+    },
+    {
+      "machine": "1RB------_2RC------_2RD------_2RE------_2RF------_2RG------_2RH------_0RI------_2LI---0RI",
+      "steps": 112
+    },
+    {
+      "machine": "1RB------_2RC------_2RD------_2RE------_2RF------_2RG------_0RH------_2RI------_2LI---0RI",
+      "steps": 110
+    },
+    {
+      "machine": "1RB------_2RC------_2RD------_2RE------_2RF------_0RG------_2RH------_2RI------_2LI---0RI",
+      "steps": 108
+    },
+    {
+      "machine": "1RB------_2RC------_2RD------_2RE------_0RF------_2RG------_2RH------_2RI------_2LI---0RI",
+      "steps": 106
+    },
+    {
+      "machine": "1RB------_2RC------_2RD------_0RE------_2RF------_2RG------_2RH------_2RI------_2LI---0RI",
+      "steps": 104
+    },
+    {
+      "machine": "1RB------_2RC------_0RD------_2RE------_2RF------_2RG------_2RH------_2RI------_2LI---0RI",
+      "steps": 102
+    },
+    {
+      "machine": "1RB------_0RC------_2RD------_2RE------_2RF------_2RG------_2RH------_2RI------_2LI---0RI",
+      "steps": 100
+    },
+    {
+      "machine": "0RB------_1LC------_2LD------_2LE------_2LF------_2LG------_2LH------_2LI------_2RI---0LI",
+      "steps": 99
+    },
+    {
+      "machine": "0RB------_1RC------_2RD------_2RE------_2RF------_2RG------_2RH------_2RI------_2LI---0RI",
+      "steps": 99
+    }
+  ],
+  "halter_digest": "9a8350da542cd0ac",
+  "claims_digest": "09ac69c381506ebe",
+  "unknown_digest": "0000000000000000",
+  "seconds": 2077.425,
+  "summary_sha256": "d0cbdc8fe1b898b5881e77843d383d7bf7f0d312c12be3b08b5253e0ef30ff66"
+}

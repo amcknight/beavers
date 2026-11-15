@@ -1,6 +1,6 @@
 {
   "format": "bbi9-amend-check/1",
-  "checker": "bbi9check 1.5",
+  "checker": "bbi9check 1.10",
   "cell": [
     7,
     4
@@ -8,13 +8,13 @@
   "depth": 9,
   "pass": true,
   "failures": [],
-  "holdouts": 8307,
-  "parent_holdouts": 646,
-  "amended": 945164,
-  "amend_digest": "1b4d821b8c9e00ac",
+  "holdouts": 0,
+  "parent_holdouts": 0,
+  "amended": 954117,
+  "amend_digest": "70dabe96c8b6f30a",
   "census": 18418489136,
-  "census_match": null,
-  "seconds": 132.455,
+  "census_match": true,
+  "seconds": 9.339,
   "summary_sha256": "e22f16a41260d95fe26149b7eb23c8c73e89c535ada0252103e128129fdcb6dd",
-  "amend_sha256": "307eb02a099bbc5c31464d989e1b29ca5aa472869414353b77f889459072cda9"
+  "amend_sha256": "6d8f147eb221728b5d4dbe9ee15e124ba67ab82da70ea735b3d10c61394d13bd"
 }

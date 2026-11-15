@@ -1,6 +1,6 @@
 {
   "format": "bbi9-import-check/1",
-  "checker": "bbi9check 1.5",
+  "checker": "bbi9check 1.10",
   "cell": [
     3,
     3
@@ -14,8 +14,8 @@
     "holdouts": 0,
     "parent_holdouts": 0
   },
-  "imported": 47,
-  "import_digest": "5e8f533735a64a34",
+  "imported": 5,
+  "import_digest": "2c0c6bfaa74abfdd",
   "lists": [
     {
       "id": "bb3x4-2026-05-11",
@@ -38,8 +38,8 @@
       "speaks": true
     }
   ],
-  "seconds": 20.627,
+  "seconds": 20.983,
   "summary_sha256": "e5a6ba9fed8e75feec0a148df1f8387ccc3bf354afc4132fef6795204f0ea191",
-  "amend_sha256": null,
-  "import_sha256": "65affac22847dd3308309a1d819ce95db92aa3b27fb7d943c25cb20ab36e2a38"
+  "amend_sha256": "ce9a2815250e7ee6d17ee0293b1bacaf90c19d940fb19894d66068b10fa4e714",
+  "import_sha256": "600c93555ff7081c93ef0f78f7ef567b28009cdf75497653741413d64fcaf8eb"
 }

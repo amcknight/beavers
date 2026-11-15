@@ -6,25 +6,34 @@ halter to its halt, verifies every certificate in the claims file and compares i
 (CHECKING.md section 9). When the cell has claims.idx, it reads each group's claims alongside that group's walk
 instead, so a certified machine is never run to the depth's bound ("When claims.idx exists"). --plain keeps the
 first way. It checks cells of format bbi9-cell/1, bbi9-cell/2, which adds the NONHALT_CPS certificate, bbi9-cell/3,
-which adds the NONHALT_RWL certificate, and bbi9-cell/4, which adds the NONHALT_FAR certificate. For each NONHALT_CPS
-claim it computes the sets Lw, Rw and C that section 6 defines, for each NONHALT_RWL claim the set C of repeated word
-lists, and for each NONHALT_FAR claim the relation R that the machine and the claim's automaton fix, with rule 4
-applied until nothing changes, and then the set a, at every automaton state.
+which adds the NONHALT_RWL certificate, bbi9-cell/4, which adds the NONHALT_FAR certificate, and bbi9-cell/5, which
+adds the NONHALT_CPSH certificate. For each NONHALT_CPS claim it computes the sets Lw, Rw and C that section 6 defines,
+for each NONHALT_RWL claim the set C of repeated word lists, for each NONHALT_FAR claim the relation R that the machine
+and the claim's automaton fix, with rule 4 applied until nothing changes, and then the set a, at every automaton
+state, and for each NONHALT_CPSH claim NONHALT_CPS's sets for the history machine M_H, by a closure of its own whose
+instructions come from each symbol's base and whose 0 is the blank (0, ()). Section 6's limits are one block of
+constants, named as its limits table names them. The indexed check's groups are walked by bbi9check-core, the
+compiled core in core/, when it is built, and --python walks them with the Python code, the reference.
 
 A cell may hold an amendment, which reruns its holdouts (section 12). The full check then leaves the holdout lists to
 the amendment check when amend.json amends this very summary.json, and --amend is the amendment check. It rests on a
 passing check.json, reads the claims file only to count, digest and collect its UNKNOWN texts, verifies every line of
-amend.tsv and compares amend.json's counts, the shorter holdout lists and the census rule.
+amend.tsv with the certificates its claims_format, bbi9-cell/2 to bbi9-cell/5, allows, and compares amend.json's
+counts, the shorter holdout lists and the census rule.
 
 A cell may also hold an import, which marks the holdouts that other people's holdout lists decide (section 13), and
 --import is the import check. It rests on the passing full check and amendment check, reads the registry with PyYAML
 (the one library beyond the standard library, imported by the import check alone) and every list file it names,
 classifies each list's lines by the cell's claims, computes the normal-form map of each imported machine and compares
-import.json, import.tsv and the two after-lists files with its own values.
+import.json, import.tsv and the two after-lists files with its own values. A line of import.tsv gives its machine one
+of two verdicts, DECIDED_LIST when the list leaves out its map, and NONHALT_PROVEN when it has run past the proven
+value that a registry entry records for its domain.
 
-    python bbi9check.py CELL_DIR --census CENSUS_TSV [--jobs N] [--plain]
+    python bbi9check.py CELL_DIR --census CENSUS_TSV [--jobs N] [--plain | [--gpu] [--python]]
     python bbi9check.py CELL_DIR --amend --census CENSUS_TSV [--jobs N]
     python bbi9check.py CELL_DIR --import --census CENSUS_TSV --lists LISTS_YAML [--data DIR] [--jobs N]
+
+Exit codes: 0 pass, 1 fail, 2 bad usage, 3 bbi9check-core failed.
 """
 
 from __future__ import annotations
@@ -36,40 +45,63 @@ import gzip
 import hashlib
 import json
 import multiprocessing
+import os
 import re
 import struct
+import subprocess
 import sys
+import threading
 import time
 import zlib
 from array import array
 from bisect import insort
 from collections import deque
+from contextlib import contextmanager
 from dataclasses import dataclass, field
 from operator import methodcaller
 from pathlib import Path, PurePosixPath, PureWindowsPath
 from typing import IO, Any, Callable, Iterable, Iterator, Optional, Sequence
 
-CHECKER = "bbi9check 1.6"
+CHECKER = "bbi9check 1.10"
+# --gpu (section 9, "An accelerated checker"): the UNKNOWN claims' runs are deferred by _use_claim and done in batches on
+# the GPU by _gpu_bound_runs after the walk. Set in every process by _set_gpu, as pool workers are spawned.
+_GPU = False
+GPU_SUFFIX = " gpu"  # appended to CHECKER in a check.json the accelerated checker wrote
+
+
+def _set_gpu(flag: bool) -> None:
+    global _GPU
+    _GPU = flag
+
+
+# Contract limits: CHECKING.md section 6's limits table, the same names with the same values
+MAX_CAP = 10_000_000  # section 9 steps 1 and 3: the producer's largest cap, and so the largest j and bound
+CPS_MAX_N = 5  # section 6: NONHALT_CPS has 1 <= n <= 5
+CPS_MAX_C = 20_000  # section 6: NONHALT_CPS has 1 <= c <= 20,000
+RWL_MAX_B = 6  # section 6: NONHALT_RWL has 1 <= b <= 6
+RWL_MAX_T = 3  # section 6: NONHALT_RWL has 1 <= T <= 3
+RWL_MAX_C = 20_000  # section 6: NONHALT_RWL has 1 <= c <= 20,000
+RWL_BLOCK_STEPS = 1_000  # section 6: a block run must leave its block within 1,000 steps
+FAR_MAX_N = 10  # section 6: NONHALT_FAR has 1 <= n <= 10
+FAR_MAX_E = 102_010  # section 6: NONHALT_FAR has 1 <= e <= 102,010
+CPSH_MAX_N = 5  # section 6: NONHALT_CPSH has 1 <= n <= 5
+CPSH_MAX_H = 12  # section 6: NONHALT_CPSH has 1 <= H <= 12
+CPSH_MAX_C = 20_000  # section 6: NONHALT_CPSH has 1 <= c <= 20,000
+# End of the contract limits
+
 FORMAT_1 = "bbi9-cell/1"
 FORMAT_2 = "bbi9-cell/2"  # section 5: format 1 with the NONHALT_CPS certificate added
 FORMAT_3 = "bbi9-cell/3"  # section 5: format 2 with the NONHALT_RWL certificate added
 FORMAT_4 = "bbi9-cell/4"  # section 5: format 3 with the NONHALT_FAR certificate added
-SUMMARY_FORMATS = (FORMAT_1, FORMAT_2, FORMAT_3, FORMAT_4)  # format k is SUMMARY_FORMATS[k - 1]
+FORMAT_5 = "bbi9-cell/5"  # section 5: format 4 with the NONHALT_CPSH certificate added
+SUMMARY_FORMATS = (FORMAT_1, FORMAT_2, FORMAT_3, FORMAT_4, FORMAT_5)  # format k is SUMMARY_FORMATS[k - 1]
 SUMMARY_NAMED = ", ".join(repr(f) for f in SUMMARY_FORMATS[:-1]) + f" or {SUMMARY_FORMATS[-1]!r}"
 CHECK_FORMAT = "bbi9-check/1"
-MAX_BOUND = 10_000_000  # section 9 steps 1 and 3: the producer's largest cap
 CPS = "NONHALT_CPS"
-CPS_MAX_N = 5  # section 6: 1 <= n <= 5
-CPS_MAX_C = 20_000  # section 6: 1 <= c <= 20,000
 RWL = "NONHALT_RWL"
-RWL_MAX_B = 6  # section 6: 1 <= b <= 6
-RWL_MAX_T = 3  # section 6: 1 <= T <= 3
-RWL_MAX_C = 20_000  # section 6: 1 <= c <= 20,000
-RWL_BLOCK_STEPS = 1_000  # section 6: a block run must leave its block within 1,000 steps
 FAR = "NONHALT_FAR"
-FAR_MAX_N = 10  # section 6: 1 <= n <= 10
-FAR_MAX_E = 102_010  # section 6: 1 <= e <= 102,010
-SINCE = {CPS: 2, RWL: 3, FAR: 4}  # section 5: the first format with each of these certificates
+CPSH = "NONHALT_CPSH"
+SINCE = {CPS: 2, RWL: 3, FAR: 4, CPSH: 5}  # section 5: the first format with each of these certificates
 CAP_SHALLOW = 4_000_000  # section 8: census cap for an ancestor at depths 0 to 7
 CAP_DEPTH8 = 100_000  # section 8: census cap for an ancestor at depth 8 or deeper
 LIMIT = 9  # section 3: w and t never exceed 9
@@ -84,14 +116,16 @@ CHUNK_LINES = 20_000  # claims lines per pool task
 INDEX_HEADER = "group\tseq\toffset\tbytes\tlines"  # section 5: the first line of claims.idx
 TOP_GROUP = "top"  # section 5: the group of the claims at depths below claims_split
 BATCH_GROUPS = 32  # with claims.idx, the groups per pool task
+PROGRESS_SECS = 30  # seconds between the indexed check's progress lines on stderr
+PROGRESS_THREAD = "bbi9check progress"  # the name of the thread that prints them
 READ_BYTES = 1 << 15  # compressed bytes fed to the decompressor at a time, so memory never grows with the claims
 MAX_DIGITS = 18  # a claims.idx count with more digits is refused rather than converted
 TOP = 10
 MAX_FAILURES = 50
-VERDICTS = ("NONHALT_CYCLER", "NONHALT_TRANSLATED", CPS, RWL, FAR, "UNKNOWN")
-# The counts every corridor entry has. A format 2 to 4 entry also has NONHALT_CPS, and a format 1 entry must not. A
-# format 3 or 4 entry also has NONHALT_RWL, and a format 1 or 2 entry must not. A format 4 entry also has NONHALT_FAR,
-# and a format 1 to 3 entry must not.
+VERDICTS = ("NONHALT_CYCLER", "NONHALT_TRANSLATED", CPS, RWL, FAR, CPSH, "UNKNOWN")
+# The counts every corridor entry has. Each key of SINCE is also a count of every entry from its format on, and an
+# older entry must not have it: NONHALT_CPS from format 2, NONHALT_RWL from 3, NONHALT_FAR from 4 and NONHALT_CPSH
+# from 5.
 ENTRY_KEYS = ("machines", "HALT", "NONHALT_CYCLER", "NONHALT_TRANSLATED", "UNKNOWN", "max_halt_steps")
 OWN_KEYS = ("halter_digest", "claims", "claims_digest", "cell_machines", "late_cell_machines", "holdouts",
             "parent_holdouts", "top_halters")
@@ -101,9 +135,9 @@ AMEND_FORMAT = "bbi9-amend/1"
 AMEND_CHECK_FORMAT = "bbi9-amend-check/1"
 AMEND_KEYS = ("format", "cell", "depth", "base_summary_sha256", "claims_format", "corridor", "holdouts",
               "parent_holdouts", "amended", "amend_digest")  # the keys of amend.json a checker uses, all required
-CLAIMS_FORMATS = (FORMAT_2, FORMAT_3, FORMAT_4)  # the claims_format values amend.json may have
+CLAIMS_FORMATS = (FORMAT_2, FORMAT_3, FORMAT_4, FORMAT_5)  # the claims_format values amend.json may have
 CLAIMS_NAMED = ", ".join(repr(f) for f in CLAIMS_FORMATS[:-1]) + f" or {CLAIMS_FORMATS[-1]!r}"
-CERTIFICATES = ("NONHALT_CYCLER", "NONHALT_TRANSLATED", CPS, RWL, FAR)
+CERTIFICATES = ("NONHALT_CYCLER", "NONHALT_TRANSLATED", CPS, RWL, FAR, CPSH)
 SCAN_READ = 1 << 16  # compressed bytes read at a time by the claims scan
 SCAN_BLOCK = 1 << 20  # the claims scan hashes blocks of whole lines of about this many bytes
 SCAN_TASK = 1 << 20  # with claims.idx, the compressed bytes of claims.tsv.gz per pool task of the claims scan
@@ -111,12 +145,13 @@ AMEND_CHUNK = 64  # amend.tsv lines per pool task, few because one certificate m
 DIGITS = "0123456789"
 LETTERS = "ABCDEFGHIJ"
 # Imports (section 13)
-IMPORT_FORMAT = "bbi9-import/1"
+IMPORT_FORMAT = "bbi9-import/2"
 IMPORT_CHECK_FORMAT = "bbi9-import-check/1"
 IMPORT_KEYS = ("format", "cell", "depth", "base_summary_sha256", "base_amend_sha256", "lists", "decided",
-               "maker_holdouts", "maker_holdouts_by_list", "strangers", "holdouts", "parent_holdouts", "imported",
-               "import_digest")  # the keys of import.json a checker uses, all required
+               "never_halts", "maker_holdouts", "maker_holdouts_by_list", "strangers", "holdouts", "parent_holdouts",
+               "imported", "import_digest")  # the keys of import.json a checker uses, all required
 DECIDED = "DECIDED_LIST"
+NEVER = "NONHALT_PROVEN"  # the verdict of a machine run past a registered proven value
 REQUIRED = ("id", "label", "credit", "domain", "file", "sha256", "entries", "complete")  # of an entry that decides
 LIST_KEYS = ("credit", "entry_sha256", "id", "label", "sha256", "speaks")  # of an object of import.json's lists
 LINE_SPACE = " \t\f\v"  # whitespace around and inside a line of a list file. CR and LF end lines.
@@ -257,6 +292,8 @@ def _fields_parse(verdict: str, rest: Sequence[str]) -> bool:
         return len(rest) == 3 and all(_uint(x) for x in rest)
     if verdict == FAR:  # side and table are any strings here, and out of range unless _far_certificate takes them
         return len(rest) == 4 and _uint(rest[1]) and _uint(rest[3])
+    if verdict == CPSH:
+        return len(rest) == 3 and all(_uint(x) for x in rest)
     if verdict == "UNKNOWN":
         return len(rest) == 1 and _uint(rest[0])
     return False
@@ -669,12 +706,137 @@ def far_size(text: str, side: str, n: int, table: str) -> tuple[int, bool]:
     return _far_closure(machine.table, cert.k, cert.m, cert.n, cert.delta, cert.mirror)
 
 
+# NONHALT_CPSH (section 6). The closure numbers the symbols of the history machine M_H as it makes them, starting with
+# the blank (0, ()) as 0, so a word is a tuple of n symbol numbers. The numbers pass a byte, so words are not bytes as
+# in NONHALT_CPS. A member (u, q, x, v) is (u, q * width, x, v), with x a symbol number.
+HistoryLocal = tuple[tuple[int, ...], int, int, tuple[int, ...]]
+
+
+def _cpsh_closure(table: Table, n: int, h: int, limit: int) -> int:
+    """The number of members of C for M_H with this n and H (section 6), with Lw, Rw and C built until nothing new is
+    added, as _cps_closure builds them for M. table is M's.
+
+    Returns -1 as soon as C holds a member whose pair is undefined, and limit + 1 as soon as C has more than limit
+    members, without building further.
+
+    M_H's pair (q, (b, hist)) is undefined exactly when M's (q, b) is, and its instruction otherwise writes
+    (w, first H of ((q, b),) + hist), moves m and goes to t, where (w, m, t) is M's instruction on (q, b). So the
+    instruction is read from the symbol's base b, never from its number, and a symbol is made, and numbered, when an
+    instruction first writes it. The blank is the symbol 0 wherever the rules say 0: the words 0^n of Lw and Rw and
+    the start member (0^n, A, (0, ()), 0^n). Members wait on the words they use and are expanded again when such a word
+    arrives, as in _cps_closure (CHECKING.md, "Waiting members are expanded again here too").
+    """
+    base = [0]  # base[x] is the base b of the symbol numbered x
+    hist: list[tuple[tuple[int, int], ...]] = [()]  # hist[x] is its history, pairs (q * width, b), newest first
+    numbers: dict[tuple[int, tuple[tuple[int, int], ...]], int] = {(0, ()): 0}
+    instructions: dict[tuple[int, int], Optional[tuple[int, int, int]]] = {}  # (q * width, x) -> M_H's, or None
+
+    def instruction(st: int, x: int) -> Optional[tuple[int, int, int]]:
+        """M_H's instruction on (q, x) as (written symbol number, move, t * width), or None when it is undefined."""
+        key = (st, x)
+        if key in instructions:
+            return instructions[key]
+        b = base[x]
+        ins = table[st + b]
+        out = None
+        if ins is not None:
+            w, move, t = ins
+            written = (w, (((st, b),) + hist[x])[:h])
+            y = numbers.get(written)
+            if y is None:
+                y = numbers[written] = len(base)
+                base.append(w)
+                hist.append(written[1])
+            out = (y, move, t)
+        instructions[key] = out
+        return out
+
+    zero = (0,) * n
+    members: set[HistoryLocal] = set()
+    work: list[HistoryLocal] = []
+    in_left: set[tuple[int, ...]] = set()  # Lw
+    in_right: set[tuple[int, ...]] = set()  # Rw
+    left_by_end: dict[tuple[int, ...], list[tuple[int, ...]]] = {}  # Lw, keyed by each word's last n - 1 symbols
+    right_by_start: dict[tuple[int, ...], list[tuple[int, ...]]] = {}  # Rw, keyed by each word's first n - 1 symbols
+    # Members waiting on words, keyed and shaped as in _cps_closure
+    left_waiters: dict[tuple[int, ...], set[tuple[int, int, tuple[int, ...]]]] = {}
+    right_waiters: dict[tuple[int, ...], set[tuple[tuple[int, ...], int, int]]] = {}
+
+    def add(member: HistoryLocal) -> None:
+        if member in members:
+            return
+        if instruction(member[1], member[2]) is None:
+            raise _CpsStop(-1)
+        members.add(member)
+        if len(members) > limit:
+            raise _CpsStop(limit + 1)
+        work.append(member)
+
+    def enter_left(word: tuple[int, ...]) -> None:
+        if word in in_left:
+            return
+        in_left.add(word)
+        key = word[1:]
+        left_by_end.setdefault(key, []).append(word)
+        for t, x, right in left_waiters.get(key, ()):
+            add((word, t, x, right))
+
+    def enter_right(word: tuple[int, ...]) -> None:
+        if word in in_right:
+            return
+        in_right.add(word)
+        key = word[:-1]
+        right_by_start.setdefault(key, []).append(word)
+        for left, t, x in right_waiters.get(key, ()):
+            add((left, t, x, word))
+
+    try:
+        enter_left(zero)
+        enter_right(zero)
+        add((zero, 0, 0, zero))
+        while work:
+            u, st, sym, v = work.pop()
+            ins = instruction(st, sym)
+            assert ins is not None  # add refuses a member whose pair is undefined
+            w, move, t = ins
+            if move > 0:
+                left, key, x = u[1:] + (w,), v[1:], v[0]
+                waiting_r = right_waiters.setdefault(key, set())
+                if (left, t, x) in waiting_r:
+                    continue
+                waiting_r.add((left, t, x))
+                enter_left(left)
+                for right in right_by_start.get(key, ()):
+                    add((left, t, x, right))
+            else:
+                right, key, x = (w,) + v[:-1], u[:-1], u[-1]
+                waiting_l = left_waiters.setdefault(key, set())
+                if (t, x, right) in waiting_l:
+                    continue
+                waiting_l.add((t, x, right))
+                enter_right(right)
+                for left in left_by_end.get(key, ()):
+                    add((left, t, x, right))
+    except _CpsStop as stop:
+        return stop.result
+    return len(members)
+
+
+def cpsh_size(text: str, n: int, h: int, limit: int = CPSH_MAX_C) -> int:
+    """The size of C for the machine's history machine M_H with this n and H (section 6), from 1 to limit. Otherwise
+    the result is not a valid size: -1 when C holds a member whose pair is undefined, and limit + 1 when C has more
+    than limit members, where the closure stops. Raises ValueError when n or H is below 1."""
+    if n < 1 or h < 1:
+        raise ValueError("n and H must be at least 1")
+    return _cpsh_closure(parse_text(text).table, n, h, limit)
+
+
 def _bounded(x: str) -> int:
-    """The value of a string of digits, or MAX_BOUND + 1 for anything larger. A long string is never converted."""
+    """The value of a string of digits, or MAX_CAP + 1 for anything larger. A long string is never converted."""
     x = x.lstrip("0")
-    if len(x) > len(str(MAX_BOUND)):
-        return MAX_BOUND + 1
-    return min(int(x or "0"), MAX_BOUND + 1)
+    if len(x) > len(str(MAX_CAP)):
+        return MAX_CAP + 1
+    return min(int(x or "0"), MAX_CAP + 1)
 
 
 def _cps_fields(rest: Sequence[str]) -> tuple[int, int] | None:
@@ -690,12 +852,22 @@ def _rwl_fields(rest: Sequence[str]) -> tuple[int, int, int] | None:
     return (b, big_t, c) if in_range else None
 
 
+def _cpsh_fields(rest: Sequence[str]) -> tuple[int, int, int] | None:
+    """n, H and c of a NONHALT_CPSH certificate whose fields parse, or None when any is out of range."""
+    n, h, c = _bounded(rest[0]), _bounded(rest[1]), _bounded(rest[2])
+    in_range = 1 <= n <= CPSH_MAX_N and 1 <= h <= CPSH_MAX_H and 1 <= c <= CPSH_MAX_C
+    return (n, h, c) if in_range else None
+
+
 def _verify(machine: Machine, verdict: str, rest: Sequence[str], text: str) -> bool:
-    """Verify a certificate whose fields already parse, for the machine of the text. One whose j is above MAX_BOUND
-    fails without being run, a NONHALT_CPS or NONHALT_RWL certificate with a number out of range fails without being
-    computed, and so does a NONHALT_FAR certificate whose side, n, table or e is out of range."""
+    """Verify a certificate whose fields already parse, for the machine of the text. One whose j is above MAX_CAP
+    fails without being run, a NONHALT_CPS, NONHALT_RWL or NONHALT_CPSH certificate with a number out of range fails
+    without being computed, and so does a NONHALT_FAR certificate whose side, n, table or e is out of range."""
     if verdict == "UNKNOWN":
         return True
+    if verdict == CPSH:
+        nhc = _cpsh_fields(rest)
+        return nhc is not None and _cpsh_closure(machine.table, nhc[0], nhc[1], nhc[2]) == nhc[2]
     if verdict == FAR:
         cert = _far_certificate(text, machine, rest)
         if isinstance(cert, str):
@@ -707,11 +879,16 @@ def _verify(machine: Machine, verdict: str, rest: Sequence[str], text: str) -> b
     if verdict == RWL:
         btc = _rwl_fields(rest)
         return btc is not None and _rwl_closure(machine.table, btc[0], btc[1], btc[2]) == btc[2]
+    return _verify_run(machine.table, verdict, rest)
+
+
+def _verify_run(table: Table, verdict: str, rest: Sequence[str]) -> bool:
+    """Verify a NONHALT_CYCLER or NONHALT_TRANSLATED certificate whose fields already parse, on the machine's table."""
     if verdict == "NONHALT_CYCLER":
         i, j = _bounded(rest[0]), _bounded(rest[1])
-        return 0 <= i < j <= MAX_BOUND and _cycler(machine.table, i, j)
+        return 0 <= i < j <= MAX_CAP and _cycler(table, i, j)
     i, j = _bounded(rest[1]), _bounded(rest[2])
-    return 1 <= i < j <= MAX_BOUND and _translated(machine.table, 1 if rest[0] == "R" else -1, i, j)
+    return 1 <= i < j <= MAX_CAP and _translated(table, 1 if rest[0] == "R" else -1, i, j)
 
 
 def verify_certificate(text: str, fields: list[str]) -> bool:
@@ -765,6 +942,48 @@ class WalkTally:
         self.halter_sum = (self.halter_sum + other.halter_sum) & MASK
         self.unhalted_sum = (self.unhalted_sum + other.unhalted_sum) & MASK
         self.top = sorted(self.top + other.top)[:TOP]
+
+
+@dataclass
+class Progress:
+    """How far the indexed check has walked, for its progress lines on stderr.
+
+    steps counts each halter's steps and the depth's bound for each machine claimed UNKNOWN. A certified machine adds
+    none. So when a passing check ends, steps is the sum over summary.json's corridor of halt_steps plus UNKNOWN times
+    max_halt_steps.
+    """
+    started: float  # a time.perf_counter() value
+    machines: int = 0
+    steps: int = 0
+
+    def add(self, walk: WalkTally, claims: ClaimTally, bounds: Sequence[int]) -> None:
+        """Count one finished walk and the claims it read."""
+        unknown = sum(claims.counts.get((d, "UNKNOWN"), 0) * b for d, b in enumerate(bounds))
+        self.machines += sum(walk.machines)
+        self.steps += sum(walk.halt_steps) + unknown
+
+    def line(self, now: float) -> str:
+        return f"progress: {self.machines} machines, {self.steps} steps, {now - self.started:.1f} s"
+
+
+@contextmanager
+def _reporting(progress: Progress) -> Iterator[None]:
+    """Print progress.line to stderr every PROGRESS_SECS seconds while the block runs, and stop when it ends, even
+    when it raises. The checking thread writes the counters and the reporting thread reads them, with no lock, and a
+    batch counts once its result is collected, so a line may show the work a few batches behind."""
+    stop = threading.Event()
+
+    def report() -> None:
+        while not stop.wait(PROGRESS_SECS):
+            print(progress.line(time.perf_counter()), file=sys.stderr, flush=True)
+
+    thread = threading.Thread(target=report, name=PROGRESS_THREAD, daemon=True)
+    thread.start()
+    try:
+        yield
+    finally:
+        stop.set()
+        thread.join()
 
 
 def _in_corridor(cor: Corridor, d: int, s: int, k: int) -> bool:
@@ -932,8 +1151,8 @@ def corridor_counts(states: int, symbols: int, depth: int, bounds: Sequence[int]
 
 @dataclass
 class ClaimTally:
-    # The cell's format, 1 to 4. NONHALT_CPS claims may appear in formats 2 to 4, NONHALT_RWL claims in formats 3 and
-    # 4, and NONHALT_FAR claims in format 4. In the other formats each one fails.
+    # The cell's format, 1 to 5. NONHALT_CPS claims may appear in formats 2 to 5, NONHALT_RWL claims in formats 3 to 5,
+    # NONHALT_FAR claims in formats 4 and 5, and NONHALT_CPSH claims in format 5. In the other formats each one fails.
     fmt: int = 1
     lines: int = 0
     counts: dict[tuple[int, str], int] = field(default_factory=dict)  # (depth, verdict) -> claims
@@ -945,6 +1164,7 @@ class ClaimTally:
     defects: int = 0  # failures of the indexed check's walk and grouped claims, apart from the lines' own problems
     messages: list[str] = field(default_factory=list)  # the first MAX_FAILURES problems and defects
     amend: bool = False  # the lines are amend.tsv's, and fmt is amend.json's claims_format (section 12)
+    deferred: list[tuple[str, int, str]] = field(default_factory=list)  # --gpu: (text, depth, where) of UNKNOWN claims
 
     def problem(self, message: str) -> None:
         self.problems += 1
@@ -972,12 +1192,19 @@ class ClaimTally:
         self.problems += other.problems
         self.defects += other.defects
         self.messages.extend(other.messages[:MAX_FAILURES - len(self.messages)])
+        self.deferred.extend(other.deferred)
 
 
-def _claim(t: ClaimTally, raw: bytes, where: str) -> str | None:
+_RUN_ONLY = ("NONHALT_CYCLER", "NONHALT_TRANSLATED")  # certificates that depend on the machine's run alone
+
+
+def _claim(t: ClaimTally, raw: bytes, where: str, known: tuple[int, Table] | None = None) -> str | None:
     """Step 3 for one claims line, given without its newline: count it, digest it and verify its certificate.
 
-    Returns its verdict, or None when it does not parse. where names the line in messages.
+    Returns its verdict, or None when it does not parse. where names the line in messages. known is (depth, table)
+    of the walk's machine when the walk has matched the line's text to its own text for that machine. Then a
+    NONHALT_CYCLER or NONHALT_TRANSLATED certificate, which depends only on the machine's run, is checked on the walk's
+    table, the same machine, and the text is not parsed again. Every other verdict parses the text.
     """
     t.lines += 1
     t.claims_sum += _h(raw)
@@ -989,12 +1216,26 @@ def _claim(t: ClaimTally, raw: bytes, where: str) -> str | None:
         return None
     fields = line.split("\t")
     text = fields[0]
+    verdict, rest = (fields[1], fields[2:]) if len(fields) > 1 else ("", [])
+    if known is not None and verdict in _RUN_ONLY:
+        depth, table = known
+        if not _fields_parse(verdict, rest):
+            t.problem(f"{where}: the fields of {line!r} do not parse")
+            return None
+        key = (depth, verdict)
+        t.counts[key] = t.counts.get(key, 0) + 1
+        if _bounded(rest[-1]) > MAX_CAP:
+            t.invalid += 1
+            t.problem(f"{where}: {verdict} {' '.join(rest)} has j above the bound {MAX_CAP} of this checker")
+        elif not _verify_run(table, verdict, rest):
+            t.invalid += 1
+            t.problem(f"{where}: {verdict} {' '.join(rest)} is not a valid certificate for {text}")
+        return verdict
     try:
         machine = parse_text(text)
     except ValueError as e:
         t.problem(f"{where}: {text!r} is not a machine text ({e})")
         return None
-    verdict, rest = (fields[1], fields[2:]) if len(fields) > 1 else ("", [])
     if not _fields_parse(verdict, rest):
         t.problem(f"{where}: the fields of {line!r} do not parse")
         return None
@@ -1020,9 +1261,13 @@ def _claim(t: ClaimTally, raw: bytes, where: str) -> str | None:
     elif verdict == FAR and isinstance(far := _far_certificate(text, machine, rest), str):
         t.invalid += 1
         t.problem(f"{where}: {shown} {far}")
-    elif verdict in ("NONHALT_CYCLER", "NONHALT_TRANSLATED") and _bounded(rest[-1]) > MAX_BOUND:
+    elif verdict == CPSH and _cpsh_fields(rest) is None:
         t.invalid += 1
-        t.problem(f"{where}: {shown} has j above the bound {MAX_BOUND} of this checker")
+        t.problem(f"{where}: {shown} has n, H or c out of range (n from 1 to {CPSH_MAX_N}, H from 1 to {CPSH_MAX_H}, "
+                  f"c from 1 to {CPSH_MAX_C})")
+    elif verdict in ("NONHALT_CYCLER", "NONHALT_TRANSLATED") and _bounded(rest[-1]) > MAX_CAP:
+        t.invalid += 1
+        t.problem(f"{where}: {shown} has j above the bound {MAX_CAP} of this checker")
     elif not _verify(machine, verdict, rest, text):
         t.invalid += 1
         t.problem(f"{where}: {shown} is not a valid certificate for {text}")
@@ -1260,13 +1505,51 @@ def _use_claim(lines: _Lines, claims: ClaimTally, text: str, d: int, table: Tabl
     """The next line is M's claim. Returns None when M is unhalted, or (steps, state * width, symbol) when M is
     claimed UNKNOWN but halts, which fails."""
     where = lines.where()
-    if _claim(claims, lines.take(), where) != "UNKNOWN":
+    if _claim(claims, lines.take(), where, (d, table)) != "UNKNOWN":
         return None  # a certificate, verified by _claim, or a line that does not parse
+    if _GPU:
+        # the run happens in _gpu_bound_runs after the walk. Until then M counts as unhalted, which is what it is in
+        # every passing check; a halt found later is the same defect, and the check fails.
+        claims.deferred.append((text, d, where))
+        return None
     halted, n, st, r = _run(table, bound)
     if not halted:
         return None
-    claims.defect(f"{where}: {text} at depth {d} is claimed UNKNOWN but halts after {_count(n, 'step')}")
+    claims.defect(_unknown_halts(where, text, d, n))
     return n, st, r
+
+
+def _unknown_halts(where: str, text: str, d: int, n: int) -> str:
+    return f"{where}: {text} at depth {d} is claimed UNKNOWN but halts after {_count(n, 'step')}"
+
+
+def _gpu_bound_runs(cor: Corridor, claims: ClaimTally) -> None:
+    """--gpu: run the deferred UNKNOWN claims to their depths' bounds on the GPU (experiments/bbi/bbi9/gpu), each
+    depth as one batch, and record the defect for each one that halts. The GPU runner falls back to _run for a machine
+    whose tape outgrows every width it tries, so every verdict is _run's."""
+    if not claims.deferred:
+        return
+    root = Path(__file__).resolve().parents[4]  # the repository, where experiments.bbi.bbi9.gpu lives
+    if str(root) not in sys.path:
+        sys.path.insert(0, str(root))
+    from experiments.bbi.bbi9.gpu.bound import BoundRunner, Stats
+    started = time.perf_counter()
+    by_depth: dict[int, list[tuple[str, str]]] = {}
+    for text, d, where in claims.deferred:
+        by_depth.setdefault(d, []).append((text, where))
+    tables = {d: [parse_text(text).table for text, _ in items] for d, items in by_depth.items()}
+    runner = BoundRunner(table_max=max(len(t) for ts in tables.values() for t in ts))
+    stats = Stats()
+    halts = 0
+    for d in sorted(by_depth):
+        results = runner.run(tables[d], cor.bounds[d], stats=stats, fallback=_run)
+        for (text, where), r in zip(by_depth[d], results):
+            if r.halted:
+                halts += 1
+                claims.defect(_unknown_halts(where, text, d, r.steps))
+    print(f"gpu: {len(claims.deferred)} UNKNOWN machines run to their bounds, {halts} halt, "
+          f"{stats.cpu_fallback} on the CPU, {time.perf_counter() - started:.1f} s", file=sys.stderr, flush=True)
+    claims.deferred = []
 
 
 def _drain(lines: _Lines, claims: ClaimTally, at: int) -> None:
@@ -1300,28 +1583,38 @@ def _groups_job(job: tuple[Corridor, str, list[tuple[Node, str, list[Member]]], 
 
 
 def _check_indexed(cell_dir: Path, cor: Corridor, split: int, index: dict[str, list[Member]], pool: Any,
-                   jobs: int, fmt: int) -> tuple[WalkTally, ClaimTally]:
+                   jobs: int, fmt: int, core: CoreRun | None = None) -> tuple[WalkTally, ClaimTally]:
     """Steps 2 and 3 of the indexed check. The top group is walked here. The groups it reaches go to the pool in
-    batches as they are reached, with a bounded number pending, and are merged in the order reached."""
+    batches as they are reached, with a bounded number pending, and are merged in the order reached. While they are
+    walked, a progress line goes to stderr every PROGRESS_SECS seconds. With core, bbi9check-core walks the batches
+    (_core_groups_job), and core counts them."""
     path = str(cell_dir / "claims.tsv.gz")
     walk = WalkTally.empty(cor.depth)
     top_claims, group_claims = ClaimTally(fmt=fmt), ClaimTally()
     pending: deque[Any] = deque()
     batch: list[tuple[Node, str, list[Member]]] = []
+    progress = Progress(time.perf_counter())
+    worker: Callable[[Any], Any] = _groups_job if core is None else _core_groups_job
 
-    def collect(result: tuple[WalkTally, ClaimTally]) -> None:
+    def collect(result: tuple[Any, ...]) -> None:
         walk.merge(result[0])
         group_claims.merge(result[1])
+        progress.add(result[0], result[1], cor.bounds)
+        if core is not None:
+            core.batches += 1
+            core.redone += int(result[2])
+            core.backend = result[3]
 
     def flush() -> None:
         nonlocal batch
         if not batch:
             return
-        job, batch = (cor, path, batch, fmt), []
+        job: tuple[Any, ...] = (cor, path, batch, fmt) if core is None else (cor, path, batch, fmt, str(core.exe))
+        batch = []
         if pool is None:
-            collect(_groups_job(job))
+            collect(worker(job))
             return
-        pending.append(pool.apply_async(_groups_job, (job,)))
+        pending.append(pool.apply_async(worker, (job,)))
         while len(pending) > 2 * jobs:
             collect(pending.popleft().get())
 
@@ -1332,19 +1625,293 @@ def _check_indexed(cell_dir: Path, cor: Corridor, split: int, index: dict[str, l
             flush()
 
     root = _root(cor)
-    with open(path, "rb") as f:
-        lines = _Lines(f, TOP_GROUP, index.pop(TOP_GROUP, []), top_claims)
-        walk.merge(_walk(cor, [] if root is None else [root], split, emit, lines, top_claims))
-        _drain(lines, top_claims, 0)
-    flush()
-    while pending:
-        collect(pending.popleft().get())
+    try:
+        with _reporting(progress):
+            with open(path, "rb") as f:
+                lines = _Lines(f, TOP_GROUP, index.pop(TOP_GROUP, []), top_claims)
+                top_walk = _walk(cor, [] if root is None else [root], split, emit, lines, top_claims)
+                walk.merge(top_walk)
+                _drain(lines, top_claims, 0)
+            progress.add(top_walk, top_claims, cor.bounds)
+            flush()
+            while pending:
+                collect(pending.popleft().get())
+    finally:
+        if core is not None:
+            _core_close()  # this process's core. A pool worker's core reads EOF on stdin when the pool ends.
     claims = ClaimTally()
     claims.merge(top_claims)
     claims.merge(group_claims)
     for group in index:
         claims.defect(f"claims.idx names the group {group}, which the walk never reaches")
     return walk, claims
+
+
+# ---------------------------------------------------------------------------------------------------------------------
+# The compiled core (section 9, An accelerated checker)
+#
+# bbi9check-core (core/, Rust) walks a batch of groups as _groups_job does, counting each NONHALT_CYCLER or
+# NONHALT_TRANSLATED claim it finds valid and written cleanly, and hands every other claims line back as a RARE line,
+# which _claim reads here as it would in _groups_job. A batch the core cannot walk exactly as _groups_job would (a
+# member it refuses, a machine that does not halt and is not claimed, lines left over, a count past 64 bits) comes
+# back REDO, and _groups_job walks it again, so every failure message is the Python checker's own.
+
+CORE_DIR = Path(__file__).resolve().parent / "core"
+CORE_MANIFEST = CORE_DIR / "Cargo.toml"
+CORE_EXE = CORE_DIR / "target" / "release" / ("bbi9check-core.exe" if os.name == "nt" else "bbi9check-core")
+CORE_PROTOCOL = "1"
+CORE_SUFFIX = " core"  # appended to CHECKER in a check.json when the core walked at least one batch
+CORE_CLOSE_SECS = 10  # how long _Core.close waits for the core to exit before killing it
+_CORE_VERDICTS = ("NONHALT_CYCLER", "NONHALT_TRANSLATED")
+_CORE_LISTS = ("machines", "halters", "unhalted", "max_steps", "halt_steps")
+_CORE_SUMS = ("late", "halter_sum", "unhalted_sum", "lines", "claims_sum", "claimed_sum")
+
+
+class CoreError(RuntimeError):
+    """bbi9check-core failed, or answered outside its protocol."""
+
+
+@dataclass
+class CoreRun:
+    """The core an indexed check walks with, and what it did: the batches it walked, how many of them the Python code
+    walked again, and the core's SHA-256 backend."""
+    exe: Path
+    batches: int = 0
+    redone: int = 0
+    backend: str = ""
+
+
+def _core_stale(exe: Path, core_dir: Path) -> bool:
+    """Whether a file under core_dir / "src", or core_dir / "Cargo.toml", was changed after exe was built. A time that
+    cannot be read warns of nothing, since the warning is advice and the check is done."""
+    try:
+        built = exe.stat().st_mtime
+        sources = [f for f in (core_dir / "src").rglob("*") if f.is_file()] + [core_dir / "Cargo.toml"]
+        return any(f.stat().st_mtime > built for f in sources if f.is_file())
+    except OSError:
+        return False
+
+
+def _core_command(exe: str, path: str, cor: Corridor) -> list[str]:
+    """The core's start line for the cell. The late caps are read now, so a patched CAP_SHALLOW reaches the core."""
+    return [exe, "serve", path, "--cell", f"{cor.states},{cor.symbols},{cor.depth}",
+            "--bounds", ",".join(str(b) for b in cor.bounds), "--late-caps", f"{CAP_SHALLOW},{CAP_DEPTH8}"]
+
+
+def _core_request(groups: Sequence[tuple[bool, str, Sequence[Member]]]) -> bytes:
+    """One batch's request: the BATCH line and a GROUP line per group, with its late flag, root and members."""
+    lines = [f"BATCH\t{len(groups)}\n"]
+    for late, text, members in groups:
+        parts = ["GROUP", "1" if late else "0", text] + [f"{m.offset}:{m.size}:{m.lines}" for m in members]
+        lines.append("\t".join(parts) + "\n")
+    return "".join(lines).encode("utf-8")
+
+
+def _core_int(x: bytes) -> int:
+    if not (x.isdigit() and len(x) <= MAX_DIGITS):
+        raise CoreError(f"bbi9check-core sent {x!r} where a number belongs")
+    return int(x)
+
+
+class _Core:
+    """One bbi9check-core serve process for one cell."""
+
+    def __init__(self, command: list[str]) -> None:
+        self.command = command
+        # D, from the start line's --cell S,K,D, bounds the depth of a RARE line
+        cell = command[command.index("--cell") + 1].split(",") if "--cell" in command[:-1] else []
+        if not (len(cell) == 3 and _uint(cell[2])):
+            raise CoreError(f"bbi9check-core was given no --cell S,K,D: {command!r}")
+        self.depth = int(cell[2])
+        try:
+            self.proc = subprocess.Popen(command, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+        except OSError as e:
+            raise CoreError(f"bbi9check-core could not be started: {e}") from e
+        assert self.proc.stdin is not None and self.proc.stdout is not None
+        self.stdin, self.stdout = self.proc.stdin, self.proc.stdout
+        try:
+            first = self.stdout.readline()
+        except OSError as e:
+            self._kill()
+            raise CoreError(f"bbi9check-core could not be read: {e}") from e
+        if not first:
+            self._kill()
+            raise CoreError(f"bbi9check-core exited before it was ready (exit {self.proc.returncode})")
+        parts = first.rstrip(b"\n").split(b"\t")
+        if not (first.endswith(b"\n") and len(parts) == 4 and parts[0] == b"READY" and parts[1] == b"bbi9check-core"
+                and parts[2] == CORE_PROTOCOL.encode()):
+            self._kill()
+            got = parts[2].decode("utf-8", "replace") if len(parts) >= 3 else repr(first)
+            raise CoreError(f"bbi9check-core speaks protocol {got}, and this checker speaks protocol {CORE_PROTOCOL}")
+        self.backend: str = parts[3].decode("utf-8", "replace")
+
+    def _kill(self) -> None:
+        try:
+            self.proc.kill()
+        except OSError:
+            pass
+        self.proc.wait()
+
+    def batch(self, groups: Sequence[tuple[bool, str, Sequence[Member]]]
+              ) -> tuple[list[tuple[int, int, int, bytes]], dict[str, Any] | None]:
+        """Walk one batch of (late, root text, members). Returns the RARE lines as (group index, line number in the
+        group, depth, raw line) in walk order and the tally, or ([], None) when the core answers REDO."""
+        try:
+            self.stdin.write(_core_request(groups))  # the whole request before the first read, so no pipe fills
+            self.stdin.flush()
+        except OSError as e:  # BrokenPipeError among them
+            raise CoreError(f"bbi9check-core could not be sent a batch: {e}") from e
+        rare: list[tuple[int, int, int, bytes]] = []
+        while True:
+            try:
+                line = self.stdout.readline()
+            except OSError as e:
+                raise CoreError(f"bbi9check-core could not be read: {e}") from e
+            if not line.endswith(b"\n"):
+                raise CoreError("bbi9check-core exited in the middle of a batch")
+            if line.startswith(b"RARE\t"):
+                parts = line[:-1].split(b"\t", 4)  # never rstrip: the claims line may end with a CR
+                if len(parts) != 5:
+                    raise CoreError(f"bbi9check-core sent a RARE line without five fields: {line[:200]!r}")
+                g, no, d = (_core_int(x) for x in parts[1:4])
+                if g >= len(groups) or no < 1 or d > self.depth:
+                    raise CoreError(f"bbi9check-core sent a RARE line outside the batch: {line[:200]!r}")
+                rare.append((g, no, d, parts[4]))
+            elif line.startswith(b"TALLY\t"):
+                try:
+                    tally = json.loads(line[6:])
+                except ValueError as e:
+                    raise CoreError(f"bbi9check-core sent a TALLY that is not JSON: {e}") from e
+                if not isinstance(tally, dict):
+                    raise CoreError("bbi9check-core sent a TALLY that is not an object")
+                return rare, tally
+            elif line.startswith(b"REDO\t"):
+                return [], None
+            else:
+                raise CoreError(f"bbi9check-core sent a line that is not RARE, TALLY or REDO: {line[:200]!r}")
+
+    def close(self) -> None:
+        """Close stdin, so an idle core reads EOF at a request boundary and exits, and stdout, so a core still writing
+        a reply nobody will read fails its write and exits rather than block, and kill it if it has not exited within
+        CORE_CLOSE_SECS."""
+        for pipe in (self.stdin, self.stdout):
+            try:
+                pipe.close()
+            except OSError:
+                pass
+        try:
+            self.proc.wait(CORE_CLOSE_SECS)
+        except subprocess.TimeoutExpired:
+            self._kill()
+
+
+_CORE: _Core | None = None  # this process's core, kept between batches
+
+
+def _core_for(command: list[str]) -> _Core:
+    """This process's core for the command, started or restarted when the command differs."""
+    global _CORE
+    if _CORE is None or _CORE.command != command:
+        _core_close()
+        _CORE = _Core(command)
+    return _CORE
+
+
+def _core_close() -> None:
+    global _CORE
+    core, _CORE = _CORE, None
+    if core is not None:
+        core.close()
+
+
+def _from_core(tally: dict[str, Any], depth: int, fmt: int) -> tuple[WalkTally, ClaimTally]:
+    """The core's TALLY as the tallies _groups_job returns, without the messages RARE lines add."""
+    def uint(x: object) -> bool:
+        return type(x) is int and 0 <= x <= MASK
+
+    for key in _CORE_LISTS + _CORE_SUMS + ("top", "counts"):
+        if key not in tally:
+            raise CoreError(f"bbi9check-core sent a TALLY without {key}")
+    for key in _CORE_LISTS:
+        v = tally[key]
+        if not (isinstance(v, list) and len(v) == depth + 1 and all(uint(x) for x in v)):
+            raise CoreError(f"bbi9check-core sent a TALLY whose {key} is not {depth + 1} counts")
+    for key in _CORE_SUMS:
+        if not uint(tally[key]):
+            raise CoreError(f"bbi9check-core sent a TALLY whose {key} is not a count below 2^64")
+    top = tally["top"]
+    if not (isinstance(top, list) and len(top) <= TOP and all(
+            isinstance(x, list) and len(x) == 2 and uint(x[0]) and isinstance(x[1], str) for x in top)):
+        raise CoreError("bbi9check-core sent a TALLY whose top is not a list of [steps, text]")
+    keyed = [(-steps, text) for steps, text in top]  # WalkTally's order: most steps first, then text
+    if keyed != sorted(keyed):
+        raise CoreError("bbi9check-core sent a TALLY whose top is not in order")
+    counts: dict[tuple[int, str], int] = {}
+    entries = tally["counts"]
+    if not isinstance(entries, list):
+        raise CoreError("bbi9check-core sent a TALLY whose counts is not a list")
+    for x in entries:
+        if not (isinstance(x, list) and len(x) == 3 and uint(x[0]) and x[0] <= depth and x[1] in _CORE_VERDICTS
+                and uint(x[2]) and x[2] > 0 and (x[0], x[1]) not in counts):
+            raise CoreError(f"bbi9check-core sent a TALLY with the count {x!r}")
+        counts[(x[0], x[1])] = x[2]
+    walk = WalkTally(*(list(tally[key]) for key in _CORE_LISTS), late=tally["late"],
+                     halter_sum=tally["halter_sum"], unhalted_sum=tally["unhalted_sum"], top=keyed)
+    claims = ClaimTally(fmt=fmt, lines=tally["lines"], counts=counts, claims_sum=tally["claims_sum"],
+                        claimed_sum=tally["claimed_sum"])
+    return walk, claims
+
+
+def _zlib_accepts_members(path: str, batch: Sequence[tuple[Node, str, Sequence[Member]]]) -> bool:
+    """Whether zlib, making exactly _member_lines's calls, accepts every member of the batch as one whole gzip
+    member. The output is discarded: lines and counts are left to the core, which answers REDO for them."""
+    try:
+        with open(path, "rb") as f:
+            for _, _, members in batch:
+                for m in members:
+                    z = zlib.decompressobj(wbits=31)
+                    pos, end = m.offset, m.offset + m.size
+                    while pos < end and not z.eof:
+                        f.seek(pos)
+                        data = f.read(min(READ_BYTES, end - pos))
+                        if not data:
+                            return False
+                        pos += len(data)
+                        z.decompress(data)
+                    if not z.eof or len(z.unused_data) + end - pos:
+                        return False
+    except (OSError, zlib.error):
+        return False
+    return True
+
+
+def _core_groups_job(job: tuple[Corridor, str, list[tuple[Node, str, list[Member]]], int, str]
+                     ) -> tuple[WalkTally, ClaimTally, bool, str]:
+    """Pool worker: _groups_job by the core. job is _groups_job's job and the core's path. Returns the tallies,
+    whether the batch was redone by _groups_job, and the core's backend."""
+    cor, path, batch, fmt, exe = job
+    core = _core_for(_core_command(exe, path, cor))
+    if not _zlib_accepts_members(path, batch):  # zlib judges every member, as _member_lines does
+        return (*_groups_job((cor, path, batch, fmt)), True, core.backend)
+    rare, tally = core.batch([(node[6], group, members) for node, group, members in batch])
+    if tally is None:
+        return (*_groups_job((cor, path, batch, fmt)), True, core.backend)
+    walk, claims = _from_core(tally, cor.depth, fmt)
+    for g, no, d, raw in rare:  # walk order, so messages come in _groups_job's order
+        where = f"group {batch[g][1]} line {no}"
+        if _claim(claims, raw, where) != "UNKNOWN":
+            continue
+        text = raw.split(b"\t", 1)[0].decode("ascii")
+        machine = parse_text(text)
+        if machine.depth != d:  # the core's depth sets the bound, so it is checked, never trusted
+            raise CoreError(f"bbi9check-core gave depth {d} for {text}, which has depth {machine.depth}")
+        if _GPU:
+            claims.deferred.append((text, d, where))
+        elif _run(machine.table, cor.bounds[d])[0]:  # claimed UNKNOWN but halts: walk it as Python does
+            return (*_groups_job((cor, path, batch, fmt)), True, core.backend)
+    claims.claims_sum &= MASK
+    claims.claimed_sum &= MASK
+    return walk, claims, False, core.backend
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -1381,7 +1948,7 @@ def _uint_value(x: object) -> bool:
 
 
 def _format_number(summary: dict[str, Any]) -> int:
-    """1 to 4 for a summary whose format is one of SUMMARY_FORMATS."""
+    """1 to 5 for a summary whose format is one of SUMMARY_FORMATS."""
     return SUMMARY_FORMATS.index(summary["format"]) + 1
 
 
@@ -1420,7 +1987,8 @@ def _read_summary(cell_dir: Path, result: dict[str, Any], failures: list[str]) -
         if not isinstance(entry, dict) or type(entry.get("depth")) is not int or entry["depth"] != d:
             failures.append(f"summary.json corridor entry {d} does not describe depth {d}")
             return None
-        # NONHALT_CPS belongs to formats 2 to 4, NONHALT_RWL to formats 3 and 4, and NONHALT_FAR to format 4 (section 5)
+        # NONHALT_CPS belongs to formats 2 to 5, NONHALT_RWL to formats 3 to 5, NONHALT_FAR to formats 4 and 5, and
+        # NONHALT_CPSH to format 5 (section 5)
         counted = ENTRY_KEYS
         for key, since in SINCE.items():
             if fmt >= since and key not in entry:
@@ -1440,9 +2008,9 @@ def _read_summary(cell_dir: Path, result: dict[str, Any], failures: list[str]) -
             failures.append(f"summary.json corridor entry {d} lacks a count for {', '.join(bad)}")
             return None
     bounds = tuple(entry["max_halt_steps"] for entry in corridor)
-    over = [(d, b) for d, b in enumerate(bounds) if b > MAX_BOUND]
+    over = [(d, b) for d, b in enumerate(bounds) if b > MAX_CAP]
     for d, b in over:
-        failures.append(f"depth {d} max_halt_steps {b} is above the bound {MAX_BOUND} of this checker "
+        failures.append(f"depth {d} max_halt_steps {b} is above the bound {MAX_CAP} of this checker "
                         "(such cells need a faster checker)")
     if over:
         return None
@@ -1494,8 +2062,8 @@ def _compare(cell_dir: Path, summary: dict[str, Any], cor: Corridor, walk: WalkT
         for verdict in VERDICTS:
             ours = claims.counts.get((d, verdict), 0)
             total += ours
-            # a format 1 entry has no NONHALT_CPS, a format 1 or 2 entry no NONHALT_RWL, and a format 1 to 3 entry no
-            # NONHALT_FAR. Their counts are taken as 0.
+            # a format 1 entry has no NONHALT_CPS, a format 1 or 2 entry no NONHALT_RWL, a format 1 to 3 entry no
+            # NONHALT_FAR and a format 1 to 4 entry no NONHALT_CPSH. Their counts are taken as 0.
             theirs = entry.get(verdict, 0)
             if theirs != ours:
                 fail(f"depth {d}: summary.json has {verdict} {theirs}, the claims file has {ours}")
@@ -1527,6 +2095,8 @@ def _compare(cell_dir: Path, summary: dict[str, Any], cor: Corridor, walk: WalkT
             fail(f"{key}: summary.json has {_json(summary[key])}, the checker finds {_json(own[key])}")
     result.update({k: own[k] for k in ("cell_machines", "late_cell_machines", "holdouts", "parent_holdouts",
                                        "top_halters", "halter_digest", "claims_digest")})
+    result["unknown_digest"] = _hex(sum(_h(t.encode("utf-8")) for texts in claims.unknown.values()
+                                        for t in texts) & MASK)
 
     if amended:
         result["holdout_lists"] = "amendment"
@@ -1559,24 +2129,28 @@ def _compare(cell_dir: Path, summary: dict[str, Any], cor: Corridor, walk: WalkT
 
 
 def _walk_and_claims(cell_dir: Path, cor: Corridor, index: tuple[int, dict[str, list[Member]]] | None, pool: Any,
-                     jobs: int, fmt: int) -> tuple[WalkTally, ClaimTally, str | None]:
+                     jobs: int, fmt: int, core: CoreRun | None = None) -> tuple[WalkTally, ClaimTally, str | None]:
     """Steps 2 and 3, or the indexed check's steps 2 and 3 when index holds claims_split and the groups. fmt is the
-    cell's format, which says whether NONHALT_CPS claims (formats 2 to 4), NONHALT_RWL claims (formats 3 and 4) and
-    NONHALT_FAR claims (format 4) may appear."""
+    cell's format, which says whether NONHALT_CPS claims (formats 2 to 5), NONHALT_RWL claims (formats 3 to 5),
+    NONHALT_FAR claims (formats 4 and 5) and NONHALT_CPSH claims (format 5) may appear. core, when given, walks the
+    indexed check's groups. The check without claims.idx never uses it."""
     if index is not None:
-        return (*_check_indexed(cell_dir, cor, index[0], index[1], pool, jobs, fmt), None)
+        return (*_check_indexed(cell_dir, cor, index[0], index[1], pool, jobs, fmt, core), None)
     walk = _walk_cell(cor, pool, jobs)
     return (walk, *_check_claims(cell_dir, pool, jobs, fmt))
 
 
-def _check(cell_dir: Path, census: Path, jobs: int, plain: bool = False) -> tuple[dict[str, Any], int]:
+def _check(cell_dir: Path, census: Path, jobs: int, plain: bool = False, gpu: bool = False,
+           python: bool = False) -> tuple[dict[str, Any], int]:
     started = time.perf_counter()
+    _set_gpu(gpu)
     # holdout_lists stays null when the check stops before step 4
     result: dict[str, Any] = {
-        "format": CHECK_FORMAT, "checker": CHECKER, "cell": None, "depth": None, "pass": False, "failures": [],
+        "format": CHECK_FORMAT, "checker": CHECKER + GPU_SUFFIX if gpu else CHECKER, "cell": None, "depth": None,
+        "pass": False, "failures": [],
         "cell_machines": None, "census": None, "late_cell_machines": None, "census_match": None, "holdouts": None,
         "parent_holdouts": None, "holdout_lists": None, "top_halters": None, "halter_digest": None,
-        "claims_digest": None, "seconds": 0.0, "summary_sha256": None,
+        "claims_digest": None, "unknown_digest": None, "seconds": 0.0, "summary_sha256": None,
     }
     failures: list[str] = []
     read = _read_summary(cell_dir, result, failures)
@@ -1588,6 +2162,7 @@ def _check(cell_dir: Path, census: Path, jobs: int, plain: bool = False) -> tupl
         except (OSError, ValueError, IndexError) as e:
             failures.append(f"the census {census} could not be read: {e}")
         index = None
+        core: CoreRun | None = None
         stop = False
         if (cell_dir / "claims.idx").exists():
             if not plain:
@@ -1596,12 +2171,28 @@ def _check(cell_dir: Path, census: Path, jobs: int, plain: bool = False) -> tupl
             elif (cell_dir / "claims.tsv").exists():
                 failures.append(BESIDE)
                 stop = True
+        if index is not None and not python:
+            if CORE_EXE.is_file():
+                core = CoreRun(CORE_EXE)
+            else:
+                _say(f"core: {CORE_EXE} is not built, so the Python walk checks this cell (cargo build --release "
+                     f"--manifest-path {CORE_MANIFEST})", sys.stderr)
         if not stop:
             if jobs > 1:
-                with multiprocessing.get_context("spawn").Pool(jobs) as pool:
-                    walk, claims, claims_error = _walk_and_claims(cell_dir, cor, index, pool, jobs, fmt)
+                with multiprocessing.get_context("spawn").Pool(jobs, initializer=_set_gpu, initargs=(gpu,)) as pool:
+                    walk, claims, claims_error = _walk_and_claims(cell_dir, cor, index, pool, jobs, fmt, core)
             else:
-                walk, claims, claims_error = _walk_and_claims(cell_dir, cor, index, None, 1, fmt)
+                walk, claims, claims_error = _walk_and_claims(cell_dir, cor, index, None, 1, fmt, core)
+            # "core" only when the core itself walked a batch, not when the Python code walked every batch again
+            walked = core is not None and core.batches > core.redone
+            result["checker"] = CHECKER + (CORE_SUFFIX if walked else "") + (GPU_SUFFIX if gpu else "")
+            if core and core.batches:
+                stale = (f". Its build is older than its sources, so rebuild it (cargo build --release --manifest-path "
+                         f"{CORE_MANIFEST})") if _core_stale(CORE_EXE, CORE_DIR) else ""
+                _say(f"core: {core.batches} batches walked by bbi9check-core ({core.backend} SHA-256), {core.redone} "
+                     f"walked again by the Python code{stale}", sys.stderr)
+            if gpu:
+                _gpu_bound_runs(cor, claims)
             amended = _amends_this_summary(cell_dir, result["summary_sha256"])
             _compare(cell_dir, summary, cor, walk, claims, claims_error, result, failures, amended)
     result["pass"] = not failures
@@ -1612,12 +2203,16 @@ def _check(cell_dir: Path, census: Path, jobs: int, plain: bool = False) -> tupl
     return result, len(failures)
 
 
-def check_cell(cell_dir: Path, census: Path, jobs: int = 1, plain: bool = False) -> dict[str, Any]:
+def check_cell(cell_dir: Path, census: Path, jobs: int = 1, plain: bool = False, gpu: bool = False,
+               python: bool = False) -> dict[str, Any]:
     """Check one cell directory against the census, write check.json into it and return its object.
 
-    A cell with claims.idx gets the indexed check unless plain is set (section 9, "When claims.idx exists").
+    A cell with claims.idx gets the indexed check unless plain is set (section 9, "When claims.idx exists"). With gpu,
+    the indexed check runs the UNKNOWN claims on the GPU (section 9, "An accelerated checker"). The indexed check's
+    groups are walked by bbi9check-core when it is built, and by the Python code, the reference, when it is not or
+    when python is set. A failure of the core raises CoreError, and no check.json is written.
     """
-    return _check(Path(cell_dir), Path(census), jobs, plain)[0]
+    return _check(Path(cell_dir), Path(census), jobs, plain, gpu, python)[0]
 
 
 # ---------------------------------------------------------------------------------------------------------------------
@@ -1938,7 +2533,8 @@ def _amend_corridor(corridor: object, big_d: int, claims_format: object, fail: C
         if claims_format not in CLAIMS_FORMATS:  # step 2 has failed it already
             continue
         number = SUMMARY_FORMATS.index(claims_format) + 1
-        for key in (RWL, FAR):  # NONHALT_RWL from "bbi9-cell/3" on, and NONHALT_FAR from "bbi9-cell/4" on
+        # NONHALT_RWL from "bbi9-cell/3" on, NONHALT_FAR from "bbi9-cell/4" on and NONHALT_CPSH from "bbi9-cell/5" on
+        for key in (RWL, FAR, CPSH):
             if number >= SINCE[key] and key not in entry:
                 fail(f"amend.json corridor entry {d} has no {key}, which claims_format {claims_format!r} requires")
                 ok = False
@@ -1950,7 +2546,7 @@ def _amend_corridor(corridor: object, big_d: int, claims_format: object, fail: C
 
 def _read_amend(cell_dir: Path, summary: dict[str, Any], result: dict[str, Any],
                 fail: Callable[[str], None]) -> tuple[dict[str, Any] | None, int | None, bool]:
-    """Step 2. Returns amend.json's object, its claims_format as 2, 3 or 4 when that is usable, and whether its
+    """Step 2. Returns amend.json's object, its claims_format as 2 to 5 when that is usable, and whether its
     corridor is fit for step 5."""
     read = _load(cell_dir / "amend.json", fail)
     if read is None:
@@ -1984,11 +2580,81 @@ def _read_amend(cell_dir: Path, summary: dict[str, Any], result: dict[str, Any],
     return amend, claims_fmt, corridor_ok
 
 
+def _list_texts(cell_dir: Path, summary: dict[str, Any],
+                fail: Callable[[str], None]) -> list[tuple[str, list[str]]] | None:
+    """The two holdout lists of the cell, each as its name and the texts on its lines. None when one is missing."""
+    stem = f"BBi{summary['depth']}_{summary['cell'][0]}x{summary['cell'][1]}"
+    files: list[tuple[str, list[str]]] = []
+    for name in (f"{stem}_holdouts_unofficial.txt", f"{stem}_parent_holdouts_unofficial.txt"):
+        try:
+            data = (cell_dir / name).read_bytes()
+        except OSError:
+            fail(f"{name} is missing, and without the claims file U is built from it")
+            return None
+        files.append((name, data.decode("utf-8", "replace").split("\n")[:-1] if data else []))
+    return files
+
+
+def _base_from_lists(cell_dir: Path, summary: dict[str, Any], fail: Callable[[str], None],
+                     amended: bool = True) -> dict[str, int] | None:
+    """Step 3 without the claims file. U, each text with its depth, from the two lists and, when amended, the texts of
+    amend.tsv, checked against check.json's unknown_digest and summary.json's UNKNOWN counts. None when U cannot be
+    built. The amendment check always passes amended; the import check passes whether the cell has an amendment."""
+    read = _load(cell_dir / "check.json", fail)
+    digest = read[1].get("unknown_digest") if read is not None and read[1] is not None else None
+    if not isinstance(digest, str):
+        fail("the cell has no claims file, and check.json has no unknown_digest")
+        return None
+    big_d = summary["depth"]
+    files = _list_texts(cell_dir, summary, fail)
+    if files is None:
+        return None
+    if amended:
+        tsv = _read_amend_tsv(cell_dir, fail)
+        if tsv is None:
+            return None
+        files.append((tsv[0], [line.split("\t")[0] for line in tsv[1].decode("utf-8", "replace").split("\n")[:-1]]))
+    src = "the lists and amend.tsv" if amended else "the two holdout lists"
+    base: dict[str, int] = {}
+    ok = True
+    for name, texts in files:
+        for t in texts:
+            if t in base:
+                fail(f"the text {t} is in two of {src}")
+                ok = False
+                continue
+            try:
+                base[t] = parse_text(t).depth
+            except ValueError:
+                fail(f"the text {t!r} in {name} does not parse")
+                ok = False
+    if not ok:
+        return None
+    ours = _hex(sum(_h(t.encode("utf-8")) for t in base))
+    if ours != digest:
+        fail(f"unknown_digest: check.json has {digest}, {src} give {ours}")
+    unknown = [0] * (big_d + 1)
+    beyond = 0
+    for d in base.values():
+        if d <= big_d:
+            unknown[d] += 1
+        else:
+            beyond += 1
+    for d, entry in enumerate(summary["corridor"]):
+        if entry["UNKNOWN"] != unknown[d]:
+            fail(f"depth {d}: summary.json has UNKNOWN {entry['UNKNOWN']}, {src} have {unknown[d]}")
+    if beyond:
+        fail(f"{src} have {_count(beyond, 'text')} at depths above {big_d}")
+    return base
+
+
 def _base_set(cell_dir: Path, summary: dict[str, Any], pool: Any, jobs: int, fail: Callable[[str], None],
               found: set[str] | None = None) -> dict[str, int] | None:
     """Step 3. U, each text with its depth, or None when the claims file could not be read to the end. found, when
     given, gets the texts of _FIND that are claims texts."""
     big_d = summary["depth"]
+    if found is None and not any((cell_dir / name).is_file() for name in ("claims.tsv", "claims.tsv.gz")):
+        return _base_from_lists(cell_dir, summary, fail)  # the amendment check, not the import check
     if (cell_dir / "claims.idx").exists() and (cell_dir / "claims.tsv").exists():
         fail(BESIDE)
     scan = _scan_claims(cell_dir, pool, jobs)
@@ -2051,10 +2717,129 @@ def _read_amend_tsv(cell_dir: Path, fail: Callable[[str], None]) -> tuple[str, b
         return None
 
 
+def _backfill_expected(cell_dir: Path, check: dict[str, Any], summary_sha: str, fail: Callable[[str], None]
+                       ) -> tuple[list[str], int, int] | None:
+    """The refusals of --unknown-digest that depend on how U is known. Returns the tsv's texts (empty when the cell is
+    unamended) and the expected counts of U at depth D and below D, or None after a failure."""
+    amend_path = cell_dir / "amend.json"
+    amend = None
+    if amend_path.is_file():
+        read = _load(amend_path, fail)
+        if read is None or read[1] is None:
+            return None
+        amend_raw, amend = read
+        if amend.get("base_summary_sha256") != summary_sha:
+            amend = None  # it amends another summary.json, so it is not part of this cell's U
+    if amend is None:
+        if check.get("holdout_lists", "checked") != "checked":
+            fail("check.json left the holdout lists to an amendment check, and there is no amend.json for this "
+                 "summary.json")
+            return None
+        return [], check.get("holdouts"), check.get("parent_holdouts")
+    read = _load(cell_dir / "amend_check.json", fail, ", and the amendment rests on a passing amendment check")
+    if read is None or read[1] is None:
+        return None
+    ac = read[1]
+    if ac.get("pass") is not True:
+        fail("amend_check.json does not pass")
+        return None
+    if ac.get("summary_sha256") != summary_sha:
+        fail("amend_check.json's summary_sha256 is not the SHA-256 of summary.json")
+        return None
+    if ac.get("amend_sha256") != hashlib.sha256(amend_raw).hexdigest():
+        fail("amend_check.json's amend_sha256 is not the SHA-256 of amend.json")
+        return None
+    tsv = _read_amend_tsv(cell_dir, fail)
+    if tsv is None:
+        return None
+    texts = [line.split("\t")[0] for line in tsv[1].decode("utf-8", "replace").split("\n")[:-1]]
+    return texts, ac.get("holdouts"), ac.get("parent_holdouts")
+
+
+def backfill_unknown_digest(cell_dir: Path) -> tuple[int, str]:
+    """Add unknown_digest to a passing check.json that lacks it, from the lists the check compared (section 12,
+    "Backfilling unknown_digest"). Returns the exit code, 0 added or kept and 1 refused, and the line to print."""
+    cell_dir = Path(cell_dir)
+    problems: list[str] = []
+    cell = str(cell_dir)
+
+    def refuse() -> tuple[int, str]:
+        return 1, f"FAIL {cell}: {problems[0]}"
+
+    read = _load(cell_dir / "summary.json", problems.append)
+    if read is None or read[1] is None:
+        return refuse()
+    summary_raw, summary = read
+    problem = _summary_problem(summary)
+    if problem is not None:
+        problems.append(problem)
+        return refuse()
+    big_d = summary["depth"]
+    cell = f"{summary['cell'][0]}x{summary['cell'][1]} depth {big_d}"
+    summary_sha = hashlib.sha256(summary_raw).hexdigest()
+    read = _load(cell_dir / "check.json", problems.append)
+    if read is None or read[1] is None:
+        return refuse()
+    check = read[1]
+    if check.get("pass") is not True:
+        problems.append("check.json does not pass, and the digest rests on a passing check")
+        return refuse()
+    if check.get("summary_sha256") != summary_sha:
+        problems.append("check.json's summary_sha256 is not the SHA-256 of summary.json, so it checked another "
+                        "summary.json")
+        return refuse()
+    expected = _backfill_expected(cell_dir, check, summary_sha, problems.append)
+    files = _list_texts(cell_dir, summary, problems.append) if expected is not None else None
+    if expected is None or files is None:
+        return refuse()
+    tsv_texts, want_here, want_below = expected
+    files.append(("amend.tsv", tsv_texts))
+    base: dict[str, int] = {}
+    for name, texts in files:
+        for t in texts:
+            if t in base:
+                problems.append(f"the text {t} is in two of the lists and amend.tsv")
+                continue
+            try:
+                base[t] = parse_text(t).depth
+            except ValueError:
+                problems.append(f"the text {t!r} in {name} does not parse")
+    if problems:
+        return refuse()
+    here = sum(d == big_d for d in base.values())
+    below = sum(d < big_d for d in base.values())
+    if type(want_here) is int and type(want_below) is int:  # the lists hold what the lines left, so add the lines
+        want_here += sum(base[t] == big_d for t in tsv_texts)
+        want_below += sum(base[t] < big_d for t in tsv_texts)
+    if (here, below) != (want_here, want_below):
+        problems.append(f"the lists and amend.tsv have {here} texts at depth {big_d} and {below} below it, and the "
+                        f"checks recorded {_json(want_here)} and {_json(want_below)}")
+        return refuse()
+    if here + below != len(base):
+        problems.append(f"the lists and amend.tsv have texts at depths above {big_d}")
+        return refuse()
+    ours = _hex(sum(_h(t.encode("utf-8")) for t in base) & MASK)
+    if "unknown_digest" in check:
+        if check["unknown_digest"] == ours:
+            return 0, f"KEPT {cell}: unknown_digest {ours}"
+        problems.append(f"check.json has unknown_digest {_json(check['unknown_digest'])}, the lists give {ours}")
+        return refuse()
+    updated: dict[str, Any] = {}
+    for key, value in check.items():
+        updated[key] = value
+        if key == "claims_digest":
+            updated["unknown_digest"] = ours
+    if "unknown_digest" not in updated:
+        updated["unknown_digest"] = ours
+    with open(cell_dir / "check.json", "w", encoding="utf-8", newline="\n") as f:
+        f.write(json.dumps(updated, indent=2) + "\n")
+    return 0, f"ADDED {cell}: unknown_digest {ours}"
+
+
 def _amend_job(job: tuple[str, int, list[bytes], int]) -> ClaimTally:
     """Pool worker: parse, count, digest and verify a chunk of amend.tsv's lines, which start at line number job[1].
-    job[3] is amend.json's claims_format as 2, 3 or 4, which says whether NONHALT_RWL and NONHALT_FAR lines may
-    appear."""
+    job[3] is amend.json's claims_format as 2 to 5, which says whether NONHALT_RWL, NONHALT_FAR and NONHALT_CPSH lines
+    may appear."""
     name, start, lines, fmt = job
     t = ClaimTally(fmt=fmt, amend=True)
     for offset, raw in enumerate(lines):
@@ -2111,8 +2896,8 @@ def _compare_amendment(amend: dict[str, Any], corridor_ok: bool, big_d: int, nam
         for d, entry in enumerate(amend["corridor"]):
             for verdict in CERTIFICATES:
                 ours = certs.counts.get((d, verdict), 0)
-                # a "bbi9-cell/2" entry has no NONHALT_RWL, and a "bbi9-cell/2" or "bbi9-cell/3" entry no NONHALT_FAR.
-                # Their counts are taken as 0.
+                # a "bbi9-cell/2" entry has no NONHALT_RWL, a "bbi9-cell/2" or "bbi9-cell/3" entry no NONHALT_FAR, and
+                # a "bbi9-cell/2" to "bbi9-cell/4" entry no NONHALT_CPSH. Their counts are taken as 0.
                 theirs = entry.get(verdict, 0)
                 if not _same(theirs, ours):
                     fail(f"depth {d}: amend.json has {verdict} {_json(theirs)}, {name} has {ours}")
@@ -2358,6 +3143,8 @@ class NormalForm:
     text: str
     codes: frozenset[int]
     prefixes: tuple[frozenset[int], ...]  # its first j pairs in step 2's order, for j from 1 to its depth less 1
+    kept: int  # |M'|, the pairs of M' used or not, so the depth of text is at most kept
+    prefix: int  # p, the steps of step 1
 
 
 def _normal_form(codes: Iterable[int], bound: int) -> NormalForm | str:
@@ -2392,19 +3179,24 @@ def _normal_form(codes: Iterable[int], bound: int) -> NormalForm | str:
             if p * 10 in table and all(t != p for _, _, t in table.values()):
                 del table[p * 10]
                 dropping = True
-    # Step 2. A pair first read in round n runs in step n + 1, so the last new pair must be read by round B_d - 1.
+    kept = len(table)
+    # Step 2. A pair first read in round n runs in step n + 1, so the last new pair must be read by round B_d - 1. At
+    # the bound the map is built from the pairs that ran, the order as it stands.
     flat: Table = [None] * (MAX_STATES * MAX_SYMBOLS)
     for i, (w, right, t) in table.items():
         flat[i] = (w, 1 if right else -1, t * 10)
     order, _, why = _discover(flat, s * 10, lambda _: bound - 1)
     if why == "undefined":
-        return f"the run from {LETTERS[s]} reads an undefined pair before every pair has run"
-    if why == "limit":
-        return f"some pair has not run after {_count(bound, 'step')} from {LETTERS[s]}"
-    # Step 3. Every state of M' owns a pair that ran, so the order of first entry is the order of first pairs.
+        return f"the run from {LETTERS[s]} reads an undefined pair within the bound"
+    if not order:
+        return f"no pair ran from {LETTERS[s]} within the bound"
+    # Step 3. A state entered before the last step was read in the next round, so its first pair is its first entry.
+    # The last step may enter a state whose pairs never ran, the last state entered, and a pair that ran targets it.
     letter: dict[int, int] = {}
     for i in order:
         letter.setdefault(i // 10, len(letter))
+    for i in order:
+        letter.setdefault(table[i][2], len(letter))
     mirror = not table[order[0]][1]  # order[0] is (s, 0), and its move is the first move from s
     pairs = []
     for i in order:
@@ -2416,7 +3208,8 @@ def _normal_form(codes: Iterable[int], bound: int) -> NormalForm | str:
         return "the relabelled table is not a text"
     if not text.startswith("1RB"):
         return f"the map would start {text[:3]}"
-    return NormalForm(text, frozenset(pairs), tuple(frozenset(pairs[:j]) for j in range(1, len(pairs))))
+    return NormalForm(text, frozenset(pairs), tuple(frozenset(pairs[:j]) for j in range(1, len(pairs))), kept,
+                      len(prefix))
 
 
 def normal_form_map(text: str, bound: int) -> str | None:
@@ -2437,6 +3230,7 @@ class ListData:
     states: int = MAX_STATES  # S of a {states: S, symbols: K} list
     symbols: int = MAX_SYMBOLS  # K of it
     bbi: int = 0  # N of a {bbi: N} list or a cell list
+    proven: int | None = None  # a domain list's proven value P, None when it has none or step 3 refused it
     entry: dict[str, Any] = field(default_factory=dict)
     entry_sha256: str | None = None  # None when the entry has no JSON
     readable_name: bool = False  # whether file is a name the checker reads
@@ -2478,15 +3272,33 @@ def _covers(dom: tuple[str, int, int, int], big_s: int, big_k: int, big_d: int) 
     if form == "states":
         return big_s <= s and big_k <= k
     if form == "bbi":
-        return big_d == n
+        return big_d >= n  # every cell at depth N and above
     return big_d == n and (big_s, big_k) == (s, k)
+
+
+def _proven_problems(entry: dict[str, Any]) -> list[str]:
+    """Why step 3 refuses the entry's proven, each as a clause, or [] when it has none or step 3 accepts it. A proven
+    value is a whole number from 0 up, and a YAML true or false or a null is not one. It leaves an empty domain
+    list."""
+    if "proven" not in entry:
+        return []
+    proven = _shown(entry["proven"])
+    out = []
+    if not (type(entry["proven"]) is int and entry["proven"] >= 0):
+        out.append(f"has proven {proven}, which is not a whole number from 0 up")
+    if not (type(entry.get("entries")) is int and entry["entries"] == 0):
+        out.append(f"has proven {proven} and entries {_shown(entry.get('entries'))}, not 0")
+    if (_domain(entry.get("domain")) or ("",))[0] == "cell":
+        out.append("is a cell list and has proven, which is for a domain list")
+    return out
 
 
 def _new_list(list_id: str, dom: tuple[str, int, int, int], entry: dict[str, Any]) -> ListData:
     form, s, k, n = dom
+    proven = entry["proven"] if "proven" in entry and not _proven_problems(entry) else None  # as step 3 accepts it
     if form == "states":
-        return ListData(list_id, form, states=s, symbols=k, entry=entry)
-    return ListData(list_id, form, bbi=n, entry=entry)
+        return ListData(list_id, form, states=s, symbols=k, proven=proven, entry=entry)
+    return ListData(list_id, form, bbi=n, proven=proven, entry=entry)
 
 
 def _shown(x: Any) -> str:
@@ -2536,6 +3348,8 @@ def _registry(path: Path, big_s: int, big_k: int, big_d: int, fail: Callable[[st
                 first_with[e["id"]] = no
         if "decides" in e and type(e["decides"]) is not bool:
             fail(f"{name} has decides {_shown(e['decides'])}, which is neither true nor false")
+        for why in _proven_problems(e):  # whether or not the entry decides
+            fail(f"{name} {why}")
         if e.get("decides") is not True:
             continue
         for key in REQUIRED:
@@ -2809,13 +3623,18 @@ def _supersets(lst: ListData, codes: frozenset[int]) -> list[frozenset[int]]:
 
 
 def decide_problems(lst: ListData, text: str, bound: int, big_d: int, holdout_texts: set[str] | frozenset[str],
-                    maps: dict[str, NormalForm | str] | None = None) -> list[str]:
-    """Why the list may not decide the machine of V with this text, each reason a clause, or [] when it decides it.
-    bound is B_d for the text's depth d, holdout_texts the texts of the cell's depth-D holdout list, and maps a cache
-    of maps by text. It does not ask whether the list speaks ("Which machines a list decides")."""
-    depth = len(_machine_codes(text))
-    if lst.form == "cell":
-        if depth < big_d:
+                    maps: dict[str, NormalForm | str] | None = None, verdict: str = DECIDED) -> list[str]:
+    """Why the list may not give the machine of V with this text the verdict, DECIDED or NEVER, each reason a clause,
+    or [] when it gives it. bound is B_d for the text's depth d, holdout_texts the texts of the cell's depth-D holdout
+    list, and maps a cache of maps by text. It does not ask whether the list speaks ("Which machines a list
+    decides")."""
+    if verdict == NEVER:
+        if lst.form == "cell":
+            return [f"{lst.id} is a cell list, and a proven value is for a domain list"]
+        if lst.proven is None:
+            return [f"{lst.id} has no proven value"]
+    elif lst.form == "cell":
+        if len(_machine_codes(text)) < big_d:
             return [f"{lst.id} is a cell list and the text is a parent holdout"]
         out = []
         if text not in holdout_texts:
@@ -2823,8 +3642,6 @@ def decide_problems(lst: ListData, text: str, bound: int, big_d: int, holdout_te
         if text in lst.texts:
             out.append(f"the text is a line of {lst.id}")
         return out
-    if lst.form == "bbi" and depth != lst.bbi:
-        return [f"{lst.id} is a {{bbi: {lst.bbi}}} list and the text has {_count(depth, 'instruction')}"]
     nf = maps.get(text) if maps is not None else None
     if nf is None:
         nf = _normal_form(_machine_codes(text), bound)
@@ -2833,8 +3650,16 @@ def decide_problems(lst: ListData, text: str, bound: int, big_d: int, holdout_te
     if isinstance(nf, str):
         return [f"the text has no map with the bound {bound} ({nf})"]
     out = []
-    if lst.form == "bbi" and len(nf.codes) != lst.bbi:
-        out.append(f"its map {nf.text} has {_count(len(nf.codes), 'instruction')}, not {lst.bbi}")
+    if verdict == NEVER:
+        assert lst.proven is not None
+        if lst.form == "bbi" and len(nf.codes) > lst.bbi:  # m(t) is not in the domain
+            out.append(f"its map {nf.text} has {_count(len(nf.codes), 'instruction')}, more than N = {lst.bbi}")
+        if bound - nf.prefix <= lst.proven:
+            out.append(f"B_d less the prefix, {bound} - {nf.prefix} = {bound - nf.prefix}, is not above the proven "
+                       f"value {lst.proven} of {lst.id}")
+        return out
+    if lst.form == "bbi" and nf.kept > lst.bbi:  # some machine of the chain, at most M', may lie outside the domain
+        out.append(f"its pairs after step 1b, {nf.kept}, exceed N = {lst.bbi}")
     if nf.codes in lst.kept:
         out.append(f"a kept line of {lst.id} equals its map {nf.text}")
     for prefix in nf.prefixes:
@@ -2930,8 +3755,8 @@ class _Import:
         bounds = []
         for d, entry in enumerate(self.summary["corridor"]):
             b = entry.get("max_halt_steps")
-            if not (_uint_value(b) and b <= MAX_BOUND):
-                self.fail[1](f"summary.json corridor entry {d} has no max_halt_steps from 0 to {MAX_BOUND}")
+            if not (_uint_value(b) and b <= MAX_CAP):
+                self.fail[1](f"summary.json corridor entry {d} has no max_halt_steps from 0 to {MAX_CAP}")
                 return
             bounds.append(b)
         self.cor = Corridor(self.big_s, self.big_k, self.big_d, tuple(bounds))
@@ -2998,11 +3823,16 @@ class _Import:
 
     def claims(self) -> None:
         """Step 1. One scan of the claims file binds it to summary.json, gives V and finds which candidate texts are
-        claims texts. Then the amendment's lines leave V, and the holdout lists must be V."""
+        claims texts. Then the amendment's lines leave V, and the holdout lists must be V. A cell without a claims file
+        whose lists have no kept line in the corridor, so that step 4 looks nothing up among the claims, takes U from
+        its holdout lists and amend.tsv instead, bound by check.json's unknown_digest (_base_from_lists)."""
         fail = self.fail[1]
         find = frozenset(text.encode("utf-8") for lst in self.lists or [] for cands in lst.candidates.values()
                          for _, text in cands)
-        if self.jobs > 1:
+        lines_in_corridor = any(lst.candidates for lst in self.lists or [])
+        if not lines_in_corridor and not any((self.dir / n).is_file() for n in ("claims.tsv", "claims.tsv.gz")):
+            base = _base_from_lists(self.dir, self.summary, fail, self.has_amend)
+        elif self.jobs > 1:
             with multiprocessing.get_context("spawn").Pool(self.jobs, initializer=_set_find,
                                                            initargs=(find,)) as pool:
                 base = _base_set(self.dir, self.summary, pool, self.jobs, fail, self.found)
@@ -3175,8 +4005,9 @@ class _Import:
                 fail(f"{where} does not have exactly three fields separated by TAB")
                 continue
             verdict, list_id = fields[1], fields[2]
-            if verdict != DECIDED:
-                fail(f"{where} has the verdict {verdict}, not {DECIDED}")
+            known = verdict in (DECIDED, NEVER)
+            if not known:
+                fail(f"{where} has the verdict {verdict}, not {DECIDED} or {NEVER}")
             in_v = self.v is not None and text in self.v
             if self.v is not None and not in_v:
                 fail(f"{where} has {text}, which is not in V")
@@ -3190,18 +4021,29 @@ class _Import:
             lst = self.lists[position[list_id]]
             if lst.speaks is False:
                 fail(f"{where} names {list_id}, whose speaks is false")
-            if not (in_v and lst.read and self.cor is not None):
+            if not (known and in_v and lst.read and self.cor is not None):
                 continue
             assert self.v is not None
             bound = self.cor.bounds[self.v[text]]
-            for why in decide_problems(lst, text, bound, self.big_d, self.holdout_texts, self.maps):
+            for why in decide_problems(lst, text, bound, self.big_d, self.holdout_texts, self.maps, verdict):
                 fail(f"{where} names {list_id} for {text}, but {why}")
+            # The first-list rule: the first list that gives NONHALT_PROVEN, or when none does the first that gives
+            # DECIDED_LIST
             for earlier in self.lists[:position[list_id]]:
-                if earlier.speaks and earlier.read and not decide_problems(earlier, text, bound, self.big_d,
-                                                                           self.holdout_texts, self.maps):
+                if self.gives(earlier, text, bound, verdict):
                     fail(f"{where} names {list_id} for {text}, but {earlier.id}, earlier in registry order, would also "
-                         "decide it")
+                         + ("decide it" if verdict == DECIDED else f"give it {NEVER}"))
                     break
+            if verdict == DECIDED:
+                for other in self.lists:
+                    if self.gives(other, text, bound, NEVER):
+                        fail(f"{where} names {list_id} for {text} as {DECIDED}, but {other.id} would give it {NEVER}")
+                        break
+
+    def gives(self, lst: ListData, text: str, bound: int, verdict: str) -> bool:
+        """Whether the list speaks and gives the machine of V with this text the verdict."""
+        return bool(lst.speaks and lst.read and not decide_problems(lst, text, bound, self.big_d, self.holdout_texts,
+                                                                     self.maps, verdict))
 
     def named(self) -> set[str]:
         assert self.tsv is not None
@@ -3222,8 +4064,10 @@ class _Import:
         imp = self.imp
         if imp is None:
             return
-        if self.lists is not None and self.v is not None and "decided" in imp:
+        if self.lists is not None and self.v is not None:
+            # decided counts the lines that name each list, with either verdict, and never_halts those of NONHALT_PROVEN
             decided = {lst.id: {"holdouts": 0, "parent_holdouts": 0} for lst in self.lists}
+            never = {lst.id: {"holdouts": 0, "parent_holdouts": 0} for lst in self.lists}
             for raw in self.tsv:
                 fields = raw.decode("utf-8", "replace").split("\t")
                 if len(fields) != 3 or fields[2] not in decided:
@@ -3233,9 +4077,13 @@ class _Import:
                     m = _LIST_LINE.fullmatch(fields[0])
                     d = len(_machine_codes(m.group(1))) if m and m.start(1) == 0 else None
                 if d is not None and d <= self.big_d:
-                    decided[fields[2]]["holdouts" if d == self.big_d else "parent_holdouts"] += 1
-            if not _same(imp["decided"], decided):
-                fail(f"import.json has decided {_shown(imp['decided'])}, and the checker finds {_json(decided)}")
+                    where = "holdouts" if d == self.big_d else "parent_holdouts"
+                    decided[fields[2]][where] += 1
+                    if fields[1] == NEVER:
+                        never[fields[2]][where] += 1
+            for key, ours in (("decided", decided), ("never_halts", never)):
+                if key in imp and not _same(imp[key], ours):
+                    fail(f"import.json has {key} {_shown(imp[key])}, and the checker finds {_json(ours)}")
         for key in ("holdouts", "parent_holdouts", "imported", "import_digest"):
             if key in own and key in imp and not _same(imp[key], own[key]):
                 fail(f"import.json has {key} {_shown(imp[key])}, and the checker finds {_json(own[key])}")
@@ -3320,7 +4168,7 @@ def _say(line: str, stream: IO[str] | None = None) -> None:
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="bbi9check.py", description="Check one BBi cell (CHECKING.md).")
     parser.add_argument("cell_dir", type=Path, metavar="CELL_DIR")
-    parser.add_argument("--census", type=Path, required=True, metavar="CENSUS_TSV")
+    parser.add_argument("--census", type=Path, metavar="CENSUS_TSV")
     parser.add_argument("--jobs", type=_jobs, default=1, metavar="N")
     parser.add_argument("--plain", action="store_true",
                         help="check every machine to its depth's bound and read the claims apart, even with claims.idx")
@@ -3331,7 +4179,24 @@ def main(argv: Sequence[str] | None = None) -> int:
     parser.add_argument("--lists", type=Path, metavar="LISTS_YAML", help="the registry of lists, with --import")
     parser.add_argument("--data", type=Path, metavar="DIR",
                         help="the directory of the list files, with --import (default two levels above the registry's)")
+    parser.add_argument("--unknown-digest", dest="unknown_digest", action="store_true",
+                        help="add unknown_digest to a passing check.json from the lists the check compared "
+                             "(CHECKING.md section 12)")
+    parser.add_argument("--gpu", action="store_true",
+                        help="run the UNKNOWN claims to their bounds on the GPU (CHECKING.md section 9, 'An "
+                             "accelerated checker'); needs an NVIDIA card and the CUDA toolkit")
+    parser.add_argument("--python", action="store_true",
+                        help="walk every group of the indexed check with the Python code, the reference, even when "
+                             "bbi9check-core is built")
     args = parser.parse_args(argv)  # exits with 2 on bad usage
+    if args.python and (args.amend or args.import_ or args.plain or args.unknown_digest):
+        parser.error("--python with --amend, --import, --plain or --unknown-digest is bad usage")
+    if args.gpu and (args.amend or args.import_ or args.plain or args.unknown_digest):
+        parser.error("--gpu with --amend, --import, --plain or --unknown-digest is bad usage")
+    if args.unknown_digest and (args.amend or args.import_ or args.plain):
+        parser.error("--unknown-digest with --amend, --import or --plain is bad usage")
+    if args.census is None and not args.unknown_digest:
+        parser.error("--census is required")
     if args.amend and args.plain:
         parser.error("--amend with --plain is bad usage")  # exits with 2
     if args.import_ and (args.amend or args.plain):
@@ -3343,6 +4208,10 @@ def main(argv: Sequence[str] | None = None) -> int:
     if not args.cell_dir.is_dir():
         _say(f"bbi9check.py: {args.cell_dir} is not a directory", sys.stderr)
         return 2
+    if args.unknown_digest:
+        code, line = backfill_unknown_digest(args.cell_dir)
+        _say(line)
+        return code
     if not args.census.is_file():
         _say(f"bbi9check.py: {args.census} is not a file", sys.stderr)
         return 2
@@ -3360,7 +4229,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     if args.amend:
         r, count = _amend_check(args.cell_dir, args.census, args.jobs)
     else:
-        r, count = _check(args.cell_dir, args.census, args.jobs, args.plain)
+        try:
+            r, count = _check(args.cell_dir, args.census, args.jobs, args.plain, args.gpu, args.python)
+        except CoreError as e:  # no check.json is written, and an older one is left as it is
+            _say(f"core: {e}", sys.stderr)
+            return 3
     cell = f"{r['cell'][0]}x{r['cell'][1]} depth {r['depth']}" if r["cell"] else str(args.cell_dir)
     match = {True: "matches", None: "skipped"}.get(r["census_match"], "differs")
     # past depth 9 there is no census count (section 8)

@@ -58,6 +58,7 @@
   ],
   "halter_digest": "b0712711200046b0",
   "claims_digest": "f9adf6975aa4b845",
+  "unknown_digest": "0000000000000000",
   "seconds": 0.22,
   "summary_sha256": "0acf963314eb85d0bcc1a8ebc9816cdb26065f66829f6c8e4fc689d13086be65"
 }

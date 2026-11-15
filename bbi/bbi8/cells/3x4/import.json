@@ -1,13 +1,13 @@
 {
-  "format": "bbi9-import/1",
-  "importer": "bbi9 imports 1.0",
+  "format": "bbi9-import/2",
+  "importer": "bbi9 imports 2.0",
   "cell": [
     3,
     4
   ],
   "depth": 8,
   "base_summary_sha256": "3bfe04a0ed437afdee2cf51f8c1edd8c6878820021ff9e5aad10236361d5ea74",
-  "base_amend_sha256": null,
+  "base_amend_sha256": "67d198958060bc44cd8d9cb3e6eeeb1455837d13adaad450a918299b0a0adb0f",
   "lists": [
     {
       "id": "bbi8-2026-10-25",
@@ -24,16 +24,58 @@
       "credit": "XnoobSpeakable, 2026-05-11",
       "label": "BB(3,4)",
       "speaks": true
+    },
+    {
+      "id": "bbi7-proven",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "entry_sha256": "0a36b7599287ab87e377fa2c2d63643781997ceac8b6499778a4e3f3cfb9ec74",
+      "credit": "the bbchallenge wiki's Instruction-Limited Busy Beaver page, 2026-11-02",
+      "label": "BBi(7)",
+      "speaks": true
+    },
+    {
+      "id": "bbi8-2026-11-14",
+      "sha256": "21b13914a549df1f58ad28e223f517f8835a6963efa53e8cc2e1fd4c6d04283d",
+      "entry_sha256": "40010e461916a2ef7c03dab524b5c7c822917ed3ddd9179a5e2ae1004fabd6ed",
+      "credit": "Andrew McKnight, 2026-11-14",
+      "label": "BBi(8)",
+      "speaks": true
     }
   ],
   "decided": {
     "bbi8-2026-10-25": {
-      "holdouts": 13693,
+      "holdouts": 246,
+      "parent_holdouts": 6
+    },
+    "bb3x4-2026-05-11": {
+      "holdouts": 0,
+      "parent_holdouts": 0
+    },
+    "bbi7-proven": {
+      "holdouts": 0,
+      "parent_holdouts": 0
+    },
+    "bbi8-2026-11-14": {
+      "holdouts": 4,
+      "parent_holdouts": 0
+    }
+  },
+  "never_halts": {
+    "bbi8-2026-10-25": {
+      "holdouts": 0,
       "parent_holdouts": 0
     },
     "bb3x4-2026-05-11": {
-      "holdouts": 33,
-      "parent_holdouts": 191
+      "holdouts": 0,
+      "parent_holdouts": 0
+    },
+    "bbi7-proven": {
+      "holdouts": 0,
+      "parent_holdouts": 0
+    },
+    "bbi8-2026-11-14": {
+      "holdouts": 0,
+      "parent_holdouts": 0
     }
   },
   "maker_holdouts": {
@@ -48,17 +90,27 @@
     "bb3x4-2026-05-11": {
       "holdouts": 0,
       "parent_holdouts": 0
+    },
+    "bbi7-proven": {
+      "holdouts": 0,
+      "parent_holdouts": 0
+    },
+    "bbi8-2026-11-14": {
+      "holdouts": 0,
+      "parent_holdouts": 0
     }
   },
   "strangers": {
     "bbi8-2026-10-25": 0,
-    "bb3x4-2026-05-11": 0
+    "bb3x4-2026-05-11": 0,
+    "bbi7-proven": 0,
+    "bbi8-2026-11-14": 0
   },
-  "holdouts": 39,
-  "parent_holdouts": 6,
-  "imported": 13917,
-  "import_digest": "3ca0c5456850841c",
-  "no_map": 35,
+  "holdouts": 1,
+  "parent_holdouts": 0,
+  "imported": 256,
+  "import_digest": "25d2b9ee62e7989c",
+  "no_map": 0,
   "kinds_by_list": {
     "bbi8-2026-10-25": [
       0,
@@ -71,7 +123,19 @@
       142,
       0,
       0
+    ],
+    "bbi7-proven": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "bbi8-2026-11-14": [
+      0,
+      1,
+      0,
+      0
     ]
   },
-  "seconds": 87.825
+  "seconds": 48.424
 }

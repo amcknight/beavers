@@ -1,0 +1,65 @@
+{
+  "format": "bbi9-check/1",
+  "checker": "bbi9check 1.6",
+  "cell": [
+    6,
+    5
+  ],
+  "depth": 9,
+  "pass": true,
+  "failures": [],
+  "cell_machines": 92152627196,
+  "census": 92152627196,
+  "late_cell_machines": 0,
+  "census_match": null,
+  "holdouts": 86435,
+  "parent_holdouts": 8744,
+  "holdout_lists": "checked",
+  "top_halters": [
+    {
+      "machine": "1RB------------_2RC1RB---------_3LD------------_------4RE------_---------4LF---_4RB4RF------1LF",
+      "steps": 1971
+    },
+    {
+      "machine": "1RB------------_2LC------------_---3LD---------_3LE------------_0LF------4RE---_3RF------4LF0LE",
+      "steps": 845
+    },
+    {
+      "machine": "1RB------------_2RC------------_3RD------------_3RE------------_0RF------4LE---_3LF------4RF0RE",
+      "steps": 845
+    },
+    {
+      "machine": "1RB------------_2RC------------_2RD------------_3RE---0RD---2LD_4LF---0LF------_---------4RD---",
+      "steps": 498
+    },
+    {
+      "machine": "1RB------------_2LC------------_---3LD---------_3LE------------_4LF---------4LE_4RF------4LE0LF",
+      "steps": 473
+    },
+    {
+      "machine": "1RB------------_2RC------------_3RD------------_3RE------------_4RF---------4RE_4LF------4RE0RF",
+      "steps": 473
+    },
+    {
+      "machine": "1RB------------_2LC------------_---3LD---------_3LE------------_0LF------0LE---_3RF------4LF0LE",
+      "steps": 469
+    },
+    {
+      "machine": "1RB------------_2RC------------_3RD------------_3RE------------_0RF------0RE---_3LF------4RF0RE",
+      "steps": 469
+    },
+    {
+      "machine": "1RB------------_2LC------------_---3LD---------_3LE------------_3RE------4LE0LF_0LE------4RF---",
+      "steps": 455
+    },
+    {
+      "machine": "1RB------------_2RC------------_3RD------------_3RE------------_3LE------4RE0RF_0RE------4LF---",
+      "steps": 455
+    }
+  ],
+  "halter_digest": "59443e28b26e72e8",
+  "claims_digest": "e38b95b1fc6ffffd",
+  "unknown_digest": "456cec09d3cae4fc",
+  "seconds": 34764.929,
+  "summary_sha256": "8edaaf62807b49df9f2a47d1eeefeb348a98c964f9854328e73606df065cea93"
+}

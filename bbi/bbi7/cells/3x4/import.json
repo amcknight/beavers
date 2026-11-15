@@ -1,13 +1,13 @@
 {
-  "format": "bbi9-import/1",
-  "importer": "bbi9 imports 1.0",
+  "format": "bbi9-import/2",
+  "importer": "bbi9 imports 2.0",
   "cell": [
     3,
     4
   ],
   "depth": 7,
   "base_summary_sha256": "cb4f9d3af056ffc5f41a03702c44b36c5b2a908b189349865f7b315e205d9fad",
-  "base_amend_sha256": null,
+  "base_amend_sha256": "3da64c9d55da2034e28b5c1ed5374263b3fdb7637c48e3d4137bbb19aaf0b4c7",
   "lists": [
     {
       "id": "bb3x4-2026-05-11",
@@ -20,7 +20,7 @@
     {
       "id": "bbi7-proven",
       "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-      "entry_sha256": "df959ce00e6714721e35c014b4cd7ffcb5efea07c8e75f38763b3cf207900859",
+      "entry_sha256": "0a36b7599287ab87e377fa2c2d63643781997ceac8b6499778a4e3f3cfb9ec74",
       "credit": "the bbchallenge wiki's Instruction-Limited Busy Beaver page, 2026-11-02",
       "label": "BBi(7)",
       "speaks": true
@@ -28,7 +28,17 @@
   ],
   "decided": {
     "bb3x4-2026-05-11": {
-      "holdouts": 135,
+      "holdouts": 1,
+      "parent_holdouts": 0
+    },
+    "bbi7-proven": {
+      "holdouts": 0,
+      "parent_holdouts": 0
+    }
+  },
+  "never_halts": {
+    "bb3x4-2026-05-11": {
+      "holdouts": 0,
       "parent_holdouts": 0
     },
     "bbi7-proven": {
@@ -54,11 +64,11 @@
     "bb3x4-2026-05-11": 0,
     "bbi7-proven": 0
   },
-  "holdouts": 1,
+  "holdouts": 0,
   "parent_holdouts": 0,
-  "imported": 135,
-  "import_digest": "23e8b26e6d3943cc",
-  "no_map": 1,
+  "imported": 1,
+  "import_digest": "9035e1bd0c42b849",
+  "no_map": 0,
   "kinds_by_list": {
     "bb3x4-2026-05-11": [
       0,
@@ -73,5 +83,5 @@
       0
     ]
   },
-  "seconds": 23.085
+  "seconds": 23.34
 }

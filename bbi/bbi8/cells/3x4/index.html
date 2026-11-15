@@ -14,11 +14,16 @@
   --rule: #e2ddd3;
   --link: #1f5fa8;
   --panel: #ffffff;
-  --irr: #33295c;
-  --irr-ink: #f3f0ff;
   --open: #f2c96b;
   --open-ink: #3a2a00;
   --big-ink: #6b5200;
+  --opl: #ee9a58;
+  --opl-ink: #3d1800;
+  --opl-big: #8a3600;
+  --lst: #cfe4eb;
+  --lst-ink: #1d3d4a;
+  --prv: #e4d9f0;
+  --prv-ink: #3b2a52;
   --res: #dcebd8;
   --res-ink: #2c4a28;
   --ns-ink: #77726a;
@@ -32,11 +37,16 @@
     --rule: #33312c;
     --link: #8db6ee;
     --panel: #1b1b19;
-    --irr: #b8acf2;
-    --irr-ink: #1a1530;
     --open: #c4952f;
     --open-ink: #1f1600;
     --big-ink: #dcae45;
+    --opl: #c06a2c;
+    --opl-ink: #140700;
+    --opl-big: #ec9a62;
+    --lst: #1f3a42;
+    --lst-ink: #b3d7e2;
+    --prv: #342a45;
+    --prv-ink: #d8c9ec;
     --res: #223520;
     --res-ink: #b6d8ae;
     --ns-ink: #8f8a81;
@@ -86,41 +96,40 @@ td.cell span { display: block; }
 .cell a { color: inherit; text-decoration-thickness: 1px; text-underline-offset: 2px; }
 .cell .steps a { font-weight: 700; }
 .cell sup { font-size: 0.75em; line-height: 0; }
+.detail.parents, .sample.parents { border-left: 2px solid currentColor; padding-left: 0.25rem; }
+.swatch.sample { width: auto; min-width: 1rem; font-size: 0.74rem; line-height: 1rem; }
 .o { display: inline-block; width: 0.78em; height: 0.78em; border: 1.6px solid currentColor; border-radius: 50%;
      vertical-align: -0.06em; margin-right: 0.12em; }
 .vh { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden;
       clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
-.cell.irreducible { background: var(--irr); color: var(--irr-ink); }
 .cell.open { background: var(--open); color: var(--open-ink); }
+.cell.open-lists { background: var(--opl); color: var(--opl-ink); }
+.cell.lists { background: var(--lst); color: var(--lst-ink); }
+.cell.proven { background: var(--prv); color: var(--prv-ink); }
 .cell.too-big { background: var(--panel); color: var(--big-ink); box-shadow: inset 0 0 0 2px var(--open); }
+.cell.open-lists.too-big { box-shadow: inset 0 0 0 2px var(--opl); color: var(--opl-big); background: var(--panel); }
 .cell.resolved { background: var(--res); color: var(--res-ink); }
 .cell.not-started { background: var(--panel); color: var(--ns-ink); box-shadow: inset 0 0 0 1px var(--ns-line); }
 .cell.champion { box-shadow: 0 0 0 2px #fff, 0 0 0 3px var(--ink); }
 .cell.too-big.champion { box-shadow: inset 0 0 0 2px var(--open), 0 0 0 2px #fff, 0 0 0 3px var(--ink); }
+.cell.open-lists.too-big.champion { box-shadow: inset 0 0 0 2px var(--opl), 0 0 0 2px #fff, 0 0 0 3px var(--ink); }
 .cell.not-started.champion { box-shadow: inset 0 0 0 1px var(--ns-line), 0 0 0 2px #fff, 0 0 0 3px var(--ink); }
 .cell.running { outline: 3px solid var(--link); outline-offset: -3px; }
 .legend { display: flex; flex-wrap: wrap; gap: 0.4rem 1.3rem; margin: 0.9rem 0 0.4rem; font-size: 0.88rem; }
 .legend .key { display: inline-flex; align-items: center; gap: 0.45rem; }
 .legend .sym { display: inline-block; min-width: 1rem; text-align: center; }
 .swatch { display: inline-block; width: 1rem; height: 1rem; border-radius: 3px; }
-.swatch.irreducible { background: var(--irr); }
 .swatch.open { background: var(--open); }
+.swatch.open-lists { background: var(--opl); }
+.swatch.lists { background: var(--lst); }
+.swatch.proven { background: var(--prv); }
 .swatch.too-big { background: var(--panel); box-shadow: inset 0 0 0 2px var(--open); }
+.swatch.open-lists.too-big { background: var(--panel); box-shadow: inset 0 0 0 2px var(--opl); }
 .swatch.resolved { background: var(--res); }
 .swatch.not-started { background: var(--panel); box-shadow: inset 0 0 0 1px var(--ns-line); }
 .swatch.champion { background: var(--panel); box-shadow: 0 0 0 2px #fff, 0 0 0 3px var(--ink); }
 .swatch.running { background: var(--panel); outline: 3px solid var(--link); outline-offset: -3px; }
 .note { color: var(--muted); font-size: 0.88rem; }
-.reasons { margin: 0; }
-.reasons > div {
-  display: grid;
-  grid-template-columns: 3rem 1fr;
-  gap: 0.2rem 1rem;
-  padding: 0.6rem 0;
-  border-top: 1px solid var(--rule);
-}
-.reasons dt { font-weight: 700; }
-.reasons dd { margin: 0; }
 .claims-head { margin: 0.6rem 0 0.2rem; font-size: 0.85rem; color: var(--muted); }
 .claims { margin: 0.3rem 0 0; padding: 0; list-style: none; }
 .claims li { margin: 0.4rem 0; padding-left: 0.7rem; border-left: 2px solid var(--rule); }
@@ -129,6 +138,11 @@ td.cell span { display: block; }
 .claims code { overflow-wrap: anywhere; }
 .credits { padding-left: 1.2rem; }
 footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--rule); color: var(--muted); font-size: 0.85rem; }
+.cell .steps a { font-weight: inherit; }
+.lvl-proven { font-weight: 700; }
+.lvl-verified { font-weight: 400; }
+.lvl-claimed { font-weight: 400; opacity: 0.72; }
+.lvl-conjectured { font-style: italic; opacity: 0.72; }
 :root {
   --sym0: #7d7d7d;
   --sym1: #0f67e0;
@@ -248,10 +262,13 @@ table.runs { border-collapse: collapse; font-size: 0.85rem; margin: 0.4rem 0; }
 <body>
 <main>
 <h1>3×4</h1>
-<p class="status">Irreducible. It stays however the other cells turn out, because 3 of the 9 open BBi(8) holdouts are in this cell (Nick Drozd, 2026-10-25)†. The cell has at least 308,487,856 machines, since shorter machines the census left undecided may have descendants here that it did not count.</p>
+<p class="status">Open, checked with holdouts left. The cell has at least 308,487,856 machines, since shorter machines the census left undecided may have descendants here that it did not count.</p>
 <p class="back"><a href="../../index.html">BBi(8), cell by cell</a></p>
+<p class="reason">1 of the 7 open BBi(8) holdouts is in this cell (Nick Drozd, 2026-10-25, and Andrew McKnight, 2026-11-14)†.</p>
+<p class="ask">Its <a href="BBi8_3x4_holdouts_unofficial.txt">251 holdouts</a> and <a href="BBi8_3x4_parent_holdouts_unofficial.txt">6 parents</a> are posted here. Run your deciders on them and post what they leave open where you post lists, <a href="https://bbchallenge.org">the bbchallenge Discord</a> or <a href="https://wiki.bbchallenge.org/wiki/Holdouts_lists">the wiki's holdouts page</a>, and your name goes on this cell.</p>
 <section>
 <h2 id="champion">Champion</h2>
+<p class="longest">The longest known halter runs <span class="lvl-claimed">&gt; 6.889×10<sup>1565</sup></span> steps, claimed, Nick Drozd. The longest proven one runs <span class="lvl-proven">3,932,964</span> steps (Terry &amp; Shawn Ligocki). The longest verified one runs <span class="lvl-verified">56,946,968</span> steps (our GPU run). Below is our run's longest checked halter, which runs 9,757,251 steps.</p>
 <p><code class="m">1RB---------_<wbr>1RC3LB1LB1RB_<wbr>2LB---1LB3RC</code> halts after <b>9,757,251 steps</b>.</p>
 <div class="drawing">
 <div><div class="dg-wrap"><svg class="dg dg-graph" viewBox="0 0 322 317" width="322" height="317" role="img" aria-label="Transition graph of 1RB---------_1RC3LB1LB1RB_2LB---1LB3RC">
@@ -2860,18 +2877,25 @@ table.runs { border-collapse: collapse; font-size: 0.85rem; margin: 0.4rem 0; }
 <table class="runs"><thead><tr><th class="n" scope="col">steps</th><th scope="col">machine</th></tr></thead><tbody><tr><td class="n">9,757,251</td><td><code class="m">1RB---------_<wbr>1RC3LB1LB1RB_<wbr>2LB---1LB3RC</code></td></tr><tr><td class="n">7,849,599</td><td><code class="m">1RB2LA3LC1RA_<wbr>1LB1LA3RB---_<wbr>---1RA------</code></td></tr><tr><td class="n">5,391,645</td><td><code class="m">1RB---------_<wbr>1RC3LB1LB1RB_<wbr>2LB---1RB3RC</code></td></tr><tr><td class="n">3,943,159</td><td><code class="m">1RB---------_<wbr>1RC3LB1LB1RB_<wbr>2LC2LB---0RB</code></td></tr><tr><td class="n">3,935,026</td><td><code class="m">1RB2LA1RA---_<wbr>1LC1LA2RB---_<wbr>---1LA3LC---</code></td></tr><tr><td class="n">3,934,997</td><td><code class="m">1RB3LA---1RA_<wbr>2LC1LA---3RB_<wbr>---1RC1LB---</code></td></tr><tr><td class="n">3,934,997</td><td><code class="m">1RB3LA---1RA_<wbr>2LC1LA1LB3RB_<wbr>---1RB------</code></td></tr><tr><td class="n">3,934,997</td><td><code class="m">1RB3LA1LA1RA_<wbr>1LC1LA---3RB_<wbr>---2RB------</code></td></tr><tr><td class="n">3,934,997</td><td><code class="m">1RB3LA1LA1RA_<wbr>2LC1LA---3RB_<wbr>---2RA------</code></td></tr><tr><td class="n">3,934,997</td><td><code class="m">1RB3LA1LB1RA_<wbr>2LC1LA---3RB_<wbr>---1RA------</code></td></tr></tbody></table>
 </section>
 <section>
+<h2>Counts after the rerun</h2>
+<p>The holdouts were rerun with the producer bbi9 0.6.0, which showed that 13,705 of them never halt.</p>
+<table class="runs"><thead><tr><th class="n" scope="col">instructions</th><th class="n" scope="col">machines</th><th class="n" scope="col">halt</th><th class="n" scope="col">cycler</th><th class="n" scope="col">translated cycler</th><th class="n" scope="col">CPS</th><th class="n" scope="col">RWL</th><th class="n" scope="col">FAR</th><th class="n" scope="col">history CPS</th><th class="n" scope="col">undecided</th></tr></thead><tbody><tr><td class="n">0</td><td class="n">1</td><td class="n">1</td><td class="n">0</td><td class="n">0</td><td class="n">0</td><td class="n">0</td><td class="n">0</td><td class="n">0</td><td class="n">0</td></tr><tr><td class="n">1</td><td class="n">4</td><td class="n">2</td><td class="n">0</td><td class="n">2</td><td class="n">0</td><td class="n">0</td><td class="n">0</td><td class="n">0</td><td class="n">0</td></tr><tr><td class="n">2</td><td class="n">30</td><td class="n">17</td><td class="n">1</td><td class="n">12</td><td class="n">0</td><td class="n">0</td><td class="n">0</td><td class="n">0</td><td class="n">0</td></tr><tr><td class="n">3</td><td class="n">378</td><td class="n">260</td><td class="n">9</td><td class="n">109</td><td class="n">0</td><td class="n">0</td><td class="n">0</td><td class="n">0</td><td class="n">0</td></tr><tr><td class="n">4</td><td class="n">5,414</td><td class="n">3,878</td><td class="n">135</td><td class="n">1,387</td><td class="n">13</td><td class="n">1</td><td class="n">0</td><td class="n">0</td><td class="n">0</td></tr><tr><td class="n">5</td><td class="n">83,888</td><td class="n">62,782</td><td class="n">1,912</td><td class="n">18,770</td><td class="n">383</td><td class="n">33</td><td class="n">8</td><td class="n">0</td><td class="n">0</td></tr><tr><td class="n">6</td><td class="n">1,374,272</td><td class="n">1,025,331</td><td class="n">33,527</td><td class="n">305,032</td><td class="n">9,440</td><td class="n">752</td><td class="n">190</td><td class="n">0</td><td class="n">0</td></tr><tr><td class="n">7</td><td class="n">22,209,792</td><td class="n">16,333,227</td><td class="n">598,620</td><td class="n">5,037,520</td><td class="n">217,256</td><td class="n">18,706</td><td class="n">4,266</td><td class="n">191</td><td class="n">6</td></tr><tr><td class="n">8</td><td class="n">308,487,856</td><td class="n">227,813,369</td><td class="n">8,321,150</td><td class="n">68,624,696</td><td class="n">3,313,777</td><td class="n">328,252</td><td class="n">72,847</td><td class="n">13,514</td><td class="n">251</td></tr></tbody></table>
+</section>
+<section>
 <h2>Files</h2>
-<ul class="files"><li><a href="summary.json">summary.json</a>, the producer's counts and digests</li><li><a href="check.json">check.json</a>, the checker's report</li><li><a href="BBi8_3x4_holdouts_unofficial.txt">BBi8_3x4_holdouts_unofficial.txt</a>, 13,765 holdouts</li><li><a href="BBi8_3x4_parent_holdouts_unofficial.txt">BBi8_3x4_parent_holdouts_unofficial.txt</a>, 197 parents</li><li><a href="import.json">import.json</a>, the import's counts and digest</li><li><a href="import.tsv.gz">import.tsv.gz</a>, 13,917 lines, one for each holdout a list decides</li><li><a href="import_check.json">import_check.json</a>, the checker's report on the import</li><li><a href="BBi8_3x4_holdouts_after_lists_unofficial.txt">BBi8_3x4_holdouts_after_lists_unofficial.txt</a>, 39 holdouts no list decides</li><li><a href="BBi8_3x4_parent_holdouts_after_lists_unofficial.txt">BBi8_3x4_parent_holdouts_after_lists_unofficial.txt</a>, 6 parent holdouts no list decides</li></ul>
+<ul class="files"><li><a href="summary.json">summary.json</a>, the producer's counts and digests</li><li><a href="check.json">check.json</a>, the checker's report on the full run</li><li><a href="BBi8_3x4_holdouts_unofficial.txt">BBi8_3x4_holdouts_unofficial.txt</a>, 251 holdouts</li><li><a href="BBi8_3x4_parent_holdouts_unofficial.txt">BBi8_3x4_parent_holdouts_unofficial.txt</a>, 6 parents</li><li><a href="amend.json">amend.json</a>, the amendment's counts and digest</li><li><a href="amend.tsv.gz">amend.tsv.gz</a>, 13,705 claims, one for each holdout the amendment showed never halts</li><li><a href="amend_check.json">amend_check.json</a>, the checker's report on the amendment</li><li><a href="import.json">import.json</a>, the import's counts and digest</li><li><a href="import.tsv.gz">import.tsv.gz</a>, 256 lines, one for each holdout a list decides</li><li><a href="import_check.json">import_check.json</a>, the checker's report on the import</li><li><a href="BBi8_3x4_holdouts_after_lists_unofficial.txt">BBi8_3x4_holdouts_after_lists_unofficial.txt</a>, 1 holdout no list decides</li><li><a href="BBi8_3x4_parent_holdouts_after_lists_unofficial.txt">BBi8_3x4_parent_holdouts_after_lists_unofficial.txt</a>, 0 parent holdouts no list decides</li></ul>
 <p>Parents are machines of seven instructions or fewer that our run could not settle. If one of them halts, its eight-instruction descendants can land in this cell, so the cell cannot close until they are settled.</p>
 </section>
 <section>
 <h2>Decided with other people's lists</h2>
-<p><a href="https://wiki.bbchallenge.org/w/images/e/e7/BBi%288%29_holdouts_9.txt">Nick Drozd</a>'s BBi(8) holdout list of 2026-10-25 decides 13,693 of this cell's holdouts and no parent holdouts, leaving 269.</p>
-<p><a href="https://drive.google.com/file/d/1-Fnexjfq0mWyZDPa2MNFmU64EpSu-3Ig/view">XnoobSpeakable</a>'s BB(3,4) holdout list of 2026-05-11 decides 33 of this cell's holdouts and 191 parent holdouts, leaving 45.</p>
+<p><a href="https://wiki.bbchallenge.org/w/images/e/e7/BBi%288%29_holdouts_9.txt">Nick Drozd</a>'s BBi(8) holdout list of 2026-10-25 decides 246 of this cell's holdouts and all 6 parent holdouts, leaving 5.</p>
+<p><a href="https://drive.google.com/file/d/1-Fnexjfq0mWyZDPa2MNFmU64EpSu-3Ig/view">XnoobSpeakable</a>'s BB(3,4) holdout list of 2026-05-11 decides none of the holdouts that the lists above leave open.</p>
+<p><a href="https://wiki.bbchallenge.org/wiki/Instruction-Limited_Busy_Beaver">the bbchallenge wiki's Instruction-Limited Busy Beaver page</a>'s proven BBi(7) value decides none of the holdouts that the lists above leave open.</p>
+<p><a href="https://github.com/amcknight/beavers/tree/main/bbi8">Andrew McKnight</a>'s BBi(8) holdout list of 2026-11-14 decides 4 of this cell's holdouts and no parent holdouts, leaving 1.</p>
 <p>What no list decides is in <a href="BBi8_3x4_holdouts_after_lists_unofficial.txt">BBi8_3x4_holdouts_after_lists_unofficial.txt</a> and <a href="BBi8_3x4_parent_holdouts_after_lists_unofficial.txt">BBi8_3x4_parent_holdouts_after_lists_unofficial.txt</a>.</p>
-<p>A machine these lists decide may halt or never halt. Their makers know which. Our own lists above are unchanged.</p>
+<p>A machine marked <code>DECIDED_LIST</code> may halt or never halt, and its list's maker knows which. A machine marked <code>NONHALT_PROVEN</code> never halts, by the registered proven value. Our own lists above are unchanged.</p>
 <p>This rests on each list being its maker's whole list, as its entry in the registry states.</p>
-<p>The check read Nick Drozd's file by its SHA-256, <code>aabde837dd73b5ef74f77bfd4f39737fe4d8755e5aead05d7e84141ad595b2c0</code> and XnoobSpeakable's file by its SHA-256, <code>a06e234f51f9c58a7f5e906d8332643762a4af6164346950e2c70fa6ecf852cf</code>, and the registry, <code>experiments/bbi/lists.yaml</code>.</p>
+<p>The check read Nick Drozd's file by its SHA-256, <code>aabde837dd73b5ef74f77bfd4f39737fe4d8755e5aead05d7e84141ad595b2c0</code>, XnoobSpeakable's file by its SHA-256, <code>a06e234f51f9c58a7f5e906d8332643762a4af6164346950e2c70fa6ecf852cf</code>, the bbchallenge wiki's Instruction-Limited Busy Beaver page's file by its SHA-256, <code>e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855</code> and Andrew McKnight's file by its SHA-256, <code>21b13914a549df1f58ad28e223f517f8835a6963efa53e8cc2e1fd4c6d04283d</code>, and the registry, <code>experiments/bbi/lists.yaml</code>.</p>
 </section>
 <section>
 <h2>Reproducing this cell</h2>
@@ -2879,6 +2903,7 @@ table.runs { border-collapse: collapse; font-size: 0.85rem; margin: 0.4rem 0; }
 <pre><code>python bbi9check.py &lt;this cell's directory&gt; --census census.tsv</code></pre>
 <p>The claims were made by our producer, version 0.5.0, as this cell's summary records, and the checker verifies them without it.</p>
 <p><code>summary.json</code> records the halter digest <code>3591c687313ff236</code> and the claims digest <code>1a90a06dada986df</code>, for comparing a rerun with the same producer, bbi9 0.5.0.</p>
+<p><code>amend.json</code> records the amend digest <code>aa2aeb824fe34a8b</code>, for comparing an amendment with the same producer, bbi9 0.6.0.</p>
 <p>From the top of the repository, the import reads other people's lists and writes into another directory. Once its files are moved into the cell, the checker checks the import.</p>
 <pre><code>python -m experiments.bbi.bbi9.imports --bbi 8 3x4 --out experiments/bbi/bbi8/rerun/3x4
 python experiments/bbi/bbi9/checker/bbi9check.py experiments/bbi/bbi8/cells/3x4 --import --census experiments/bbi/bbi9/census.tsv --lists experiments/bbi/lists.yaml</code></pre>

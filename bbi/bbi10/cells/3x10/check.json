@@ -1,0 +1,65 @@
+{
+  "format": "bbi9-check/1",
+  "checker": "bbi9check 1.6",
+  "cell": [
+    3,
+    10
+  ],
+  "depth": 10,
+  "pass": true,
+  "failures": [],
+  "cell_machines": 198225776,
+  "census": null,
+  "late_cell_machines": 0,
+  "census_match": null,
+  "holdouts": 0,
+  "parent_holdouts": 0,
+  "holdout_lists": "checked",
+  "top_halters": [
+    {
+      "machine": "1RB0LB------------------------_2LA---3RA4LA5RA6LA7RA8LC------_---9LB------------------------",
+      "steps": 70
+    },
+    {
+      "machine": "1RB3LA------------------------_2LA8LC4LA0RB5LA6LA7LB---------_9LB---------------------------",
+      "steps": 66
+    },
+    {
+      "machine": "1RB0LB------------7LA---------_2LA---3RA4LA5RA6RB---8RC------_------9RB---------------------",
+      "steps": 60
+    },
+    {
+      "machine": "1RB3LA------------------------_2LA9LC4LA1RB5LA6LA7LC---------_---8LB------------------------",
+      "steps": 60
+    },
+    {
+      "machine": "1RB0LB------------------------_2LA---3RA4LA5RA6LA7LC---------_---8RC---------------9RA------",
+      "steps": 59
+    },
+    {
+      "machine": "1RB0LB------------------------_2LA---3RA4LA5RA6LA7LC9RA------_---8RB------------------------",
+      "steps": 59
+    },
+    {
+      "machine": "1RB0LB------------------------_2LA8RC3RA4LA5RA6LA7LB---------_---------------------9RA------",
+      "steps": 59
+    },
+    {
+      "machine": "1RB0LB---------------9RA------_2LA---3RA4LA5RA6LA7LC---------_---8RA------------------------",
+      "steps": 59
+    },
+    {
+      "machine": "1RB5LA------------------------_2LC------4LA6LA0RB7LA8LA9LC---_---3LA------------------------",
+      "steps": 59
+    },
+    {
+      "machine": "1RB0LB---------------8RC------_2LA---3RA4LA5RA6LA7RB---------_------9RB---------------------",
+      "steps": 58
+    }
+  ],
+  "halter_digest": "336265c63e08b9ad",
+  "claims_digest": "48d9f5be2feb43c9",
+  "unknown_digest": "0000000000000000",
+  "seconds": 76.526,
+  "summary_sha256": "f9a44c93b4aad992811f1461428c17531ea3258efe9ef7c5fc20be90136e83b6"
+}

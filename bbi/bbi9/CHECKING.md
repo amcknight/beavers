@@ -5,7 +5,8 @@ produced the cell. A checker rebuilds the cell's search tree, runs every halter 
 non-halting certificate and compares its totals with the producer's. It never searches for a certificate itself.
 Computing the sets that a NONHALT_CPS or NONHALT_RWL certificate names (section 6) is not a search, since the
 machine and the certificate fix them. Computing the relation R and the set a that a NONHALT_FAR certificate names is
-not a search either.
+not a search either, and nor is computing the sets that a NONHALT_CPSH certificate names, which are NONHALT_CPS's
+sets for a history machine that the machine and the certificate's H fix.
 
 ## 1. Machines and runs
 
@@ -81,18 +82,20 @@ digests. A checker checks whatever cell it is given by these rules, whichever pr
 
 A JSON object. A checker uses these keys and ignores any others.
 
-- `format` is `"bbi9-cell/1"`, `"bbi9-cell/2"`, `"bbi9-cell/3"` or `"bbi9-cell/4"`. Format 2 is format 1 with the
-  NONHALT_CPS certificate (section 6) added, format 3 is format 2 with the NONHALT_RWL certificate added, and format 4
-  is format 3 with the NONHALT_FAR certificate added. A format 1 cell has no NONHALT_CPS claims, a format 1 or 2 cell
-  has no NONHALT_RWL claims, and a format 1 to 3 cell has no NONHALT_FAR claims.
+- `format` is `"bbi9-cell/1"`, `"bbi9-cell/2"`, `"bbi9-cell/3"`, `"bbi9-cell/4"` or `"bbi9-cell/5"`. Format 2 is
+  format 1 with the NONHALT_CPS certificate (section 6) added, format 3 is format 2 with the NONHALT_RWL certificate
+  added, format 4 is format 3 with the NONHALT_FAR certificate added, and format 5 is format 4 with the NONHALT_CPSH
+  certificate added. A format 1 cell has no NONHALT_CPS claims, a format 1 or 2 cell has no NONHALT_RWL claims, a
+  format 1 to 3 cell has no NONHALT_FAR claims, and a format 1 to 4 cell has no NONHALT_CPSH claims.
 - `cell` is `[S, K]` and `depth` is D.
 - `corridor` is a list of D + 1 objects. Entry d describes depth d and has the keys
   - `depth`, which is d
   - `machines`, the corridor machines at depth d
   - `HALT`, `NONHALT_CYCLER`, `NONHALT_TRANSLATED` and `UNKNOWN`, how many of them got each verdict
-  - `NONHALT_CPS`, how many got that verdict, in formats 2 to 4. A format 1 entry does not have this key.
-  - `NONHALT_RWL`, how many got that verdict, in formats 3 and 4. A format 1 or 2 entry does not have this key.
-  - `NONHALT_FAR`, how many got that verdict, in format 4 only. A format 1 to 3 entry does not have this key.
+  - `NONHALT_CPS`, how many got that verdict, in formats 2 to 5. A format 1 entry does not have this key.
+  - `NONHALT_RWL`, how many got that verdict, in formats 3 to 5. A format 1 or 2 entry does not have this key.
+  - `NONHALT_FAR`, how many got that verdict, in formats 4 and 5. A format 1 to 3 entry does not have this key.
+  - `NONHALT_CPSH`, how many got that verdict, in format 5 only. A format 1 to 4 entry does not have this key.
   - `max_halt_steps`, the most steps any halter at depth d ran (0 if there is none)
 - `cell_machines` is the number of machines in the cell, which equals entry D's `machines`.
 - `late_cell_machines` counts the cell machines with a late ancestor (section 8).
@@ -106,12 +109,27 @@ A JSON object. A checker uses these keys and ignores any others.
 - A corridor entry may also have `halt_steps`, the sum of the steps of the halters at that depth. It is required in
   every entry when `claims.idx` exists.
 
-The keys `producer`, `caps`, `tc_windows`, `cps_max_n`, `cps_limit`, `rwl_max_b`, `rwl_max_t`, `rwl_limit`,
-`far_max_n`, `far_budget`, `threads` and `seconds` are for people to read. `rwl_max_b` and `rwl_max_t` are the largest
-b and T the producer tries, and `rwl_limit` is the producer's own cap on the members of C, 3,000 for producer 0.3.0.
-That cap may be below the 20,000 that section 6 allows, and a checker never uses it. `far_max_n` is the largest n the
-producer tries for a NONHALT_FAR certificate, and `far_budget` is its cap on the search nodes it spends on one machine
-(section 10), 10 and 1,000,000 for producer 0.5.0. A checker never uses them either.
+The keys `producer`, `caps`, `tc_windows`, `tc_records`, `cps_max_n`, `cps_limit`, `rwl_max_b`, `rwl_max_t`,
+`rwl_first_limit`, `rwl_limit`, `rwl_run_budget`, `far_max_n`, `far_budget`, `cpsh_tries`, `cpsh_limit`, `threads`
+and `seconds` are for people to read. `rwl_max_b` and `rwl_max_t` are the largest b and T the producer tries, and
+`rwl_limit` is the producer's own cap on the members of C, 3,000 for producer 0.3.0. That cap may be below the 20,000
+that section 6 allows, and a checker never uses it. `far_max_n` is the largest n the producer tries for a NONHALT_FAR
+certificate, and `far_budget` is its cap on the search nodes it spends on one machine (section 10), 10 and 1,000,000
+for producer 0.5.0. A checker never uses them either.
+
+Producer 0.6.0 also writes `rwl_first_limit` and `rwl_run_budget`, the member cap of RWL's first pass and its cap on
+the runs a closure's members hold in all (section 10), and `tc_records`, how many of the steps that take the head
+farther out than ever before it keeps on each side when it looks for a translated cycler. It writes `cpsh_tries`,
+the (n, H) it tries for a NONHALT_CPSH certificate, in order, as a string such as `"3:6,3:12,5:12"`, and
+`cpsh_limit`, its cap on the members of C in each try. Its standard settings for these five keys are 300, 100,000,
+4,096, `"3:6,3:12,5:12"` and 20,000. Each decider can be switched off for a run, and a decider the run switched off
+has none of its keys. NONHALT_CPS's keys are `cps_max_n` and `cps_limit`, NONHALT_RWL's
+are the five keys that start with `rwl_`, NONHALT_FAR's are `far_max_n` and `far_budget`, and NONHALT_CPSH's are
+`cpsh_tries` and `cpsh_limit`. A checker never uses any of these keys.
+
+Producer 0.7.0 may also write `decider_order`, the order in which it tries NONHALT_CPS, NONHALT_RWL, NONHALT_FAR and
+NONHALT_CPSH on a machine that rung 0 leaves UNKNOWN, as a string such as `"cps,cpsh,rwl,far"`, written only when it
+is not `cps,rwl,far,cpsh`. A checker never uses it.
 
 ### claims.tsv
 
@@ -124,9 +142,10 @@ after another (RFC 1952), and then the claims bytes are their decompressed conte
 |---|---|
 | `text  NONHALT_CYCLER  i  j` | a cycler certificate |
 | `text  NONHALT_TRANSLATED  R  i  j` or `... L  i  j` | a translated-cycler certificate |
-| `text  NONHALT_CPS  n  c` | an n-gram CPS certificate, in formats 2 to 4 |
-| `text  NONHALT_RWL  b  T  c` | a repeated-word-list certificate, in formats 3 and 4 |
-| `text  NONHALT_FAR  side  n  table  e` | a finite-automata-reduction certificate, in format 4 only |
+| `text  NONHALT_CPS  n  c` | an n-gram CPS certificate, in formats 2 to 5 |
+| `text  NONHALT_RWL  b  T  c` | a repeated-word-list certificate, in formats 3 to 5 |
+| `text  NONHALT_FAR  side  n  table  e` | a finite-automata-reduction certificate, in formats 4 and 5 |
+| `text  NONHALT_CPSH  n  H  c` | a history n-gram CPS certificate, in format 5 only |
 | `text  UNKNOWN  n` | the producer ran n steps and decided nothing |
 
 ### claims.idx (optional)
@@ -182,12 +201,35 @@ Let p_n be the head position after n steps.
   ASCII digits whose first digit is 0 and each of which is below n, 1 ≤ e ≤ 102,010, and, for the edges R and the
   nodes a defined below, the node (0, A) is not in a and R has exactly e edges. A checker fails a certificate whose
   side, n, table or e is out of range without computing anything.
+- **NONHALT_CPSH n H c** is valid when 1 ≤ n ≤ 5, 1 ≤ H ≤ 12 and 1 ≤ c ≤ 20,000, and NONHALT_CPS's sets Lw, Rw
+  and C, computed with this n for the history machine M_H defined below, close with exactly c members in C, none of
+  which has an undefined pair. A checker fails a certificate whose n, H or c is out of range without computing
+  anything.
 - **UNKNOWN n** has nothing to verify. The machine is a holdout.
 
 Why these prove the machine never halts. A cycler returns to an earlier configuration, so it repeats forever. In
 the translated case every cell beyond p_i is blank after i steps, and between steps i and j the head stays at a or
 beyond. So from step j the machine sees a shifted copy of what it saw from step i, and it repeats with a shift of δ
 forever. This is the Lin recurrence, which Coq-BB5 proves in Rocq as its Loop decider.
+
+**Limits.**
+
+The bullets above and section 9 are the contract, and the table names their numbers for programs.
+
+| limit | value |
+|---|---|
+| `MAX_CAP` | 10,000,000 |
+| `CPS_MAX_N` | 5 |
+| `CPS_MAX_C` | 20,000 |
+| `RWL_MAX_B` | 6 |
+| `RWL_MAX_T` | 3 |
+| `RWL_MAX_C` | 20,000 |
+| `RWL_BLOCK_STEPS` | 1,000 |
+| `FAR_MAX_N` | 10 |
+| `FAR_MAX_E` | 102,010 |
+| `CPSH_MAX_N` | 5 |
+| `CPSH_MAX_H` | 12 |
+| `CPSH_MAX_C` | 20,000 |
 
 ### NONHALT_CPS
 
@@ -439,6 +481,91 @@ state. For example, for `0RA` with side L and the table `01` (n = 2), R has the 
 (1, A) –0→ (1, A) and ⊥ –0→ ⊥, though state 1 is never reached. So `NONHALT_FAR L 2 01 3` is valid, and
 `NONHALT_FAR L 2 01 2`, the count at the reachable states only, is not.
 
+### NONHALT_CPSH
+
+This is history n-gram CPS. It runs the closure of NONHALT_CPS on the history machine M_H, a copy of the machine
+whose cells also remember the last H pairs (state, symbol) that were read there. Cells that hold the same symbol but
+were written in different ways then look different to the closure, which can keep apart configurations that plain
+n-gram CPS merges. It follows Coq-BB5's `TM_history` (CoqBB5/BB5/TM.v), which Coq-BB5 runs under its NGramCPS
+decider, and it is the transform that the bbchallenge wiki's NGram CPS page calls fixed-length history augmentation.
+In this section n and H are always the certificate's numbers, never numbers of steps, and k is the machine's number
+of symbols (section 2).
+
+- **Histories.** A history is a sequence of at most H pairs (q, b), each of a state q and a symbol b of the machine
+  M. The empty history is ().
+- **Symbols.** A symbol of M_H is a pair (b, h) of a symbol b of M, its base, and a history h. Two symbols of M_H are
+  equal exactly when their bases are equal and their histories are of the same length and equal entry by entry.
+- **The blank.** The blank of M_H is (0, ()), the base 0 with the empty history. M_H's run starts in state A with the
+  head at position 0 on a tape of blanks.
+- **Instructions.** M_H has M's states. Its pair (q, (b, h)) is undefined exactly when M's pair (q, b) is undefined
+  (section 1), whatever h is. That includes every pair of a state that owns no instructions. Otherwise let (w, m, t)
+  be M's instruction on (q, b). M_H's instruction on (q, (b, h)) writes the symbol (w, h′), moves the head m and goes
+  to state t, where h′ is the first H entries of the sequence that puts (q, b) in front of h. So h′ is (q, b)
+  followed by h, less h's last entry when h already has H entries.
+
+The sets Lw, Rw and C of a NONHALT_CPSH certificate are the sets of the NONHALT_CPS subsection above, word for word,
+with M_H in place of the machine and with this n. A word is a sequence of n symbols of M_H, the symbol x under the
+head of a local configuration is a symbol of M_H, and its pair (q, x) is a pair of M_H. A member's instruction is
+M_H's, so the symbol it writes, the w of the NONHALT_CPS rules, is the symbol (w, h′) of M_H. A checker computes the
+sets as the NONHALT_CPS subsection says. It may fail as soon as C has more than c members or holds a member whose pair
+is undefined, and a certificate whose c is not exactly the size of C is invalid, even when no member's pair is
+undefined.
+
+M_H has finitely many symbols, since a history has at most H entries and there are finitely many pairs, but far too
+many to list. The closure meets only the blank and the symbols that M_H's instructions write, so a checker can make
+each symbol when an instruction first writes it. It may number the symbols in any way, as long as the blank is
+(0, ()) wherever the NONHALT_CPS rules say 0 and each instruction comes from the base, as the first two warnings below
+say.
+
+**The instruction comes from (q, b) alone.** Whether the pair (q, (b, h)) is defined, and the base w, the move m and
+the state t of its instruction, depend on the state q and the base b and on nothing else. The history h shapes only
+the history h′ of the written symbol. A checker that numbers the symbols of M_H and then uses a symbol's number in
+place of its base, for example the number modulo k, reads the instructions of another machine, and it accepts
+machines that halt (the shortcut table below).
+
+**Every 0 of section 6 is the blank (0, ()).** The word 0ⁿ that is in Lw and in Rw is the word of n blanks (0, ()),
+and the start member is (0ⁿ, A, (0, ()), 0ⁿ). It is never another symbol whose base is 0, and never whichever symbol
+a checker happens to number 0. A checker that numbers symbols as they are written, and lets number 0 be the first
+symbol written, the one the machine's first step writes on the blank, starts the closure from a tape that the run
+never has, and it accepts a machine that halts (the shortcut table below). A blank with some fixed non-empty history
+would also give a sound closure, but it is not this certificate, and its c can differ.
+
+**Waiting members are expanded again here too.** The NONHALT_CPS rule that a member must be expanded again when a
+word it waits on arrives holds for M_H word for word. A member that moves R waits on the words of Rw that start with
+v₂…vₙ, and a member that moves L on the words of Lw that end with u₁…uₙ₋₁. Section 6's trap machine
+`0RB---_0RC---_1LD---_0LA---` does not test this rule here. At every n from 1 to 5 and every H from 1 to 12, a
+closure that expands each member once refuses that machine, as the true closure does. The first two rows of the
+shortcut table below are machines that do test it.
+
+Why it proves the machine never halts. Run M and M_H side by side, each from its blank tape. By induction on the
+steps, after every number of steps they are in the same state with the head at the same position, and every cell of
+M_H's tape holds a symbol whose base is M's symbol in that cell. This holds at the start, where every cell of M's tape
+holds 0 and every cell of M_H's tape holds (0, ()), whose base is 0. If it holds before a step, M reads (q, b) and
+M_H reads (q, (b, h)) for some h. These two pairs are undefined together, and when they are defined, both
+instructions write the base w, move the head m and go to state t, so it holds after the step. So M halts after s
+steps exactly when M_H does. The NONHALT_CPS argument above holds for any machine whose tape starts with the symbol of
+the start words in every cell, and M_H's tape starts with (0, ()) in every cell. So a valid certificate shows that M_H
+never halts, and then M never halts.
+
+Each shortcut in the table below gets one rule wrong and accepts a machine that halts. Each certificate shown is the
+one the shortcut itself accepts, with the shortcut's own count of C, the same whether its work list is a stack or a
+queue. In the third and fourth rows the symbols are numbered in the order they are made, the blank 0.
+
+**NONHALT_CPSH shortcuts.**
+
+| shortcut | machine | halts after | the shortcut accepts |
+|---|---|---|---|
+| each member expanded once, against Lw and Rw as they stand at that moment | `1RB2LB---_2LA2RB1LB` | 37 steps | `NONHALT_CPSH 3 6 26` |
+| each member expanded once, against Lw and Rw as they stand at that moment | `1RB2LA1RA_1LB1LA1RC_---2LA2RB` | 11,597,631 steps | `NONHALT_CPSH 3 6 61` |
+| the symbol's number modulo k used as its base, for the instruction and the history entry | `1RB1RB_1LA---` | 3 steps | `NONHALT_CPSH 3 6 15` |
+| the symbol's number modulo k used as its base, for the instruction and the history entry | `1RB1LB_1LA---` | 5 steps | `NONHALT_CPSH 3 6 11` |
+| every 0 of section 6 read as the first symbol written, not the blank | `1RB1LA_1LA---` | 4 steps | `NONHALT_CPSH 3 6 4` |
+
+The second machine is a late halter of BBi(8)'s 3×3 cell (`experiments/bbi/late_halters.tsv`). No NONHALT_CPSH
+certificate is valid for any of the five machines, or for the trap machine, at any n from 1 to 5 and any H from 1
+to 12. Using only the symbol's number modulo k for the instruction, with the history entry from the true base, is
+wrong as well and accepts `1RB1RB_1LA---` with 16 members.
+
 ## 7. Digests
 
 - h(x) is the first 8 bytes of the SHA-256 hash of the UTF-8 bytes of the line x (without its newline), read as a
@@ -470,11 +597,12 @@ census counted.
 
 The inputs are a cell directory and the census file.
 
-1. Read `summary.json`. If its `format` is not `"bbi9-cell/1"`, `"bbi9-cell/2"`, `"bbi9-cell/3"` or
-   `"bbi9-cell/4"`, fail. If a format 2 to 4 corridor entry lacks `NONHALT_CPS`, or a format 1 corridor entry has it,
-   fail. If a format 3 or 4 corridor entry lacks `NONHALT_RWL`, or a format 1 or 2 corridor entry has it, fail. If a
-   format 4 corridor entry lacks `NONHALT_FAR`, or a format 1 to 3 corridor entry has it, fail. Let B_d be corridor
-   entry d's `max_halt_steps`. If any B_d is above 10,000,000, the producer's largest cap, fail at once.
+1. Read `summary.json`. If its `format` is not `"bbi9-cell/1"`, `"bbi9-cell/2"`, `"bbi9-cell/3"`, `"bbi9-cell/4"`
+   or `"bbi9-cell/5"`, fail. If a format 2 to 5 corridor entry lacks `NONHALT_CPS`, or a format 1 corridor entry has
+   it, fail. If a format 3 to 5 corridor entry lacks `NONHALT_RWL`, or a format 1 or 2 corridor entry has it, fail. If
+   a format 4 or 5 corridor entry lacks `NONHALT_FAR`, or a format 1 to 3 corridor entry has it, fail. If a format 5
+   corridor entry lacks `NONHALT_CPSH`, or a format 1 to 4 corridor entry has it, fail. Let B_d be corridor entry d's
+   `max_halt_steps`. If any B_d is above 10,000,000, the producer's largest cap, fail at once.
 2. Walk the corridor of (S, K, D), running each machine at depth d for at most B_d steps.
    - If it halts after n ≤ B_d steps, it is a halter. Add `text<TAB>n` to the halter digest. If d < D, add its
      corridor children. Each child is late if its parent is late or if n is above the cap for depth d.
@@ -485,25 +613,29 @@ The inputs are a cell directory and the census file.
    claim by depth and verdict, add the line to the claims digest and its text to the claimed digest, and keep the
    UNKNOWN texts by depth. A certificate whose j is above 10,000,000 fails without being run, because the producer
    never writes one. A NONHALT_CPS certificate whose n or c is out of range fails without being computed, and so
-   do a NONHALT_RWL certificate whose b, T or c is out of range and a NONHALT_FAR certificate whose side, n, table or
-   e is out of range. In a format 1 cell every NONHALT_CPS claim fails, in a format 1 or 2 cell every NONHALT_RWL
-   claim fails, and in a format 1 to 3 cell every NONHALT_FAR claim fails.
+   do a NONHALT_RWL certificate whose b, T or c is out of range, a NONHALT_FAR certificate whose side, n, table or
+   e is out of range and a NONHALT_CPSH certificate whose n, H or c is out of range. In a format 1 cell every
+   NONHALT_CPS claim fails, in a format 1 or 2 cell every NONHALT_RWL claim fails, in a format 1 to 3 cell every
+   NONHALT_FAR claim fails, and in a format 1 to 4 cell every NONHALT_CPSH claim fails.
 4. Compare. Each mismatch is a failure with a message.
    - At every depth d, the walk's machines, halters and most halter steps equal entry d's `machines`, `HALT` and
      `max_halt_steps`.
    - When the corridor entries have `halt_steps`, each equals the sum of the steps of the walk's halters at that
      depth.
    - At every depth d, the claims by verdict equal entry d's `NONHALT_CYCLER`, `NONHALT_TRANSLATED`, `NONHALT_CPS`,
-     `NONHALT_RWL`, `NONHALT_FAR` and `UNKNOWN`, and their total equals the walk's unhalted count at d. A format 1
-     entry has no `NONHALT_CPS`, and its NONHALT_CPS count is taken as 0. A format 1 or 2 entry has no
+     `NONHALT_RWL`, `NONHALT_FAR`, `NONHALT_CPSH` and `UNKNOWN`, and their total equals the walk's unhalted count at
+     d. A format 1 entry has no `NONHALT_CPS`, and its NONHALT_CPS count is taken as 0. A format 1 or 2 entry has no
      `NONHALT_RWL`, and its NONHALT_RWL count is taken as 0. A format 1 to 3 entry has no `NONHALT_FAR`, and its
-     NONHALT_FAR count is taken as 0.
+     NONHALT_FAR count is taken as 0. A format 1 to 4 entry has no `NONHALT_CPSH`, and its NONHALT_CPSH count is
+     taken as 0.
    - The unhalted digest equals the claimed digest. With the counts, this shows the claims cover exactly the
      unhalted machines.
    - `halter_digest`, `claims`, `claims_digest`, `cell_machines`, `late_cell_machines`, `holdouts`,
      `parent_holdouts` and `top_halters` equal the checker's own values.
    - Both holdout lists hold exactly the sorted UNKNOWN texts. This one comparison is skipped for a cell with an
      amendment of this very summary.json, as section 12 says.
+   - The UNKNOWN texts at every depth are digested (section 7, each text without a newline) as `unknown_digest`,
+     which check.json records. It is `0000000000000000` when there are none.
    - Every certificate is valid.
    - The census rule (section 8) holds.
 5. Write `check.json` into the cell directory, print one line starting with `PASS` or `FAIL`, and exit with 0 on a
@@ -519,8 +651,8 @@ A checker may check a cell with `claims.idx` this way instead of steps 2 and 3. 
    whether or not the index names it. Each walk is canonical (section 3) and reads its group's lines in order. For
    each machine M at depth d:
    - If the next unread line's text is M's text, that line is M's claim. A non-halting certificate (cycler,
-     translated cycler, NONHALT_CPS, NONHALT_RWL or NONHALT_FAR) is verified as in step 3 of the main list, and M is
-     unhalted.
+     translated cycler, NONHALT_CPS, NONHALT_RWL, NONHALT_FAR or NONHALT_CPSH) is verified as in step 3 of the main
+     list, and M is unhalted.
      An UNKNOWN claim makes M run for B_d steps. If it halts, fail. Otherwise M is unhalted.
    - Otherwise M runs for B_d steps and must halt, or the check fails. A halter is handled as in step 2 of the main
      list.
@@ -536,17 +668,56 @@ A correct cell passes both ways with the same results. The checker's `--plain` u
 `check.json` has the keys `format` (`"bbi9-check/1"`), `checker` (name and version), `cell`, `depth`, `pass`,
 `failures` (the first 50 messages), `cell_machines`, `census`, `late_cell_machines`, `census_match` (true, false,
 or null when skipped), `holdouts`, `parent_holdouts`, `holdout_lists`, `top_halters`, `halter_digest`,
-`claims_digest`, `seconds` and `summary_sha256`, the SHA-256 hex of the bytes of `summary.json`. `census` is the
+`claims_digest`, `unknown_digest`, `seconds` and `summary_sha256`, the SHA-256 hex of the bytes of `summary.json`. `census` is the
 census count of section 8, and null at D ≥ 10, where there is none. `holdout_lists` is `"checked"` when step 4
 compared the holdout lists and `"amendment"` when it skipped them (section 12). A check.json written before this key
-existed has no `holdout_lists`, and its check compared the lists. The tracker trusts a check only while
+existed has no `holdout_lists`, and its check compared the lists. A check.json without `unknown_digest` was written
+by a checker before 1.7, and section 12 says what that costs. The tracker trusts a check only while
 `summary_sha256` matches the current `summary.json`, and a check whose `holdout_lists` is `"amendment"` only with a
 passing amendment check as well.
 
-The command line is `python bbi9check.py CELL_DIR --census CENSUS_TSV [--jobs N] [--plain]`, for Python 3.11 or
-later with the standard library only. `--jobs` spreads the walk and the certificate checks over N processes, and it
-changes no result except `seconds`. The amendment check of section 12 is the same program with `--amend`. The import
-check of section 13 is the same program with `--import`, and it alone also uses PyYAML.
+The command line is `python bbi9check.py CELL_DIR --census CENSUS_TSV [--jobs N] [--plain | --python]`, for Python 3.11
+or later with the standard library only. Besides the exit codes of step 5, this checker exits with 3 when
+`bbi9check-core` (below) fails during a check, and then it writes no check.json. `--jobs` spreads the walk and the
+certificate checks over N processes, and it changes no result except `seconds`. When the check uses claims.idx it prints
+a line to stderr every 30 seconds while it walks, `progress: M machines, S steps, T s`, the machines walked so far, the
+steps simulated for them (each halter's steps and each UNKNOWN machine's bound) and the seconds since the walk began,
+and these lines change no result either. The amendment check of section 12 is the same program with `--amend`. The
+import check of section 13 is the same program with `--import`, and it alone also uses PyYAML.
+
+**An accelerated checker.** The reference checker is the program above with `--python` (or with `bbi9check-core` not
+built), standard-library Python, and its verdict is the one that counts. An accelerated checker is any program that
+writes the same check.json as the reference checker would for the same cell, byte for byte apart from `seconds` and
+`checker`, and it is sound only insofar as it does. `python bbi9check.py CELL_DIR --census CENSUS_TSV --gpu [--jobs N]`
+is one: the indexed check with the UNKNOWN claims run to their bounds on an NVIDIA GPU (`experiments/bbi/bbi9/gpu`) in
+batches after the walk, instead of one by one during it. The walk counts each UNKNOWN claim as unhalted meanwhile, which
+is what it is in every passing check, and a machine that turns out to halt fails the check with the reference checker's
+own message, so a passing `--gpu` check and a passing reference check are the same check.json apart from those two keys,
+while a failing `--gpu` check may list other failures than the reference checker's. The GPU runner falls back to the
+reference run for a machine whose tape outgrows every width it tries, so every verdict is the reference run's. Its
+check.json names the checker `bbi9check 1.10 gpu`, or `bbi9check 1.10 core gpu` when `bbi9check-core` (below) walked, it
+prints one more line to stderr, `gpu: ...`, with its counts and seconds, and `--gpu` with `--plain`, `--amend`,
+`--import` or `--unknown-digest` is bad usage. A cell without claims.idx is checked the plain way, `--gpu` or not.
+
+The indexed check with `bbi9check-core`, a Rust program in `checker/core` written from this document and the reference
+checker and never from the producer, is another, and it runs whenever the program is built. The program walks every
+group but the top one, the groups rooted at depth `claims_split`, runs and digests their halters, digests their claims
+lines and verifies their NONHALT_CYCLER and NONHALT_TRANSLATED certificates. It hands every other claims line back to
+the reference code, which verifies it and runs the UNKNOWN claims as before. Before the program reads a batch of groups,
+the reference code inflates every gzip member of the batch with zlib and walks the batch itself when zlib refuses one,
+so zlib remains the judge of every member. When the program meets anything it does not handle, such as a gzip member
+with header flags, a machine that is neither the next claim nor a halter, lines left over or an UNKNOWN claim that
+halts, the reference code walks that batch again. So every failure message is the reference checker's, and a failing
+check lists the same failures either way. When the program walked at least one batch itself, check.json names the
+checker `bbi9check 1.10 core`, or `bbi9check 1.10 core gpu` with `--gpu`, and otherwise it names the checker as the
+reference code does. When the check took on any batch for the program, it prints one more line to stderr, `core: ...`.
+Its first number is the batches the check took on, counting those zlib refused before the program saw them, its second
+is those the reference code walked itself, and the line also says when the program's build is older than its sources.
+`--python` makes the reference code walk every group, and `--python` with `--plain`, `--amend`, `--import` or
+`--unknown-digest` is bad usage. When the program is not built, the reference code walks and a `core:` line says so.
+When the program fails during a check, the check stops, writes no check.json and exits with 3, and stderr says why.
+`cargo build --release` in `checker/core` builds it, and its one dependency is the flate2 crate the producer already
+uses.
 
 ## 10. Control numbers
 
@@ -716,9 +887,11 @@ reads), so its side L certificate is the other's side R one. `0RB0LA_1LA1RC_1RB-
 n-gram CPS and RWL leave UNKNOWN, and the last valid row is one of the three 2-state, 6-symbol parents they leave in
 BBi(9) 4×8.
 
-A machine can have valid certificates at several n and on both sides, and a checker accepts each of them. The
-producer tries finite automata reduction when its first rung, n-gram CPS and RWL leave a machine UNKNOWN, before it
-runs the machine longer. It tries n from 1 to 10, side L before side R at each n, and for each the canonical tables
+A machine can have valid certificates at several n and on both sides, and a checker accepts each of them. In its
+legacy order, the one a summary.json without `decider_order` (section 5) records, the producer tries finite automata
+reduction when its first rung, n-gram CPS and RWL leave a machine UNKNOWN, before it runs the machine longer. A
+summary.json with `decider_order` names another order, and then the producer tries finite automata reduction in that
+place instead. It tries n from 1 to 10, side L before side R at each n, and for each the canonical tables
 with n states depth first, and it writes the first certificate that works. Each digit it tries at one position of a
 table is one search node. It spends at most 1,000,000 search nodes on a machine, counted across every n and both
 sides, and a machine it cannot close within them runs longer. Its search, run on its own, gives `0RA` the
@@ -731,6 +904,64 @@ eight BBi(5) counters reach finite automata reduction, and the producer gives `0
 `NONHALT_FAR L 3 012011010 30`, `0RB0LA---_1RC------_2LA---1RB` `NONHALT_FAR L 3 012002022 30`,
 `1RB------_2LC---1RA_0RA0LC---` `NONHALT_FAR L 3 012002022 30` and `1RB2LC---_0LA---0RB_2LA------`
 `NONHALT_FAR R 3 012011010 30`.
+
+**Valid NONHALT_CPSH certificates.**
+
+| machine | certificate |
+|---|---|
+| `0RB0LA---_1RC------_2LA---1RB` | `NONHALT_CPSH 3 6 123` and `NONHALT_CPSH 2 2 40` and `NONHALT_CPSH 3 3 85` and `NONHALT_CPSH 3 12 265` and `NONHALT_CPSH 5 12 593` |
+| `1RB------_2LB2LA0RB` | `NONHALT_CPSH 3 6 80` and `NONHALT_CPSH 2 2 34` and `NONHALT_CPSH 3 3 46` and `NONHALT_CPSH 3 12 128` and `NONHALT_CPSH 5 12 199` |
+| `1RB2LC---_0LA---0RB_2LA------` | `NONHALT_CPSH 3 6 126` and `NONHALT_CPSH 5 12 608` |
+| `1RB------_2LC---1RA_0RA0LC---` | `NONHALT_CPSH 3 6 140` |
+| `0RB---0LA_1LA2RC---_2RB------` | `NONHALT_CPSH 3 6 127` |
+| `1RB3RA4LB------------_2LA6LB5RB3LB---6LB0RB` | `NONHALT_CPSH 3 6 141` and `NONHALT_CPSH 2 2 52` |
+| `1RB3LA4LA0LA1RA_1LC------2RB4RA_---2RA---------` | `NONHALT_CPSH 3 12 458` and `NONHALT_CPSH 3 8 395` |
+| `0RB------_1LC---0LE_2RD---1LD_2LE0RD0LA_1LB------` | `NONHALT_CPSH 3 12 296` and `NONHALT_CPSH 4 6 223` |
+| `1RB3LC------------_2LA---1LC------0RC_4LB5LA---0RB5LA---` | `NONHALT_CPSH 5 12 756` and `NONHALT_CPSH 4 12 636` |
+| `1RB1LA4LB2RB3LB_2LA3LB0RA0LB---` | `NONHALT_CPSH 5 12 19857` |
+| `1RB0LC------_0LA------0RF_2LD---------_2LE---------_3LA---------_0RB---0RF---` | `NONHALT_CPSH 3 6 98` and `NONHALT_CPSH 3 1 44` |
+| `1RB------_0RC---0LG_1LB1RD---_2RE------_1RF------_2RC------_---0LB---` | `NONHALT_CPSH 3 6 98` and `NONHALT_CPSH 2 2 37` |
+
+**Invalid NONHALT_CPSH certificates.**
+
+| machine | certificate | why |
+|---|---|---|
+| `1RB------_2LB2LA0RB` | `NONHALT_CPSH 3 6 79` | C has 80 members, not 79 |
+| `1RB------_2LB2LA0RB` | `NONHALT_CPSH 3 6 81` | C has 80 members, not 81 |
+| `1RB------_2LB2LA0RB` | `NONHALT_CPSH 3 12 80` | with H = 12, C has 128 members, not the 80 it has with H = 6 |
+| `1RB1LA4LB2RB3LB_2LA3LB0RA0LB---` | `NONHALT_CPSH 5 12 19856` | C has 19,857 members, not 19,856 |
+| `1RB1LA4LB2RB3LB_2LA3LB0RA0LB---` | `NONHALT_CPSH 3 6 19857` | with n = 3 and H = 6, C reaches an undefined pair, though n = 5 and H = 12 close |
+| `1RB------_2LB2LA0RB` | `NONHALT_CPSH 0 6 80` | n must be at least 1 |
+| `1RB------_2LB2LA0RB` | `NONHALT_CPSH 6 6 80` | n must be at most 5 |
+| `1RB------_2LB2LA0RB` | `NONHALT_CPSH 3 0 80` | H must be at least 1 |
+| `1RB------_2LB2LA0RB` | `NONHALT_CPSH 3 13 80` | H must be at most 12 |
+| `1RB------_2LB2LA0RB` | `NONHALT_CPSH 3 6 0` | c must be at least 1 |
+| `1RB------_2LB2LA0RB` | `NONHALT_CPSH 3 6 20001` | c must be at most 20,000 |
+| `0RB---_0RC---_1LD---_0LA---` | `NONHALT_CPSH 3 6 10` | section 6's trap machine halts after 6 steps, and C reaches an undefined pair |
+| the root (empty text) | `NONHALT_CPSH 1 1 1` | the root halts after 0 steps, and the start member's pair (A, (0, ())) is undefined |
+| `1RB2LB---_2LA2RB1LB` | `NONHALT_CPSH 3 6 26` | it halts after 37 steps, though expanding each member once stops at 26 members |
+| `1RB2LA1RA_1LB1LA1RC_---2LA2RB` | `NONHALT_CPSH 3 6 61` | a late halter of BBi(8)'s 3×3 cell, which halts after 11,597,631 steps, though expanding each member once stops at 61 members |
+| `1RB1RB_1LA---` | `NONHALT_CPSH 3 6 15` | it halts after 3 steps, though using the symbol's number modulo k as its base closes with 15 members |
+| `1RB1LB_1LA---` | `NONHALT_CPSH 3 6 11` | the BB(2) champion halts after 5 steps, though using the symbol's number modulo k as its base closes with 11 members |
+| `1RB1LA_1LA---` | `NONHALT_CPSH 3 6 4` | it halts after 4 steps, though reading every 0 of section 6 as the first symbol written closes with 4 members |
+
+A machine can have valid certificates at several n and H, and a checker accepts each of them. Four machines of the
+valid table, `0RB0LA---_1RC------_2LA---1RB`, `1RB2LC---_0LA---0RB_2LA------`, `1RB------_2LC---1RA_0RA0LC---` and
+`0RB---0LA_1LA2RC---_2RB------`, are the four machines of the cell (3, 3) at D = 5 that finite automata reduction
+decides in `z5_3x3`, and `1RB------_2LB2LA0RB` is the parent holdout of `x5_3x3` that RWL decides. The other seven are
+BBi(9) holdouts, one from each of the cells 2×7, 3×5, 5×3, 3×6, 2×5, 6×4 and 7×3, in the table's order. The 2×5
+holdout `1RB1LA4LB2RB3LB_2LA3LB0RA0LB---` is the largest control. At n = 5 and H = 12 its closure meets 347 symbols of
+M_H, the blank included, so symbol numbers do not fit in a byte, and C has 19,857 members, 143 below the limit. No
+other (n, H) with n from 1 to 5 and H from 1 to 12 closes it within 20,000 members.
+
+In its legacy order, the one a summary.json without `decider_order` (section 5) records, the producer tries
+NONHALT_CPSH when its first rung, n-gram CPS, RWL and finite automata reduction leave a machine UNKNOWN, before it
+runs the machine longer. A summary.json with `decider_order` names another order, and then the producer tries
+NONHALT_CPSH in that place instead. It tries the (n, H) of `cpsh_tries` in order, each with C capped at
+`cpsh_limit` members, and it writes the first certificate that closes. Producer 0.6.0 tries (3, 6), then (3, 12),
+then (5, 12), each capped at 20,000 members. Its tries, run on their own, give the first five machines of the valid
+table and the 2×7, 6×4 and 7×3 holdouts their certificates with (n, H) = (3, 6), the 3×5 and 5×3 holdouts theirs with
+(3, 12), and the 3×6 and 2×5 holdouts theirs with (5, 12), each with the c of the matching certificate in the table.
 
 **Corridor counts.** Walk with B = (0, 1, 3, 5, 16) for depths 0 to 4. The cells (4, 1), (2, 5), (3, 3) and (2, 2)
 at D = 4 then have 40, 42, 2,256 and 132 machines. With B = (0, 1, 3, 5, 16, 37), the cell (5, 1) at D = 5 has 96.
@@ -778,6 +1009,29 @@ the holdout lists equal `z5_3x3`'s, which are empty, every line of `amend.tsv` e
 and with no parent holdouts left the census rule holds, with the census count 35,848 and 35,848 cell machines, none of
 them late.
 
+**History n-gram CPS fixtures.** Fixtures `p5_3x3` and `q5_3x3` are the cell (3, 3) at D = 5 made by producer 0.6.0
+with finite automata reduction switched off. Each has 35,848 cell machines, none of them late, 11,224 claims, 0
+holdouts and 0 parent holdouts, and the `halter_digest` `53360f3d608bdd11` and the `top_halters` of `z5_3x3`. Their
+corridor counts are `z5_3x3`'s, but with NONHALT_FAR 0 at every depth and NONHALT_CPSH 4 at depth 5. Every claim
+equals `z5_3x3`'s for its text but those of the four machines that `z5_3x3` decides by NONHALT_FAR, which here are
+`NONHALT_CPSH 3 6 123` for `0RB0LA---_1RC------_2LA---1RB`, `NONHALT_CPSH 3 6 126` for
+`1RB2LC---_0LA---0RB_2LA------`, `NONHALT_CPSH 3 6 140` for `1RB------_2LC---1RA_0RA0LC---` and
+`NONHALT_CPSH 3 6 127` for `0RB---0LA_1LA2RC---_2RB------`. So `p5_3x3` and `q5_3x3` share the `claims_digest`
+`05cc358c70dca773`. Fixture `s5_3x3` is the same run as `p5_3x3` with history n-gram CPS switched off too. It has the
+same cell machines, claims count, `halter_digest` and `top_halters`, 4 holdouts and 0 parent holdouts. Its holdout
+list is `r5_3x3`'s, and every claim equals `r5_3x3`'s for its text, the four machines UNKNOWN, so its `claims_digest`
+is `r5_3x3`'s, `7c316136fa6ab2a1`.
+
+Fixture `t5_3x3` is fixture `s5_3x3` (format 5) amended by producer 0.6.0 with finite automata reduction switched
+off, so its `amend.json` has no `far_max_n` and has the `cpsh_tries` `"3:6,3:12,5:12"`. Its U has 4 machines, 0 at
+depth 4 and 4 at depth 5. The amendment proves all 4, NONHALT_CPSH at depth 5, so `amended` is 4 and `amend_digest`
+is `d6525be49e55ecbf`. It leaves 0 holdouts and 0 parent holdouts. Fixture `u5_3x3` is fixture `y5_3x3` (format 3)
+amended the same way, with the same U, the same lines and the same `amend_digest`. The producer tried history n-gram
+CPS alone on `t5_3x3`'s U, since its base was made by producer 0.6.0, and the whole ladder on `u5_3x3`'s, since its
+base was made by producer 0.3.0. In both, the holdout lists equal `p5_3x3`'s, which are empty, every line of
+`amend.tsv` equals `p5_3x3`'s claim for its text, and with no parent holdouts left the census rule holds, with the
+census count 35,848 and 35,848 cell machines, none of them late.
+
 The table of normal-form maps below gives, for each machine, the map of section 13 or `no map`. Its N column is the
 map's bound B_d, the most steps step 2 may run, and not the N of a `{bbi: N}` list.
 
@@ -788,22 +1042,22 @@ map's bound B_d, the most steps step 2 may run, and not the N of a `{bbi: N}` li
 | `1RB------_2LC---1RA_0RA0LC---` | 33 | `1RB------_2LC---1RA_0RA0LC---` | a 1RB-first holdout is its own map |
 | `1RB2LC---_0LA---0RB_2LA------` | 33 | `1RB2LC---_0LA---0RB_2LA------` | a 1RB-first holdout is its own map |
 | `0RB0LA---_1RC------_2LA---1RB` | 33 | `1RB------_2LC---1RA_0RA0LC---` | A1 and C0 target A, so A0 stays and runs again |
-| `0RB0LA---_1RC------_2LA---1RB` | 5 | no map | C2 first runs 6 steps from s |
+| `0RB0LA---_1RC------_2LA---1RB` | 5 | `1RB------_2LC------_0RA0LC---` | C2 has not run after 5 steps from s, so the map leaves it out |
 | `0RB---0LA_1LA2RC---_2RB------` | 33 | `1RB2LC---_0LA---0RB_2LA------` | the first move from s is L, so the map mirrors |
 | `0RB---_1LA---` | 3 | `1RB---_0LA---` | A0 runs again on the way to the halt |
-| `0RB---_1LA---` | 1 | no map | A0 first runs again 2 steps from s |
+| `0RB---_1LA---` | 1 | `1RB---` | A0 has not run again after 1 step from s, so the map leaves it out |
 | `0RA` | 1 | no map | the prefix enters A twice |
 | `0RB_0RC_0LA` | 5 | no map | the prefix enters A again |
 | `1RA---` | 1 | no map | the map would start `1RA` |
-| `0RB1LC_1LC1LA_1RB---` | 16 | no map | B1 targets A, but A0 never runs again |
+| `0RB1LC_1LC1LA_1RB---` | 16 | `1RB1RC_1LA---_---1RB` | A0 stays since B1 targets A, but it never runs again, so the map leaves it out |
 | `0RB------_1LC------_2RC2RB0LC` | 33 | `1RB------_2LB2LA0RB` | nothing targets A, so A0 drops |
-| `0RB------_1LC------_2RC2RB0LC` | 4 | no map | C2 first runs 5 steps from s |
+| `0RB------_1LC------_2RC2RB0LC` | 4 | `1RB------_2LB2LA---` | C2 has not run after 4 steps from s, so the map leaves it out |
 | `0RB---_0RC---_1LD---_1RC---` | 5 | `1RB---_1LA---` | A0 drops, and then B0 |
 | `0RB---_1LA1RC` | 5 | no map | an instruction into C, which owns nothing |
 | `0RB---_1LC0RB_0LD---_1LE---_1RF0LF_1LB1RA` | 2,655 | `1RB0LA_0RC---_1RD---_1LE0RE_1RA1LF_0LA---` | F1 targets A, so A0 stays |
-| `0RB---_1LC0RB_0LD---_1LE---_1RF0LF_1LB1RA` | 18 | no map | F0 first runs 19 steps from s |
+| `0RB---_1LC0RB_0LD---_1LE---_1RF0LF_1LB1RA` | 18 | `1RB0LA_0RC---_1RD---_1LE0RE_---1LF_0LA---` | F0 has not run after 18 steps from s, so the map leaves it out |
 | `0RB---_1LC0RB_0LD---_1LE---_0RE0LF_1RF1LB` | 2,655 | `1RB0LA_0RC---_1RD---_0LD0RE_1LE1RA` | nothing targets A, so A0 drops |
-| `0RB---_1LC0RB_0LD---_1LE---_0RE0LF_1RF1LB` | 9 | no map | B1 first runs 10 steps from s |
+| `0RB---_1LC0RB_0LD---_1LE---_0RE0LF_1RF1LB` | 9 | `1RB---_0RC---_1RD---_0LD0RE_1LE1RA` | B1 has not run after 9 steps from s, so the map leaves it out |
 | `1RB---_0RC0RB_0RD1LF_1LE---_0LE1RA_1LB---` | 2,655 | `1RB---_0RC0RB_0RD1LF_1LE---_0LE1RA_1LB---` | a 1RB-first survivor is its own map |
 
 The steps in the why column are counted from s, as step 2 of section 13 counts them. The first four machines of the
@@ -848,6 +1102,21 @@ fx-cell decides it, as a text of its `made_from` file that it does not list. `0R
 fx-cell's line, and its map `1RB------_2LC---1RA_0RA0LC---` is a line of fx-bb3x3 and of fx-bbi5, so nothing decides
 it.
 
+**Proven values.** The registry `checker/fixtures/lists/lists_proven.yaml` is the fixture registry with one more entry
+at its end, `fx-proven`, with the domain `{bbi: 5}`, the empty file `data/fx_off.txt`, `entries: 0`, `decides: true`
+and `proven: 1`. An import of `m5_3x3` from it has 4 lines, every one `NONHALT_PROVEN` naming `fx-proven`, with
+`import_digest` `de790c7198fd7c3a`, `never_halts` and `decided` 4 and 0 for fx-proven and 0 and 0 for every other
+list, and `holdouts` 0 and `parent_holdouts` 0. Each of the four maps has 5 instructions, so it lies in the domain,
+and the prefix is one step for the two 0RB-first holdouts and none for the others, so B_5 − p is 32 or 33, above 1.
+fx-proven is last in registry order and still named, since a proven value is named before a list. The holdout
+`0RB0LA---_1RC------_2LA---1RB`, which every list of the import above leaves open, would never halt by the
+fixture's made-up value of 1. With a registry of one empty `{bbi: 4}` list, fx-four, with `decides: true`, an import
+of `x5_3x3` gives `DECIDED_LIST` lines for the parent holdout `1RB------_2LB2LA0RB` and for the holdout of the
+table's row 12 and its twin, whose A0 drops, and a hand-written line naming fx-four for a five-pair holdout such as
+`1RB------_2LC---1RA_0RA0LC---` fails, since its pairs after step 1b, 5, exceed 4. With `proven: 0` on that entry the
+same three lines are `NONHALT_PROVEN`, and such a line for a five-pair holdout fails, since its map has 5
+instructions, more than 4.
+
 ## 11. Fixtures
 
 `checker/fixtures/` holds producer output for small cells, `d1_1x1`, `d4_3x3`, `d4_4x1`, `d5_3x3` and `d9_9x1`
@@ -873,15 +1142,26 @@ holds its base's `summary.json` and claims files, the `check.json` that checker 
 amendment, the amendment's `amend.json` and plain `amend.tsv`, and the amended holdout lists, which equal `z5_3x3`'s
 and are empty.
 
-A correct checker passes all of them, and passes `a5_3x3`, `b5_3x3`, `g5_3x3` and `h5_3x3` with `--amend` too. Its
-full check of those four skips the holdout lists. If one fails, the producer may be at fault, so report the failure
-rather than change the checker to agree.
+`p5_3x3` and `q5_3x3` are in format 5, made by producer 0.6.0 with finite automata reduction switched off. They hold
+the cell (3, 3) at D = 5, `p5_3x3` with a plain `claims.tsv` and `q5_3x3` with `claims.idx` at split depth 3. So the
+four machines that `z5_3x3` decides by NONHALT_FAR carry NONHALT_CPSH claims here, and each fixture has no holdouts.
+`s5_3x3` is the same run as `p5_3x3` with finite automata reduction and history n-gram CPS both switched off, in
+format 5 with a plain `claims.tsv`, and its four holdouts are those four machines. `t5_3x3` and `u5_3x3` are amended
+cells made by producer 0.6.0 with finite automata reduction switched off, from copies of `s5_3x3` (format 5, with a
+plain `claims.tsv`) and of `y5_3x3` (format 3, with `claims.idx`). So each amendment adds NONHALT_CPSH lines for
+those four machines. Each holds its base's `summary.json` and claims files, the `check.json` that checker 1.10's full
+check wrote before the amendment, the amendment's `amend.json` and plain `amend.tsv`, and the amended holdout lists.
+
+A correct checker passes all of them, and passes `a5_3x3`, `b5_3x3`, `g5_3x3`, `h5_3x3`, `t5_3x3` and `u5_3x3` with
+`--amend` too. Its full check of those six skips the holdout lists. If one fails, the producer may be at fault, so
+report the failure rather than change the checker to agree.
 
 `m5_3x3` holds an import (section 13). It is a copy of `y5_3x3` with the `check.json` that checker 1.4's full check
-wrote and a hand-made import of the registry `checker/fixtures/lists/lists.yaml`, whose hand-made list files are in
-`checker/fixtures/lists/data`. Section 10 gives the import's numbers. A correct checker passes `m5_3x3`, and passes it
-with `--import --lists checker/fixtures/lists/lists.yaml --data checker/fixtures/lists` too. If it fails, report the
-failure rather than change the checker to agree.
+wrote and an import of the registry `checker/fixtures/lists/lists.yaml` that the importer made, with `importer`
+`bbi9 imports 2.0`. The registry's hand-made list files are in `checker/fixtures/lists/data`. Section 10 gives the
+import's numbers. A correct checker passes `m5_3x3`, and passes it with
+`--import --lists checker/fixtures/lists/lists.yaml --data checker/fixtures/lists` too. If it fails, report the failure
+rather than change the checker to agree.
 
 ## 12. Amendments
 
@@ -920,25 +1200,30 @@ A JSON object. A checker uses these keys and ignores any others, and each of the
 - `format` is `"bbi9-amend/1"`.
 - `cell` is `[S, K]` and `depth` is D, as in summary.json.
 - `base_summary_sha256` is the SHA-256 hex of the bytes of the `summary.json` that the amendment was made from.
-- `claims_format` is `"bbi9-cell/2"`, `"bbi9-cell/3"` or `"bbi9-cell/4"`, and it is not older than summary.json's
-  `format` (the formats go from oldest to newest in the order 1, 2, 3, 4). It is the cell format of section 5 whose
-  certificates the lines of `amend.tsv` may use. Producer 0.4.0 writes `"bbi9-cell/3"`, and producer 0.5.0 writes
-  `"bbi9-cell/4"`.
+- `claims_format` is `"bbi9-cell/2"`, `"bbi9-cell/3"`, `"bbi9-cell/4"` or `"bbi9-cell/5"`, and it is not older than
+  summary.json's `format` (the formats go from oldest to newest in the order 1, 2, 3, 4, 5). It is the cell format of
+  section 5 whose certificates the lines of `amend.tsv` may use. Producer 0.4.0 writes `"bbi9-cell/3"`, producer
+  0.5.0 writes `"bbi9-cell/4"`, and producer 0.6.0 writes `"bbi9-cell/5"`.
 - `corridor` is a list of D + 1 objects. Entry d describes depth d and has the keys
   - `depth`, which is d
   - `NONHALT_CYCLER`, `NONHALT_TRANSLATED` and `NONHALT_CPS`, how many lines of `amend.tsv` at depth d have each
     verdict
-  - `NONHALT_RWL`, how many have that verdict, when `claims_format` is `"bbi9-cell/3"` or `"bbi9-cell/4"`. An entry
-    of a `"bbi9-cell/2"` amendment does not have this key.
-  - `NONHALT_FAR`, how many have that verdict, when `claims_format` is `"bbi9-cell/4"`. An entry of a
-    `"bbi9-cell/2"` or `"bbi9-cell/3"` amendment does not have this key.
+  - `NONHALT_RWL`, how many have that verdict, when `claims_format` is `"bbi9-cell/3"`, `"bbi9-cell/4"` or
+    `"bbi9-cell/5"`. An entry of a `"bbi9-cell/2"` amendment does not have this key.
+  - `NONHALT_FAR`, how many have that verdict, when `claims_format` is `"bbi9-cell/4"` or `"bbi9-cell/5"`. An entry
+    of a `"bbi9-cell/2"` or `"bbi9-cell/3"` amendment does not have this key.
+  - `NONHALT_CPSH`, how many have that verdict, when `claims_format` is `"bbi9-cell/5"`. An entry of a
+    `"bbi9-cell/2"`, `"bbi9-cell/3"` or `"bbi9-cell/4"` amendment does not have this key.
   - `UNKNOWN`, how many machines of U at depth d no line of `amend.tsv` names
 - `holdouts` and `parent_holdouts` count the machines of U that no line of `amend.tsv` names, at depth D and at
   depths below D.
 - `amended` is the number of lines of `amend.tsv`, and `amend_digest` is the digest (section 7) of those lines.
 
 The keys `producer`, `caps`, `tc_windows`, `threads` and `seconds` are for people to read. `caps` and `tc_windows` are
-summary.json's, which the producer used.
+summary.json's, which the producer used. amend.json may also carry, for people to read, the keys of section 5 that
+record the search settings, `tc_records` and the keys of the deciders, with the same meanings. Producer 0.6.0 writes
+`tc_records` from the base summary.json and each decider's keys for the settings it was given, leaving out the keys
+of a decider it was given switched off. A checker never uses these keys.
 
 ### The holdout lists of an amended cell
 
@@ -969,11 +1254,12 @@ after step 2 fails, is skipped.
    full check, so a cell without a passing one cannot be amended. check.json's `holdout_lists` may be either value or
    missing. The amendment check never repeats the full check.
 2. Read amend.json. Fail if it is missing or is not a JSON object, if one of the keys a checker uses is missing, if
-   `format` is not `"bbi9-amend/1"`, if `claims_format` is not `"bbi9-cell/2"`, `"bbi9-cell/3"` or `"bbi9-cell/4"`
-   or is older than summary.json's `format`, or if `cell` or `depth` differs from summary.json's. Fail if `corridor`
-   is not a list of D + 1 objects, entry d with `depth` d and the count keys above, `NONHALT_RWL` among them exactly
-   when `claims_format` is `"bbi9-cell/3"` or `"bbi9-cell/4"`, and `NONHALT_FAR` among them exactly when it is
-   `"bbi9-cell/4"`. Fail if `base_summary_sha256` is not the SHA-256 hex of the bytes of summary.json.
+   `format` is not `"bbi9-amend/1"`, if `claims_format` is not `"bbi9-cell/2"`, `"bbi9-cell/3"`, `"bbi9-cell/4"` or
+   `"bbi9-cell/5"` or is older than summary.json's `format`, or if `cell` or `depth` differs from summary.json's. Fail
+   if `corridor` is not a list of D + 1 objects, entry d with `depth` d and the count keys above, `NONHALT_RWL` among
+   them exactly when `claims_format` is `"bbi9-cell/3"`, `"bbi9-cell/4"` or `"bbi9-cell/5"`, `NONHALT_FAR` among them
+   exactly when it is `"bbi9-cell/4"` or `"bbi9-cell/5"`, and `NONHALT_CPSH` among them exactly when it is
+   `"bbi9-cell/5"`. Fail if `base_summary_sha256` is not the SHA-256 hex of the bytes of summary.json.
 3. Read every line of the claims file by the rules of section 5. That is `claims.tsv` if it exists, and otherwise
    `claims.tsv.gz`, all its gzip members in order. Fail if neither exists, or if `claims.idx` exists and so does
    `claims.tsv`. Count the lines and digest them (section 7, each line without its newline). Fail unless the count
@@ -982,19 +1268,27 @@ after step 2 fails, is skipped.
    UNKNOWN lines equals entry d's `UNKNOWN` in summary.json's `corridor`. The checker takes U from the claims file
    alone, never from the producer's lists or from amend.json. With `claims.idx` it may split this scan by gzip
    member, and the count and digest check what it read.
+   When the cell has neither `claims.tsv` nor `claims.tsv.gz`, this step runs instead. Fail unless check.json has
+   `unknown_digest` (section 9). U is the union of the texts of the cell's two lists of section 5 and the texts of the
+   lines of `amend.tsv`. Fail if a text is in two of those three files or does not parse. Fail unless the digest of U
+   (section 7, each text without a newline) equals `unknown_digest` and, at every depth d, the number of texts of U at
+   depth d equals entry d's `UNKNOWN` in summary.json's `corridor`.
 4. Read `amend.tsv`, or `amend.tsv.gz` when there is no `amend.tsv`. Fail if neither exists. Fail on each line that
    does not end with a newline, does not parse as a claims line (section 5), is UNKNOWN, has a text that is not in U
    or that an earlier line has, or does not come after the line before it in byte order. Fail on each line whose
    certificate is not valid by section 6, with the limits of step 3 of section 9 and with `claims_format` in place of
-   summary.json's `format`. So when `claims_format` is `"bbi9-cell/2"`, every NONHALT_RWL line fails, and when it is
-   `"bbi9-cell/2"` or `"bbi9-cell/3"`, every NONHALT_FAR line fails.
+   summary.json's `format`. So when `claims_format` is `"bbi9-cell/2"`, every NONHALT_RWL line fails, when it is
+   `"bbi9-cell/2"` or `"bbi9-cell/3"`, every NONHALT_FAR line fails, and when it is `"bbi9-cell/2"`, `"bbi9-cell/3"`
+   or `"bbi9-cell/4"`, every NONHALT_CPSH line fails.
 5. Count the lines of `amend.tsv` at each depth by verdict, and the machines of U at each depth that no line names.
    Fail unless amend.json's `corridor` entry d holds these numbers in `NONHALT_CYCLER`, `NONHALT_TRANSLATED`,
-   `NONHALT_CPS`, `NONHALT_RWL`, `NONHALT_FAR` and `UNKNOWN`. A `"bbi9-cell/2"` entry has no `NONHALT_RWL`, and its
-   NONHALT_RWL count is taken as 0. A `"bbi9-cell/2"` or `"bbi9-cell/3"` entry has no `NONHALT_FAR`, and its
-   NONHALT_FAR count is taken as 0. Fail unless `holdouts` and `parent_holdouts` equal the numbers of machines of U
-   that no line names at depth D and at depths below D, `amended` equals the number of lines, and `amend_digest`
-   equals their digest (section 7, each line without its newline).
+   `NONHALT_CPS`, `NONHALT_RWL`, `NONHALT_FAR`, `NONHALT_CPSH` and `UNKNOWN`. A `"bbi9-cell/2"` entry has no
+   `NONHALT_RWL`, and its NONHALT_RWL count is taken as 0. A `"bbi9-cell/2"` or `"bbi9-cell/3"` entry has no
+   `NONHALT_FAR`, and its NONHALT_FAR count is taken as 0. A `"bbi9-cell/2"`, `"bbi9-cell/3"` or `"bbi9-cell/4"`
+   entry has no `NONHALT_CPSH`, and its NONHALT_CPSH count is taken as 0. Fail unless `holdouts` and
+   `parent_holdouts` equal the numbers of machines of U that no line names at depth D and at depths below D,
+   `amended` equals the number of lines, and `amend_digest` equals their digest (section 7, each line without its
+   newline).
 6. Fail unless the holdout list `BBi{D}_{S}x{K}_holdouts_unofficial.txt` is exactly the texts of U at depth D that no
    line of `amend.tsv` names, sorted in byte order, each followed by a newline, and the parent holdout list
    `BBi{D}_{S}x{K}_parent_holdouts_unofficial.txt` is the same for the depths below D. A missing list fails. When no
@@ -1032,6 +1326,9 @@ shows that each newly proved machine was one of the UNKNOWN machines and has a v
 hold the rest. So every corridor machine is a checked halter, a checked non-halter or a listed holdout, as after a
 full run, and the census rule applies as it does there.
 
+Without the claims file, `unknown_digest` and the per-depth UNKNOWN counts, bound to summary.json by check.json's
+`summary_sha256`, fix U up to a digest collision, the trust the claims digest already carries.
+
 ### Producing and reproducing
 
 The producer reads the cell, the depth, `caps` and `tc_windows` from summary.json, and decides each machine of U
@@ -1043,20 +1340,42 @@ as the current amendment only when `amend.json` exists and its `base_summary_sha
 of summary.json, and otherwise ignores them as left over from another amendment. A producer that took the wrong U
 fails step 4, 5 or 6 of the amendment check, so this needs no trust.
 
+Producer 0.6.0 also reads `tc_records` from summary.json, 4,096 when it has none, and it takes the deciders' settings
+from its own command line. When it amends a base made by producer 0.5.0 or later, it does not run the machines of U
+step by step again, and of the four deciders of section 5 it tries on each of them only those that are switched on
+and whose settings the base does not record as the same. The base run already tried the others on that machine with
+those settings and left it UNKNOWN. It may also keep verbatim the lines of an earlier amendment of the same base by
+producer 0.5.0 or later whose lines match its `amend_digest`, and then try what is new only on the machines that
+amendment left. The checker checks every amended line the same way, whatever the producer tried or kept.
+
 The tree depends on no verdict but HALT, and the producer's verdict for a machine depends only on the machine and
 those settings. So a full rerun with the same producer gives the same holdout lists, and for each amended machine
 the same line. A machine the base run proved may get another certificate in a full rerun, so an amended cell's
 counts may split the non-halting verdicts differently from a full rerun's.
 
 An amendment's lines reproduce with the producer its own RUNS.md row names, run on the cell's full run, whose claims
-reproduce with the producer that the full run's row names (section 5). The control numbers of the four amended
+reproduce with the producer that the full run's row names (section 5). The claims file may be deleted after a passing full check and regenerated by the producer the RUNS.md row names, whose output is deterministic. The control numbers of the six amended
 fixtures are in section 10, and the fixtures themselves in section 11.
+
+### Backfilling unknown_digest
+
+`python bbi9check.py CELL_DIR --unknown-digest` adds `unknown_digest` to a check.json that passes and lacks it, with no
+census and no claims scan. It rests on the passing check having compared the holdout lists (section 9 step 4), or on
+the amendment check having compared them (steps 4 to 6), so the lists, and the lines of `amend.tsv` for an amended
+cell, are U. The command refuses unless check.json passes and its `summary_sha256` is that of summary.json. For an
+amended cell it also refuses unless `amend_check.json` passes and binds the same summary.json and amend.json, and for
+an unamended cell unless check.json's `holdout_lists` is `"checked"` or missing. It refuses when a text is in two
+files or does not parse, when the count of U at depth D or below D differs from the recorded one, or when check.json
+already has another `unknown_digest`. It prints `ADDED`, `KEPT` or `FAIL`, and it exits with 1 on `FAIL`. A full
+re-check gives the same key.
 
 ## 13. Imports from other people's lists
 
 An import marks the holdouts of a cell that other people's holdout lists decide, each line naming the list. A list's
 maker posted the machines they left open in some domain, so a holdout of ours whose form a covering list leaves out
-was decided by that maker, as a halter or as a non-halter, and nothing more is known. An import changes no claim,
+was decided by that maker, as a halter or as a non-halter. For such a `DECIDED_LIST` machine nothing more is known.
+An entry may also register the domain's proven value, and a holdout that has run past it gets the verdict
+`NONHALT_PROVEN`, which says that it never halts, by that registered value. An import changes no claim,
 count or list of sections 5 and 12. It adds one credited line for each such holdout and two shorter holdout lists
 beside our own, and the import check verifies every line from the cell, the registry and the list files alone.
 
@@ -1074,7 +1393,7 @@ others.
   - `{states: S, symbols: K}` is a BB(S,K) holdout list. It covers the cell (S′, K′) at any depth when S′ ≤ S and
     K′ ≤ K.
   - `{bbi: N}` holds the machines of N instructions that its maker left open, and their undecided machines of fewer
-    instructions. It covers every cell at depth N.
+    instructions. It covers every cell at depth N and above.
   - `{bbi: N, cell: SxK}`, with the cell written like `3x3`, is a list of one of our cells, made from our holdout
     file of that cell. It covers that cell at depth N.
 
@@ -1096,6 +1415,13 @@ others.
   by equivalence". Every entry with `decides: true` has one.
 - `made_from`, which every cell list with `decides: true` has, is the SHA-256 hex of the bytes of our holdout file of
   its cell that the maker ran on. Like `sha256` it may have capitals, and it is compared in lowercase.
+- `proven`, which a domain list may have, is the entry's proven value P, a whole number from 0 up, the most steps any
+  halting machine of the domain takes before it reads an undefined pair, in the count of section 1, and the domain's
+  value is proven to be P. For a classic value that counts the halting transition as a step, P is one less, as
+  `experiments/bbi/KNOWN.md` writes its rows. An entry with `proven` is a complete holdout list that is empty
+  (`entries: 0`, `decides: true`), since a proven value leaves nothing open, and its `complete` says so, though like
+  any other list it decides nothing unless `decides` is true. A YAML true
+  or false is not a whole number. A cell list never has `proven`, since a proven value is for a domain list.
 
 A list file is read as the list intake reads it. It is UTF-8 text, and a byte-order mark at its start is ignored.
 CRLF, LF and a bare CR each end a line, as in Python's universal newlines. Whitespace around a line is ignored and
@@ -1159,36 +1485,46 @@ order, whatever its first instruction.
   instruction writes a non-zero symbol, p = 0 and s = A.
 - **Step 1b.** The prefix pairs are the p pairs (q, 0) that step 1 executed. Drop a prefix pair (q, 0) from M while
   no remaining pair of M targets q, again and again until nothing more drops. The other pairs of a state whose 0-pair
-  drops stay. They can then never run, so step 2 gives no map. M′ is the pairs of M that remain.
+  drops stay. They can then never run, so step 2 leaves them out. M′ is the pairs of M that remain.
 - **Step 2.** From the configuration after p steps, which is the blank tape in state s, run M′ for at most B_d steps.
   Record the order in which pairs are first executed and the order in which states are first entered, s first. Stop as
-  soon as every pair of M′ has been executed once. If the run reads an undefined pair before that, or if some pair of
-  M′ has not been executed after B_d steps, M has no map.
+  soon as every pair of M′ has been executed once, and otherwise stop at the bound. The pairs that ran are U, in the
+  order of first use, and the pairs of M′ that did not run are its unused pairs. If the run reads an undefined pair,
+  M halts and has no map. If no pair ran, which happens only when B_d is 0, M has no map.
 - **Step 3.** Relabel. Each state gets the letter of its place in the order of first entry, so s becomes A. Symbols
   keep their digits. If the first move from s is L, swap every L and R.
-- **Step 4.** m(t) is the text of the relabelled table of M′, written as section 2 writes a text. A map whose first
+- **Step 4.** m(t) is the text of the relabelled table of U, written as section 2 writes a text. A map whose first
   instruction is not `1RB` does not exist, and then M has no map. In the tree the only would-be map this rules out is
   `1RA---`, the map of `1RA---` itself and of 0RB-first machines such as `0RB---_1RB---`, whose run after the prefix
   stays in s forever.
 
 For a machine whose first instruction writes a non-zero symbol, p = 0, s = A and nothing drops. Its states were first
 entered in the order of their letters on the path that built it in the tree, and its first move is R (section 3), so
-its map, when it has one, is t itself.
+its map, when it has one, is t less its unused pairs, and t itself when every pair ran.
 
-m(t) has the depth of t less the dropped pairs, so it may be a shorter machine than t. Where the rules below speak of
-the maker's node they use m(t)'s depth, and where they speak of ours they use t's. The prefixes of m(t) are the sets
-of its first j pairs in step 2's order, in m(t)'s letters, for j from 1 to m(t)'s depth less 1. Every line of a domain
-list must start with `1RB`, and so must every map. That is what a TNF-1RB list promises, and it rules out a list in
-some other labelling, which would match nothing and so decide everything.
+m(t) has the depth |U|, the depth of t less the dropped pairs and the unused ones, so it may be a shorter machine than
+t. The rules below also use |M′|, the number of pairs of M′ used or not, and p, the number of steps of the prefix.
+Where they speak of the maker's node they use m(t)'s depth, and where they speak of ours they use t's. The
+prefixes of m(t) are the sets of its first j pairs in step 2's order, in m(t)'s letters, for j from 1 to m(t)'s depth
+less 1. Every line of a domain list must start with `1RB`, and so must every map. That is what a TNF-1RB list
+promises, and it rules out a list in some other labelling, which would match nothing and so decide everything.
 
-**Why the map is sound.** Step 2 makes M′'s relabelled table a node of the community's tree, because each of its
-pairs is reached in first-use order from the TNF-1RB start. The maker's enumeration therefore saw exactly m(t) and
-either left it in the list or decided it. m(t)'s run is M's run after the prefix, so a verdict on one is a verdict on
-the other. If step 2 did not require every pair to run, a pair that the run from s never reaches within B_d steps but
-might reach later would be undefined in the maker's node. That shorter node might halt on that very pair after B_d
-steps, and its absence from the list would say nothing about M. So a holdout with no map is never decided by a domain
-list and stays in the counts. Step 1b is safe because a prefix state that no pair targets can never be entered again
-after the prefix, so its 0-pair can never run again. The run of M′ from s is the run of M from s.
+**Why the map is sound.** Let U = U_0 ⊂ U_1 ⊂ ... ⊂ U_j be the sets of pairs that M's run from s has used after
+step 2, after its next first use of a pair, and so on, with U_j the pairs it ever uses. Each U_i, relabelled by first
+entry from s, is a node of the community's tree, because each of its pairs is reached in first-use order from the
+TNF-1RB start. The labelling of U_0 is a prefix of each later one, so U_0 in U_j's letters is m(t). m(t)'s run is M's
+run after the prefix, and M halts exactly when U_j halts, since M never reads a pair outside U_j. For a complete list
+over a domain that holds every U_i, the maker listed m(t), a node above it or some U_i, or decided U_j. If the maker
+listed one of those, a kept line equals m(t), is a prefix of it or is a proper superset of it, and the equality,
+prefix and superset checks below refuse to decide M. If the maker decided U_j, M is decided. An
+unused pair that the run from s might reach after B_d steps is the case of a later U_i. U_0 might halt on that very
+pair after the bound, and then the maker expanded U_0, which is the case the superset rule already catches. For a
+proven value P over a domain that holds U_0, the full check ran M for B_d steps from the start without a halt, so
+U_0 ran for B_d − p steps from s. If B_d − p > P, U_0 has made more steps than any halting machine of the domain, so
+U_0 never halts, so M never reads a pair outside U_0, so M never halts, whatever its unused pairs. A holdout with no
+map is never decided by a domain list and stays in the counts. Step 1b is safe because a prefix state that no pair
+targets can never be entered again after the prefix, so its 0-pair can never run again. The run of M′ from s is the
+run of M from s.
 
 **Speaking our language.** Before a domain list decides anything in a cell, each of its kept lines in the cell's
 corridor is classified by our claims. The line's candidates are the texts of its subsets, the whole line included,
@@ -1222,15 +1558,26 @@ another list decides is still counted, which overcounts and is the safe side. No
 test, which is one run of at most B_d steps.
 
 **Which machines a list decides.** Take a list that covers the cell, has `decides: true` and speaks our language in
-the cell, and a machine t of V of depth d.
+the cell, and a machine t of V of depth d, with the bound B_d and, when t has a map, the prefix of p steps, m(t) and
+M′. A domain list with no lines always speaks, since it has no line of kind 4. A cell list speaks by the rule under
+**Cell lists** below, whatever its number of lines. The list gives t one of two verdicts, or none.
 
-- A domain list decides t when t has a map with the bound B_d, no kept line of the list equals m(t) or one of its
-  prefixes, and no kept line has a set of pairs that is a proper superset of m(t)'s. A `{states: S, symbols: K}` list
-  holds everything its maker left open in the whole domain, so it may decide t at every depth. A `{bbi: N}` list
-  decides t only when t and m(t) both have N instructions.
-- A cell list decides t when t is a text of the cell's current depth-D holdout list
+- A domain list with `proven` P gives t the verdict `NONHALT_PROVEN` when t has a map, m(t) lies in the list's
+  domain, and B_d − p > P. For a `{bbi: N}` list, m(t) lies in the domain when its depth is at most N. For a
+  `{states: S, symbols: K}` list it always does, since the list covers the cell and the pairs of m(t) are pairs of t.
+- A domain list, with `proven` or without, gives t the verdict `DECIDED_LIST` when t has a map, every machine of the
+  chain U_0 ⊂ ... ⊂ U_j lies in the list's domain, no kept line of the list equals m(t) or one of its prefixes, and
+  no kept line has a set of pairs that is a proper superset of m(t)'s. A `{states: S, symbols: K}` list holds
+  everything its maker left open in the whole domain, and the chain lies in it whenever the list covers the cell, so
+  it may decide t at every depth. For a `{bbi: N}` list the chain lies in the domain when |M′| ≤ N, since every U_i
+  is a subset of M′. So a `{bbi: N}` list may decide any machine of V with |M′| ≤ N, for example a parent
+  holdout of depth at most N, a parent holdout of depth d from N + 1 to D − 1 whose prefix drops at least d − N
+  pairs, and a depth-D holdout whose prefix drops at least D − N pairs.
+- A cell list gives t the verdict `DECIDED_LIST` when t is a text of the cell's current depth-D holdout list
   `BBi{D}_{S}x{K}_holdouts_unofficial.txt` and not a line of the list. So it never decides a parent holdout, and never
   a text that a later run added.
+
+A list decides t when it gives t either verdict.
 
 **Prefixes.** The maker's tree node for our machine may be a proper ancestor of m(t). If the list holds a prefix of
 m(t), the maker never expanded it, and m(t)'s absence says nothing.
@@ -1245,8 +1592,9 @@ language in the cell when `made_from`, in lowercase, is the SHA-256 hex of the b
 holdout list and every line is a text of that list. A machine with no map can be decided by a cell list, never by a
 domain list.
 
-**The first list.** When several lists decide a machine, its line names the first of them in registry order, so the
-import is a function of the registry and the list files.
+**The first list.** A machine's line names the first list in registry order that gives it `NONHALT_PROVEN`, with that
+verdict, or, when none does, the first that gives it `DECIDED_LIST`. A proven value is the stronger fact and is never
+hidden behind a list. So the import is a function of the registry and the list files.
 
 ### The files
 
@@ -1260,18 +1608,19 @@ in an amended cell, of section 12. Without an amendment V is the set of UNKNOWN 
 it is that set less the texts of `amend.tsv`.
 
 **import.tsv.** There is one line for each machine of V that some list decides, and there are no other lines. A line
-is `text<TAB>DECIDED_LIST<TAB>id`, where id is the registry `id` of the first list in registry order that decides the
-machine. The lines are sorted in byte order, every line ends with a newline, and no text is on two lines. An import
-that decides nothing has an empty `import.tsv`. The file may be `import.tsv.gz` instead, the gzip of the same bytes,
-read as `claims.tsv.gz` is (section 5), so it may hold several gzip members. If both exist, a checker reads
-`import.tsv`.
+is `text<TAB>NONHALT_PROVEN<TAB>id` or `text<TAB>DECIDED_LIST<TAB>id`, where the verdict and id, the registry `id` of a
+list, are those that the first-list rule above names for the machine. The lines are sorted in byte order, every line
+ends with a newline, and no text is on two lines. An import that decides nothing has an empty `import.tsv`. The file
+may be `import.tsv.gz` instead, the gzip of the same bytes, read as `claims.tsv.gz` is (section 5), so it may hold
+several gzip members. If both exist, a checker reads `import.tsv`.
 
-The verdict is `DECIDED_LIST` and not a non-halting one on purpose. The maker may have found the machine halting, past
-our bound, so a page says "decided", never "never halts", for these machines.
+The two verdicts say different things on purpose. A `DECIDED_LIST` machine may halt or never halt, since the maker may
+have found it halting past our bound, so a page says "decided", never "never halts", for these machines. A
+`NONHALT_PROVEN` machine never halts, by the domain's proven value.
 
 **import.json.** A JSON object. A checker uses these keys and ignores any others, and each of these keys is required.
 
-- `format` is `"bbi9-import/1"`.
+- `format` is `"bbi9-import/2"`.
 - `cell` is `[S, K]` and `depth` is D, as in summary.json.
 - `base_summary_sha256` is the SHA-256 hex of the bytes of the summary.json the import was made from, and
   `base_amend_sha256` that of its amend.json, or null when the cell has no amendment.
@@ -1280,7 +1629,9 @@ our bound, so a page says "decided", never "never halts", for these machines.
   (in lowercase), `entry_sha256`, `credit` and `label` of the entry, and `speaks`, which is true when the list speaks
   our language in the cell and false when it does not. A list that does not speak decides nothing.
 - `decided` maps every id of `lists` to `{"holdouts": h, "parent_holdouts": p}`, the numbers of lines of import.tsv
-  that name that id at depth D and at depths below D.
+  that name that id at depth D and at depths below D, with either verdict.
+- `never_halts` maps every id of `lists` to `{"holdouts": h, "parent_holdouts": p}`, the numbers of lines of
+  import.tsv with the verdict `NONHALT_PROVEN` that name that id at depth D and at depths below D.
 - `maker_holdouts` is `{"holdouts": h, "parent_holdouts": p}`, the kind 1 lines of the domain lists that speak,
   counted once per set of pairs, at depth D and below D. `maker_holdouts_by_list` maps every id of `lists` to the same
   counts for that list alone, which are 0 and 0 for a cell list and for a list that does not speak.
@@ -1290,8 +1641,8 @@ our bound, so a page says "decided", never "never halts", for these machines.
 - `imported` is the number of lines of import.tsv, and `import_digest` is the digest (section 7) of those lines, each
   without its newline.
 
-`decided`, `maker_holdouts_by_list` and `strangers` have exactly the ids of `lists` as keys, and every count object is
-exactly `{"holdouts": h, "parent_holdouts": p}`, with no other keys.
+`decided`, `never_halts`, `maker_holdouts_by_list` and `strangers` have exactly the ids of `lists` as keys, and every
+count object is exactly `{"holdouts": h, "parent_holdouts": p}`, with no other keys.
 
 The keys `importer`, `seconds`, `no_map` (how many machines of V have no map) and `kinds_by_list` (for each domain list
 of `lists`, how many of its kept lines in the corridor are of each kind, as `[k1, k2, k3, k4]`) are for people to read.
@@ -1322,27 +1673,35 @@ claims file serves steps 1 and 4.
    exists, fail unless amend_check.json exists, is a JSON object, passes, and has `summary_sha256` and
    `amend_sha256` equal to the SHA-256 hex of the bytes of summary.json and of amend.json. Read every line of the
    claims file, and fail unless it is bound to summary.json as step 3 of the amendment check binds it, by its count,
-   its digest and its UNKNOWN lines at each depth. V is the set of texts of the UNKNOWN lines. With an amendment, read
-   `amend.tsv`, or `amend.tsv.gz` when there is no `amend.tsv`. Fail if neither exists, if the number of its lines is
-   not amend.json's `amended`, or if their digest (section 7) is not its `amend_digest`, and take the texts of its
-   lines out of V. Fail unless the two holdout lists of section 5 are exactly the texts of V at depth D and at depths
-   below D, sorted in byte order, each followed by a newline, by recomputing them this way. A missing list fails. The
-   checker takes V from these files, never from the lists it is handed.
+   its digest and its UNKNOWN lines at each depth. V is the set of texts of the UNKNOWN lines. When the cell has
+   neither `claims.tsv` nor `claims.tsv.gz` and no kept line of a domain list in `lists` lies in the cell's corridor,
+   step 4 looks nothing up among the claims, and this step takes U as step 3 of the amendment check does without the
+   claims file, failing as it fails, from the cell's two lists of section 5 and, when amend.json exists, the texts of
+   the lines of `amend.tsv`. V is then the set of texts of U. Otherwise a missing claims file fails, so an import of a
+   cell whose claims were deleted needs them regenerated first when some list line lies in its corridor. With an
+   amendment, read `amend.tsv`, or `amend.tsv.gz` when there is no `amend.tsv`. Fail if neither exists, if the number
+   of its lines is not amend.json's `amended`, or if their digest (section 7) is not its `amend_digest`, and take the
+   texts of its lines out of V. Fail unless the two holdout lists of section 5 are exactly the texts of V at depth D
+   and at depths below D, sorted in byte order, each followed by a newline, by recomputing them this way. A missing
+   list fails. The checker takes V from these files, never from the lists it is handed.
 2. Read import.json. Fail if it is missing or is not a JSON object, if a key a checker uses is missing, if `format`
-   is not `"bbi9-import/1"`, or if `cell` or `depth` differs from summary.json's. Fail if `base_summary_sha256` is
+   is not `"bbi9-import/2"`, or if `cell` or `depth` differs from summary.json's. Fail if `base_summary_sha256` is
    not the SHA-256 hex of the bytes of summary.json, or if `base_amend_sha256` is not the SHA-256 hex of the bytes of
    amend.json, or null when there is no amend.json.
-3. Read the registry with PyYAML's `yaml.safe_load`, the one thing outside the standard library in the whole checker.
+3. Read the registry with PyYAML's `yaml.safe_load`, the one thing outside the standard library in the whole Python
+   checker.
    Fail if the file is missing or `yaml.safe_load` cannot read it, if it is not a sequence of mappings, if an entry's
-   `decides` is present and neither true nor false, or if an entry with `decides: true` lacks one of `id`, `label`,
-   `credit`, `domain`, `file`, `sha256`, `entries` and `complete`, has a `complete` that is empty or not a string, has
-   a domain of none of the three forms, shares its `id` with another such entry, or is a cell list without
-   `made_from`. Fail, naming the entry, if one that has `decides: true` and covers the cell has no JSON for its
-   `entry_sha256`. Fail unless `lists` holds exactly the entries with `decides: true` that cover the cell, in registry
-   order, each an object with exactly the entry's `id`, `credit`, `label` and `sha256` in lowercase, its
-   `entry_sha256` and `speaks`. For each of these lists, read its file below `--data`, gunzipped when its name ends in
-   `.gz`. Fail if the file is missing, if its SHA-256 hex is not the entry's `sha256`, if it has a
-   line of a form that the reading rules above do not allow, or if its number of non-blank lines is not `entries`.
+   `decides` is present and neither true nor false, if an entry's `proven` is present and is not a whole number from 0
+   up, if an entry has `proven` and `entries` other than 0, if a cell list has `proven` (a proven value is for a
+   domain list), or if an entry with `decides: true` lacks one of `id`, `label`, `credit`, `domain`, `file`, `sha256`,
+   `entries` and `complete`, has a `complete` that is empty or not a string, has a domain of none of the three forms,
+   shares its `id` with another such entry, or is a cell list without `made_from`. Fail, naming the entry, if one
+   that has `decides: true` and covers the cell has no JSON for its `entry_sha256`. Fail unless `lists` holds exactly
+   the entries with `decides: true` that cover the cell, in registry order, each an object with exactly the entry's
+   `id`, `credit`, `label` and `sha256` in lowercase, its `entry_sha256` and `speaks`. For each of these lists, read
+   its file below `--data`, gunzipped when its name ends in `.gz`. Fail if the file is missing, if its SHA-256 hex is
+   not the entry's `sha256`, if it has a line of a form that the reading rules above do not allow, or if its number of
+   non-blank lines is not `entries`.
    For a domain list, fail on each line that does not parse, whose first instruction, at (A, 0), is not `1RB`, that
    has a `Z` or targets a letter past its rows plus one (a line of r rows may target the first r + 1 letters), that
    targets a state at or past S or writes a symbol at or past K in a `{states: S, symbols: K}` list, or that has more
@@ -1361,19 +1720,24 @@ claims file serves steps 1 and 4.
    cell list and for a list that does not speak.
 5. Read `import.tsv`, or `import.tsv.gz` when there is no `import.tsv`. Fail if neither exists. Fail on each line
    that does not end with a newline, does not have exactly three fields separated by TAB, has a verdict other than
-   `DECIDED_LIST`, names an id that is not in `lists` or one whose `speaks`, as step 4 computes it, is false, has a
-   text that is not in V or that an earlier line has, or does not come after the line before it in byte order. Fail
-   on each line whose list may not decide the text's depth, that is a `{bbi: N}` list and a text of fewer than N
-   instructions, or a cell list and a parent holdout. For a cell list, fail unless the text is a text of the cell's
-   depth-D holdout list and not a line of the list. For a domain list, compute m(text) with the bound B_d, d the
-   text's depth, and fail if the machine has no map, if its map does not start `1RB`, or, for a `{bbi: N}` list, if
-   its map does not have N instructions. Fail if a kept line of the list equals m(text) or one of its prefixes, or if
-   a kept line's set of pairs is a proper superset of m(text)'s. Fail if a list earlier in registry order that speaks
-   would also decide the machine, since the line must name the first.
+   `DECIDED_LIST` and `NONHALT_PROVEN`, names an id that is not in `lists` or one whose `speaks`, as step 4 computes
+   it, is false, has a text that is not in V or that an earlier line has, or does not come after the line before it
+   in byte order. Fail on each line that gives `NONHALT_PROVEN` and names a cell list or a list without `proven`. For
+   a cell list, fail unless the text is a text of the cell's depth-D holdout list and not a line of the list, so a
+   parent holdout fails. For a domain list, compute m(text) with the bound B_d, d the text's depth, with p and |M′|,
+   and fail if the machine has no map or its map does not start `1RB`. For the verdict `NONHALT_PROVEN`, fail unless
+   m(text) lies in the list's domain, which for a `{bbi: N}` list means at most N instructions, and unless
+   B_d − p > P for the list's proven value P. For the verdict `DECIDED_LIST`, fail if the list is a `{bbi: N}` list and
+   |M′| > N, if a kept line of the list equals m(text) or one of its prefixes, or if a kept line's set of pairs is a
+   proper superset of m(text)'s. Fail if a list earlier in registry order that speaks would give the machine the
+   line's verdict, and fail a `DECIDED_LIST` line if any list that speaks would give the machine `NONHALT_PROVEN`,
+   since the line must name what the first-list rule names.
 6. Count. Fail unless `decided` maps every id of `lists`, and no other key, to the numbers of lines that name it at
-   depth D and at depths below D, unless `holdouts` and `parent_holdouts` are the numbers of machines of V that no
-   line names at depth D and at depths below D, unless `imported` is the number of lines, and unless `import_digest`
-   is their digest (section 7, each line without its newline).
+   depth D and at depths below D, unless `never_halts` maps every id of `lists`, and no other key, to the numbers of
+   lines with the verdict `NONHALT_PROVEN` that name it at depth D and at depths below D, unless `holdouts` and
+   `parent_holdouts` are the numbers of machines of V that no line names at depth D and at depths below D, unless
+   `imported` is the number of lines, and unless `import_digest` is their digest (section 7, each line without its
+   newline).
 7. Fail unless the two after-lists files are exactly the texts of V that no line of import.tsv names, at depth D and
    at depths below D, sorted in byte order, each followed by a newline. A missing file fails, and when no text is
    left the file is empty.
@@ -1394,9 +1758,9 @@ amend.json), check.json is trusted for the same summary.json (section 9), and am
 files when amend.json exists (section 12). import.json's `lists` must also carry `entry_sha256` for each entry, and
 the sequence of its pairs `(id, entry_sha256)` must equal that of the registry's current entries with `decides: true`
 that cover the cell, in registry order. So turning `decides` off, adding a list, reordering those lists, which
-can change the list that must name a machine in step 5, or changing a list's `domain`, `made_from` or `complete` hides
-the import at once, before it is made again. A cell with import.json and no such trusted check counts as having
-no import, never as unchecked, because an import is a layer on top of the cell.
+can change the list that must name a machine in step 5, or changing a list's `domain`, `made_from`, `complete` or
+`proven` hides the import at once, before it is made again. A cell with import.json and no such trusted check counts
+as having no import, never as unchecked, because an import is a layer on top of the cell.
 
 ### Why this is enough
 
@@ -1409,9 +1773,12 @@ that defines a pair reading a symbol at or past K or a pair of a state at or pas
 such a pair, so the line is a machine of the domain with a pair added, and a listed prefix of a machine's map hidden
 in it would let that machine count as decided. Step 4 shows that the list and our tree agree on every machine both
 could hold, which is what makes absence from the list mean something, and it counts the maker's undecided machines
-that our tree never reached. Step 5 shows that each imported machine is a TNF-1RB node (it has a map) that the maker's
-enumeration reached (no prefix of it is listed) and left out of their list. What the check cannot see is whether the
-file is the maker's whole list, with no pair filled in by convention, which `complete` asserts and the page states.
-Only `complete` is taken on trust. The cell's own numbers are untouched, and the after-lists numbers say which
-machines no one has left open. An import that leaves out a machine some list decides still passes, since that machine
-then stays in the after-lists counts, which is the safe side.
+that our tree never reached. Step 5 shows that each `DECIDED_LIST` machine is a TNF-1RB node (it has a map) that the
+maker's enumeration reached (no prefix of it is listed) and left out of their list. For each `NONHALT_PROVEN` line it
+shows that m(t) lies in the entry's domain and ran B_d − p steps from s, more than the entry's proven value. What the
+check cannot see is whether the file is the maker's whole list, with no pair filled in by convention, which `complete`
+asserts and the page states, and whether the entry's proven value is right. `complete` and `proven` are taken on
+trust. A wrong `proven` makes every `NONHALT_PROVEN` line of its entry unsound, which is why it is a registry key
+beside the credit, where anyone can see it and its source. The cell's own numbers are untouched, and the after-lists
+numbers say which machines no one has left open. An import that leaves out a machine some list decides still passes,
+since that machine then stays in the after-lists counts, which is the safe side.

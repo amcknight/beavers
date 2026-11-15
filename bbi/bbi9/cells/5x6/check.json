@@ -1,0 +1,65 @@
+{
+  "format": "bbi9-check/1",
+  "checker": "bbi9check 1.10 core",
+  "cell": [
+    5,
+    6
+  ],
+  "depth": 9,
+  "pass": true,
+  "failures": [],
+  "cell_machines": 88029374148,
+  "census": 88029374148,
+  "late_cell_machines": 0,
+  "census_match": null,
+  "holdouts": 3,
+  "parent_holdouts": 1,
+  "holdout_lists": "checked",
+  "top_halters": [
+    {
+      "machine": "1RB------5RE3RA0LA_2LC---------------_---3RD------------_------4RE---------_3LA------5RA------",
+      "steps": 2311
+    },
+    {
+      "machine": "1RB---4LD5RC---0LA_2RC---------------_3LA------5RA------_---3RE------------_------------3RA---",
+      "steps": 2297
+    },
+    {
+      "machine": "1RB---------------_2RC---------------_3RD------3RC------_3LD---4RC0RD0LE---_---5RB------------",
+      "steps": 1362
+    },
+    {
+      "machine": "1RB---------------_2RC---2RB---------_2LC3RB0RC4LD------_5RE---------------_------------1RB---",
+      "steps": 1361
+    },
+    {
+      "machine": "1RB---------------_2RC---------------_3RD------3RC------_3RE---------------_3LE---4RC0RE5RC---",
+      "steps": 795
+    },
+    {
+      "machine": "1RB---------------_2RC---2RB---------_2RD---------------_2LD3RB0RD4RE------_------5RB---------",
+      "steps": 725
+    },
+    {
+      "machine": "1RB---------------_2LC---------------_---3LD------------_0LE------4RD------_3RE---5LE4LE0LD---",
+      "steps": 715
+    },
+    {
+      "machine": "1RB---------------_2RC---------------_3RD---------------_0RE------4LD------_3LE---5RE4RE0RD---",
+      "steps": 715
+    },
+    {
+      "machine": "1RB---------------_2RC---2RB---------_2RD---------------_2LD3RE0RD---5RB---_------4RB---------",
+      "steps": 629
+    },
+    {
+      "machine": "1RB---------------_2RC---------------_0RD------3RC------_3LD---4RC0RD0LE---_---5RB------------",
+      "steps": 624
+    }
+  ],
+  "halter_digest": "50839e3f36fb00fb",
+  "claims_digest": "cf2fe2735bab3fac",
+  "unknown_digest": "9231badb80640b36",
+  "seconds": 2979.773,
+  "summary_sha256": "740793914f88e5c8628e3c19ff942f36b627427c70ef8b4ebd4045758efbc0f4"
+}

@@ -14,11 +14,16 @@
   --rule: #e2ddd3;
   --link: #1f5fa8;
   --panel: #ffffff;
-  --irr: #33295c;
-  --irr-ink: #f3f0ff;
   --open: #f2c96b;
   --open-ink: #3a2a00;
   --big-ink: #6b5200;
+  --opl: #ee9a58;
+  --opl-ink: #3d1800;
+  --opl-big: #8a3600;
+  --lst: #cfe4eb;
+  --lst-ink: #1d3d4a;
+  --prv: #e4d9f0;
+  --prv-ink: #3b2a52;
   --res: #dcebd8;
   --res-ink: #2c4a28;
   --ns-ink: #77726a;
@@ -32,11 +37,16 @@
     --rule: #33312c;
     --link: #8db6ee;
     --panel: #1b1b19;
-    --irr: #b8acf2;
-    --irr-ink: #1a1530;
     --open: #c4952f;
     --open-ink: #1f1600;
     --big-ink: #dcae45;
+    --opl: #c06a2c;
+    --opl-ink: #140700;
+    --opl-big: #ec9a62;
+    --lst: #1f3a42;
+    --lst-ink: #b3d7e2;
+    --prv: #342a45;
+    --prv-ink: #d8c9ec;
     --res: #223520;
     --res-ink: #b6d8ae;
     --ns-ink: #8f8a81;
@@ -86,41 +96,40 @@ td.cell span { display: block; }
 .cell a { color: inherit; text-decoration-thickness: 1px; text-underline-offset: 2px; }
 .cell .steps a { font-weight: 700; }
 .cell sup { font-size: 0.75em; line-height: 0; }
+.detail.parents, .sample.parents { border-left: 2px solid currentColor; padding-left: 0.25rem; }
+.swatch.sample { width: auto; min-width: 1rem; font-size: 0.74rem; line-height: 1rem; }
 .o { display: inline-block; width: 0.78em; height: 0.78em; border: 1.6px solid currentColor; border-radius: 50%;
      vertical-align: -0.06em; margin-right: 0.12em; }
 .vh { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden;
       clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
-.cell.irreducible { background: var(--irr); color: var(--irr-ink); }
 .cell.open { background: var(--open); color: var(--open-ink); }
+.cell.open-lists { background: var(--opl); color: var(--opl-ink); }
+.cell.lists { background: var(--lst); color: var(--lst-ink); }
+.cell.proven { background: var(--prv); color: var(--prv-ink); }
 .cell.too-big { background: var(--panel); color: var(--big-ink); box-shadow: inset 0 0 0 2px var(--open); }
+.cell.open-lists.too-big { box-shadow: inset 0 0 0 2px var(--opl); color: var(--opl-big); background: var(--panel); }
 .cell.resolved { background: var(--res); color: var(--res-ink); }
 .cell.not-started { background: var(--panel); color: var(--ns-ink); box-shadow: inset 0 0 0 1px var(--ns-line); }
 .cell.champion { box-shadow: 0 0 0 2px #fff, 0 0 0 3px var(--ink); }
 .cell.too-big.champion { box-shadow: inset 0 0 0 2px var(--open), 0 0 0 2px #fff, 0 0 0 3px var(--ink); }
+.cell.open-lists.too-big.champion { box-shadow: inset 0 0 0 2px var(--opl), 0 0 0 2px #fff, 0 0 0 3px var(--ink); }
 .cell.not-started.champion { box-shadow: inset 0 0 0 1px var(--ns-line), 0 0 0 2px #fff, 0 0 0 3px var(--ink); }
 .cell.running { outline: 3px solid var(--link); outline-offset: -3px; }
 .legend { display: flex; flex-wrap: wrap; gap: 0.4rem 1.3rem; margin: 0.9rem 0 0.4rem; font-size: 0.88rem; }
 .legend .key { display: inline-flex; align-items: center; gap: 0.45rem; }
 .legend .sym { display: inline-block; min-width: 1rem; text-align: center; }
 .swatch { display: inline-block; width: 1rem; height: 1rem; border-radius: 3px; }
-.swatch.irreducible { background: var(--irr); }
 .swatch.open { background: var(--open); }
+.swatch.open-lists { background: var(--opl); }
+.swatch.lists { background: var(--lst); }
+.swatch.proven { background: var(--prv); }
 .swatch.too-big { background: var(--panel); box-shadow: inset 0 0 0 2px var(--open); }
+.swatch.open-lists.too-big { background: var(--panel); box-shadow: inset 0 0 0 2px var(--opl); }
 .swatch.resolved { background: var(--res); }
 .swatch.not-started { background: var(--panel); box-shadow: inset 0 0 0 1px var(--ns-line); }
 .swatch.champion { background: var(--panel); box-shadow: 0 0 0 2px #fff, 0 0 0 3px var(--ink); }
 .swatch.running { background: var(--panel); outline: 3px solid var(--link); outline-offset: -3px; }
 .note { color: var(--muted); font-size: 0.88rem; }
-.reasons { margin: 0; }
-.reasons > div {
-  display: grid;
-  grid-template-columns: 3rem 1fr;
-  gap: 0.2rem 1rem;
-  padding: 0.6rem 0;
-  border-top: 1px solid var(--rule);
-}
-.reasons dt { font-weight: 700; }
-.reasons dd { margin: 0; }
 .claims-head { margin: 0.6rem 0 0.2rem; font-size: 0.85rem; color: var(--muted); }
 .claims { margin: 0.3rem 0 0; padding: 0; list-style: none; }
 .claims li { margin: 0.4rem 0; padding-left: 0.7rem; border-left: 2px solid var(--rule); }
@@ -129,6 +138,11 @@ td.cell span { display: block; }
 .claims code { overflow-wrap: anywhere; }
 .credits { padding-left: 1.2rem; }
 footer { margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--rule); color: var(--muted); font-size: 0.85rem; }
+.cell .steps a { font-weight: inherit; }
+.lvl-proven { font-weight: 700; }
+.lvl-verified { font-weight: 400; }
+.lvl-claimed { font-weight: 400; opacity: 0.72; }
+.lvl-conjectured { font-style: italic; opacity: 0.72; }
 :root {
   --sym0: #7d7d7d;
   --sym1: #0f67e0;
@@ -252,6 +266,7 @@ table.runs { border-collapse: collapse; font-size: 0.85rem; margin: 0.4rem 0; }
 <p class="back"><a href="../../index.html">BBi(3), cell by cell</a></p>
 <section>
 <h2 id="champion">Champion</h2>
+<p class="longest">The longest known halter runs <span class="lvl-proven">5</span> steps, proven, Tibor Radó.</p>
 <p>Tibor Radó found the longest known run, 5 steps†, as the <a href="https://wiki.bbchallenge.org/wiki/Instruction-Limited_Busy_Beaver">bbchallenge wiki</a> records.</p>
 <p><code class="m">0RB---_<wbr>1LA1RB</code> halts after <b>5 steps</b>.</p>
 <p>One of 5 machines in the top 10 with this many steps.</p>
@@ -305,6 +320,7 @@ table.runs { border-collapse: collapse; font-size: 0.85rem; margin: 0.4rem 0; }
 <p><a href="https://drive.google.com/file/d/1-Fnexjfq0mWyZDPa2MNFmU64EpSu-3Ig/view">XnoobSpeakable</a>'s BB(3,4) holdout list (2026-05-11) leaves none of this cell's machines open.</p>
 <p><a href="https://drive.google.com/file/d/1xHukBgJnm1zctZkOMR0UzdQyzr4Fx5pC/view">Andrew Ducharme</a>'s BB(4,3) holdout list (2026-05-09) leaves none of this cell's machines open.</p>
 <p><a href="https://wiki.bbchallenge.org/wiki/BB(3,3)#Holdouts">mxdys</a>'s BB(3,3) holdout list (2025-08-27) leaves none of this cell's machines open.</p>
+<p><a href="https://wiki.bbchallenge.org/wiki/Champions">the bbchallenge wiki's Champions page</a>'s BB(5,2) holdout list (2026-11-11) leaves none of this cell's machines open.</p>
 <p>These are other people's lists. They do not change this cell's status or counts.</p>
 </section>
 <section>

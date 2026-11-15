@@ -1,13 +1,13 @@
 {
-  "format": "bbi9-import/1",
-  "importer": "bbi9 imports 1.0",
+  "format": "bbi9-import/2",
+  "importer": "bbi9 imports 2.0",
   "cell": [
     2,
     5
   ],
   "depth": 8,
   "base_summary_sha256": "7839344fe8bcdaf24128b4368c14013f49ef984ad41d356849cf1773042d8e9b",
-  "base_amend_sha256": null,
+  "base_amend_sha256": "70620674377f072b631b6bf0a293155389580e9f2ee8f142dab6f390199ed1e9",
   "lists": [
     {
       "id": "bbi8-2026-10-25",
@@ -24,16 +24,58 @@
       "credit": "Terry Ligocki, 2025-10-06",
       "label": "BB(2,6)",
       "speaks": true
+    },
+    {
+      "id": "bbi7-proven",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "entry_sha256": "0a36b7599287ab87e377fa2c2d63643781997ceac8b6499778a4e3f3cfb9ec74",
+      "credit": "the bbchallenge wiki's Instruction-Limited Busy Beaver page, 2026-11-02",
+      "label": "BBi(7)",
+      "speaks": true
+    },
+    {
+      "id": "bbi8-2026-11-14",
+      "sha256": "21b13914a549df1f58ad28e223f517f8835a6963efa53e8cc2e1fd4c6d04283d",
+      "entry_sha256": "40010e461916a2ef7c03dab524b5c7c822917ed3ddd9179a5e2ae1004fabd6ed",
+      "credit": "Andrew McKnight, 2026-11-14",
+      "label": "BBi(8)",
+      "speaks": true
     }
   ],
   "decided": {
     "bbi8-2026-10-25": {
-      "holdouts": 1565,
+      "holdouts": 28,
       "parent_holdouts": 0
     },
     "bb2x6-2025-10-06": {
       "holdouts": 0,
-      "parent_holdouts": 42
+      "parent_holdouts": 0
+    },
+    "bbi7-proven": {
+      "holdouts": 0,
+      "parent_holdouts": 0
+    },
+    "bbi8-2026-11-14": {
+      "holdouts": 0,
+      "parent_holdouts": 0
+    }
+  },
+  "never_halts": {
+    "bbi8-2026-10-25": {
+      "holdouts": 0,
+      "parent_holdouts": 0
+    },
+    "bb2x6-2025-10-06": {
+      "holdouts": 0,
+      "parent_holdouts": 0
+    },
+    "bbi7-proven": {
+      "holdouts": 0,
+      "parent_holdouts": 0
+    },
+    "bbi8-2026-11-14": {
+      "holdouts": 0,
+      "parent_holdouts": 0
     }
   },
   "maker_holdouts": {
@@ -48,16 +90,26 @@
     "bb2x6-2025-10-06": {
       "holdouts": 0,
       "parent_holdouts": 0
+    },
+    "bbi7-proven": {
+      "holdouts": 0,
+      "parent_holdouts": 0
+    },
+    "bbi8-2026-11-14": {
+      "holdouts": 0,
+      "parent_holdouts": 0
     }
   },
   "strangers": {
     "bbi8-2026-10-25": 0,
-    "bb2x6-2025-10-06": 0
+    "bb2x6-2025-10-06": 0,
+    "bbi7-proven": 0,
+    "bbi8-2026-11-14": 0
   },
   "holdouts": 0,
   "parent_holdouts": 0,
-  "imported": 1607,
-  "import_digest": "5a711b7209901c31",
+  "imported": 28,
+  "import_digest": "68039a4bc3ffbd31",
   "no_map": 0,
   "kinds_by_list": {
     "bbi8-2026-10-25": [
@@ -71,7 +123,19 @@
       20,
       0,
       0
+    ],
+    "bbi7-proven": [
+      0,
+      0,
+      0,
+      0
+    ],
+    "bbi8-2026-11-14": [
+      0,
+      0,
+      0,
+      0
     ]
   },
-  "seconds": 2.554
+  "seconds": 2.751
 }
