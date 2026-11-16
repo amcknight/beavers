@@ -87,7 +87,8 @@ lines. `merged_and_dropped.tsv` gives each merged or dropped machine with its st
 
 ## Found a halter, a proof or a decider?
 
-Send it to CONTACT.
+Post it in the bbchallenge Discord and mention mangort, or open an issue on
+[this repository](https://github.com/amcknight/beavers/issues).
 
 - For a halter within reach of simulation, the machine in standard text and its step count. It is confirmed by
   direct simulation before it leaves the list.
