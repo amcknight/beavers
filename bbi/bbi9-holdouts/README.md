@@ -77,7 +77,7 @@ lines. `merged_and_dropped.tsv` gives each merged or dropped machine with its st
   `1RB---------_0RC2RB3LB1LB_2LA1RC---3RB`, is hipparcos's machine, accepted as halting after about 2.58×10^31
   steps. It stands in for its 9-instruction extensions, which are not yet listed.
 - Two BBi(8) machines, `1RB1LC2LA---_2RC---------_0LA2RC3LC1RC` and `1RB---2LC3LA_2LC---------_0LA2RC3RC1LC`, are
-  treated as non-halting on a Rocq proof (LINK-TO-ROCQ-PROOF).
+  treated as non-halting on a [Rocq proof](https://github.com/amcknight/beavers/tree/main/bbi8).
 - Most lines, 25,939 of them, lie in cells with no community list to cross-check against, every cell other than 2x5,
   2x6, 3x3, 3x4 and 4x3.
 - The bbchallenge wiki reports smaller holdout counts for BB(2,6) and BB(4,3). Their files are not posted, so they are
@@ -89,8 +89,11 @@ lines. `merged_and_dropped.tsv` gives each merged or dropped machine with its st
 
 Send it to CONTACT.
 
-- For a halter, the machine in standard text and its exact step count. Every halter is confirmed by direct simulation
-  before it leaves the list.
+- For a halter within reach of simulation, the machine in standard text and its step count. It is confirmed by
+  direct simulation before it leaves the list.
+- For a halter far beyond simulation, the machine and whatever shows that it halts, such as an accelerated
+  simulator's output, a closed-form rule or a proof. A bound or an estimate of the step count is enough. It leaves
+  the list marked as accepted on that evidence, with the evidence linked.
 - For a non-halter, a certificate or a link to a proof.
 - For a decider or a holdout list of your own, the list file in the standard text format, one machine per line.
 
