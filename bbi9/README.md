@@ -107,8 +107,8 @@ from it alone, in Python with the standard library (its import check also reads 
 run files, its claims and summary, which are not part of this folder. Without its optional compiled core it walks every
 cell in Python, and its `--gpu` option needs code that is not published.
 
-The tables of every BBi cell are at [amcknight.ca/beavers/bbi](../index.html), and BBi(9)'s at
-[its own page](../bbi9/index.html).
+The tables of every BBi cell are at [amcknight.ca/beavers/bbi](../bbi/index.html), and BBi(9)'s at
+[its own page](../bbi/bbi9/index.html).
 
 ## Files
 
